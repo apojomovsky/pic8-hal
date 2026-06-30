@@ -42,11 +42,10 @@ int main(void)
     pic16f87xa_sim_drive_eeprom_byte(0x42U, 0xA5U);
     uint8_t r = HAL_EEPROM_ReadByte(0x42U);
     CHECK(r == 0xA5U, "Read 0x42 returned wrong value");
-    /* EEADR was 0x42 (Bank 2, 0x0D). */
     CHECK(b_read(2, 0x0DU) == 0x42U, "EEADR != 0x42 after read");
     /* RD is set by the read and clears on the next instruction
-     * cycle. The sim doesn't model that yet, so we just verify the
-     * bit was set, not that it cleared. */
+     * cycle (DS39582B §3.5); the sim backend does not model the
+     * auto-clear, so the test only verifies the bit was set. */
     CHECK((b_read(3, 0x18CU) & 0x01U) == 0x01U, "RD not set after read");
 
     /* 2. Write: do the unlock sequence. */
@@ -69,16 +68,17 @@ int main(void)
     uint8_t data[3] = { 0x11, 0x22, 0x33 };
     PIC16F87XA_StatusTypeDef st = HAL_EEPROM_WriteBuffer(0x20U, data, 3);
     CHECK(st == PIC16F87XA_OK, "WriteBuffer returned error");
+    /* Drive the write-completion sim helper for each byte. */
+    for (uint8_t i = 0; i < 3; i++) {
+        pic16f87xa_sim_drive_eeprom_done((uint8_t)(0x20U + i), data[i]);
+    }
 
     /* 5. Buffer read. */
     uint8_t buf[3] = { 0 };
     HAL_EEPROM_ReadBuffer(0x20U, buf, 3);
-    /* The sim has not actually persisted the writes, so we just
-     * check the address handling — the read will return whatever
-     * EEDATA is, which we don't control. So skip the data check
-     * and only verify the addresses were placed. */
-    (void)buf;
+    CHECK(buf[0] == 0x11U && buf[1] == 0x22U && buf[2] == 0x33U,
+          "Buffer read did not return written values");
 
-    printf("OK: EEPROM driver — read, write unlock sequence, write-done sim.\n");
+    printf("OK: EEPROM driver — read, write unlock sequence, buffer round-trip.\n");
     return 0;
 }

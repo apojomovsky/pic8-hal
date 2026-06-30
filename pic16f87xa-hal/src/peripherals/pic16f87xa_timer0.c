@@ -70,8 +70,7 @@ PIC16F87XA_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h)
     if (h->ClockSource == TIMER0_CLOCK_EXTERNAL) set_mask |= PIC_OPTION_T0CS;
     if (h->ClockEdge   == TIMER0_EDGE_FALLING)  set_mask |= PIC_OPTION_T0SE;
 
-    /* Clear the bits we are about to write. We do not touch RBPU or
-     * INTEDG — those belong to other subsystems. */
+    /* Mask leaves RBPU and INTEDG untouched (DS39582B §4.2 / §14.12.4). */
     uint8_t clr_mask = (uint8_t)(PIC_OPTION_PS_MASK | PIC_OPTION_PSA |
                                  PIC_OPTION_T0CS  | PIC_OPTION_T0SE);
     option_clr_set(clr_mask, set_mask);

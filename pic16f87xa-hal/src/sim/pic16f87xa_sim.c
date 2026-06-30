@@ -3,19 +3,13 @@
  * @brief   Host simulation backend for the PIC16F87XA HAL.
  *
  * @details
- *   Implements the SFR register file (`pic16f87xa_sim_sfr`) that the
- *   pre-processor SFR macros dereference when PIC16F87XA_USE_SIMULATOR
- *   is defined. Also models the peripherals the test rig actually exercises:
- *
- *     - PORTA..PORTE + their TRISx latches, including read-modify-write
- *       semantics (DS39582B §4.x — every port is "read the pin, write the
- *       latch").
- *     - Timer0 8-bit up-counter with prescaler.
- *     - A/D conversion timing (simplified).
- *
- *   Everything not modelled here (USART, MSSP, etc.) is fully observable
- *   via direct SFR reads in tests — their behavior is whatever the code
- *   under test wrote to the registers.
+ *   Provides `pic16f87xa_sim_sfr[]`, the 512-byte memory-backed
+ *   register file that the pre-processor SFR macros dereference when
+ *   PIC16F87XA_USE_SIMULATOR is defined.  The peripheral models
+ *   (Timer0/1/2, ADC, USART, MSSP, EEPROM, etc.) are listed in the
+ *   functions below; the sim never bit-bangs external pins — the test
+ *   rig drives and observes them through the public helpers in
+ *   pic16f87xa_sim.h.
  */
 
 #include "pic16f87xa_sim.h"
@@ -32,8 +26,8 @@
  */
 uint8_t pic16f87xa_sim_sfr[0x200];
 
-/** Pin latch overrides driven by the test rig (per pin). */
-static uint8_t sim_input_override[5] = {0};   /* ports A..E, bits = override mask. */
+/** Pin latch overrides set by the host application (per pin, A..E). */
+static uint8_t sim_input_override[5] = {0};
 static uint8_t sim_input_value   [5] = {0};
 
 /* Optional ISR hook. */
@@ -99,12 +93,12 @@ void pic16f87xa_sim_reset(void)
     pic16f87xa_sim_sfr[PIC_REG_PIR1]     = PIC_PIR1_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_PIR2]     = PIC_PIR2_POR_VALUE;
     /* PIR1 <TXIF> resets to 1 (TXREG empty after POR — §10.2.1).
-     * PIR1 = 0x0C, TXIF is bit 4. */
+     * Bit 4 of PIR1 (at 0x0C). */
     pic16f87xa_sim_sfr[0x0CU] |= 0x10U;
 
-    /* PIE1 / PIE2 reset to 0 — same addresses as PIR1/PIR2 in bank 1. */
-    pic16f87xa_sim_sfr[0x8CU]            = PIC_PIE1_POR_VALUE;
-    pic16f87xa_sim_sfr[0x8DU]            = PIC_PIE2_POR_VALUE;
+    /* PIE1 / PIE2 — Bank 1 mirrors of PIR1 / PIR2 — reset to 0. */
+    pic16f87xa_sim_sfr[0x8CU] = PIC_PIE1_POR_VALUE;
+    pic16f87xa_sim_sfr[0x8DU] = PIC_PIE2_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_T1CON]    = PIC_T1CON_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_T2CON]    = PIC_T2CON_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_ADCON0]   = PIC_ADCON0_POR_VALUE;
@@ -148,8 +142,8 @@ static void sim_step_timer0(void)
     static uint16_t t0_prescaler = 0U;
     /* Prescaler assignment to WDT (psa=1) means Timer0 is stopped
      * (T0CS=0 with no prescaler) or free-running from T0CKI (T0CS=1).
-     * For sim simplicity we treat psa=1 as "no prescaler — TMR0 ticks
-     * every cycle". */
+     * PSA=1 assigns the prescaler to the WDT; TMR0 then runs with
+     * no prescaler.  The sim mirrors that. */
     (void)psa;
 
     /* OPTION_REG<PS2:PS0> prescaler mapping (DS39582B §5.0, Table 5-1). */
@@ -183,7 +177,7 @@ static void sim_step_timer1(void)
      */
     uint8_t t1con = pic16f87xa_sim_sfr[PIC_REG_T1CON];
     if (!(t1con & 0x01U)) return;     /* TMR1ON = 0 → stopped. */
-    if (t1con & 0x02U)   return;     /* TMR1CS = 1 → external clock, not modeled. */
+    if (t1con & 0x02U)   return;     /* TMR1CS = 1 → external clock source. */
 
     static const uint8_t ps_idx[4] = {1, 2, 4, 8};
     uint32_t rate = ps_idx[(t1con >> 4) & 0x3U];
@@ -258,15 +252,11 @@ static void sim_step_timer2(void)
 
 static void sim_step_usart(void)
 {
-    /* USART sim model (DS39582B §10.2.1, simplified):
-     *   - TXIF stays 1 once the (instantaneous) "transmit" completes.
-     *   - RCIF is set by the test rig via pic16f87xa_sim_drive_usart_rx;
-     *     reading RCREG clears it.
-     *   - The sim does not actually shift bits onto the TX pin. The
-     *     test rig observes TXREG / RCREG / flags directly.
-     *
-     * The sim simply re-asserts TXIF every cycle (when TXEN is on)
-     * because the cycle-accurate BRG + TSR model is out of scope. */
+    /* Re-assert TXIF every cycle when TXEN is set.  TXIF is
+     * cleared by the user writing TXREG (see HAL_USART_Transmit);
+     * this step brings it back high to model the instantaneous
+     * transmit completion.  RCIF is set by the host application
+     * through pic16f87xa_sim_drive_usart_rx(). */
     uint8_t txsta = PIC16F87XA_REG8(PIC_REG_TXSTA);
     if (txsta & PIC_TXSTA_TXEN) {
         PIC16F87XA_REG8(0x0CU) |= 0x10U;     /* PIR1<TXIF> */
@@ -294,7 +284,7 @@ uint8_t pic16f87xa_sim_read_output(char port, uint8_t pin)
         /* Pin configured as input: return the externally driven level. */
         return (sim_input_override[idx] & mask) ?
                ((sim_input_value[idx] & mask) ? 1U : 0U) :
-               /* No override — floating, simulate as 0. */
+               /* No override — input floats to 0. */
                0U;
     }
     /* Pin configured as output: return the latch bit. */
@@ -356,9 +346,9 @@ void pic16f87xa_sim_drive_adc_done(uint16_t result)
     if (sim_irq_cb) sim_irq_cb();
 }
 
-/* Simulated EEPROM storage. The PIC16F877A has 256 bytes, so use
- * a full 256-cell table. Smaller parts have 128; we just don't use
- * the upper half for them. */
+/* Simulated EEPROM storage.  All four parts use the same 256-byte
+ * table; the smaller 28-pin parts have 128 bytes of data EEPROM
+ * and ignore the upper half. */
 static uint8_t sim_eeprom[256];
 static uint8_t sim_eeprom_loaded[256];
 

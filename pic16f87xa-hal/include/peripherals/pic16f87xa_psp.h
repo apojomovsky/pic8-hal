@@ -22,8 +22,10 @@
  *     - PSP interrupt enable (PSPIE in TRISE<0>; the IRQ itself is
  *       PIR1<PSPIF> and PIE1<PSPIE>, both only present on 40/44-pin).
  *
- *   The sim backend does not bit-bang the CS/RD/WR pins — tests verify
- *   the configuration registers only.
+ *   The driver only programs the configuration register.  On real
+ *   silicon an external master drives CS/RD/WR; on the sim backend
+ *   the host application drives state through pic16f87xa_sim.h
+ *   helpers.
  */
 
 #ifndef PIC16F87XA_PSP_H

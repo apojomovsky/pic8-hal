@@ -15,7 +15,7 @@
 void HAL_WDT_Refresh(void)
 {
 #if defined(PIC16F87XA_USE_SIMULATOR)
-    /* Sim: WDT is not modeled. */
+    /* No-op: the sim does not model a watchdog timer. */
 #else
     asm("clrwdt");
 #endif
@@ -24,7 +24,8 @@ void HAL_WDT_Refresh(void)
 void HAL_Sleep_Enter(void)
 {
 #if defined(PIC16F87XA_USE_SIMULATOR)
-    /* Sim: nothing to do. The test rig drives sim_step() manually. */
+    /* No-op: the sim does not stop execution. Callers should keep
+     * driving pic16f87xa_sim_step() to advance time. */
 #else
     asm("sleep");
 #endif

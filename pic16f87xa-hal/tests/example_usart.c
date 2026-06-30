@@ -52,8 +52,7 @@ int main(void)
 
     /* 2. Init and verify register state. */
     pic16f87xa_sim_reset();
-    /* Don't wire any ISR — the sim's IRQ hook is the test-rig spy, not
-     * the application-level ISR. We poll flags and registers directly. */
+    /* No IRQ callback — the test polls flags and registers directly. */
     pic16f87xa_sim_set_irq_callback(NULL);
 
     USART_HandleTypeDef h = USART_HANDLE_DEFAULT;
@@ -63,13 +62,7 @@ int main(void)
     h.RxCpltCallback = NULL;   /* No callback → CREN not set. */
     HAL_USART_Init(&h);
 
-    /* Bank 0 read of TXSTA + RCSTA; Bank 1 read of SPBRG. */
-    uint8_t txsta = PIC16F87XA_REG8(0x18U);
-    uint8_t rcsta = PIC16F87XA_REG8(0x18U);    /* same addr; let me fix. */
-    (void)txsta;
-    (void)rcsta;
-
-    /* TXSTA is at 0x98 (Bank 1). */
+    /* TXSTA is at 0x98 (Bank 1); SPBRG is at 0x99 (Bank 1). */
     uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
     uint8_t txsta_b1 = PIC16F87XA_REG8(0x98U);
@@ -77,12 +70,9 @@ int main(void)
     pic_select_bank(prev);
 
     CHECK(spbrg == 103U, "SPBRG not 103 after Init");
-    /* TXSTA reset value: 0x02. We added BRGH and TXEN (callback present
-     * implies TXEN here, but our test has no callback so TXEN not set).
-     * Expected: 0x02 | 0x04 (BRGH) = 0x06. */
-    if (h.TxCpltCallback != NULL) {
-        CHECK((txsta_b1 & 0x04U) != 0U, "BRGH not set");
-    }
+    /* TXSTA reset value: 0x02 (TRMT). With BaudHigh=HIGH (1) the
+     * driver sets BRGH (bit 2), so the result is 0x06. */
+    CHECK(txsta_b1 == 0x06U, "TXSTA not 0x06 after Init (BRGH expected)");
 
     /* 3. Transmit a byte. Verify TXREG holds it. */
     HAL_USART_Transmit(0xA5U);

@@ -9,10 +9,10 @@
  *     - CCP1 in PWM mode, 50% duty.
  *     - RC2/CCP1 pin configured as output.
  *
- *   In the sim backend the CCP1 pin is not modeled automatically, so
- *   this test reads the underlying CCP1CON register + PR2 / T2CON to
- *   verify the driver configured everything correctly, and counts
- *   TMR2 overflows to confirm the period is right.
+ *   The sim backend does not toggle the RC2/CCP1 pin on each PWM
+ *   period, so this test reads the underlying CCP1CON register +
+ *   PR2 / T2CON to verify the driver configured everything correctly,
+ *   and counts TMR2 overflows to confirm the period.
  *
  * Build:
  *   cc -std=c99 -DPIC16F877A -DPIC16F87XA_USE_SIMULATOR -Iinclude \

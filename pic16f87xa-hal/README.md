@@ -63,13 +63,13 @@ cmake --build build
 ./build/example_blink_PIC16F877A
 ```
 
-## Build (real target — TODO)
+## Build (real target)
 
-The HAL compiles against XC8 via the same sources — define
-`PIC16F87XA_USE_SIMULATOR` is **not** set on a real target, and the SFR
-macros degrade to direct volatile pointer access. An MPLAB X project will
-be added under `mcu/pic16f87xa-mplabx/` so users can build for real
-silicon without touching the source.
+The HAL compiles against XC8 via the same sources — `PIC16F87XA_USE_SIMULATOR`
+is **not** set on a real target, and the SFR macros resolve to direct
+volatile pointer access. The MPLAB X project lives under
+`mcu/pic16f87xa-mplabx/`; its Makefile produces `<MCU>-firmware.hex`
+via `xc8-cc`.
 
 ## The simulation middleware
 
@@ -97,8 +97,9 @@ The simulation backend additionally:
 - Implements Timer0 with prescaler and overflow interrupt.
 - Models PORTA..PORTE read-modify-write semantics (writes only update
   the latch; reads depend on TRIS).
-- Lets the test rig drive external pin levels (`pic16f87xa_sim_drive_input`)
-  and observe what the chip is driving (`pic16f87xa_sim_read_output`).
+- Lets the host application drive external pin levels
+  (`pic16f87xa_sim_drive_input`) and observe what the chip is
+  driving (`pic16f87xa_sim_read_output`).
 - Forwards simulated interrupts to a user callback
   (`pic16f87xa_sim_set_irq_callback`).
 

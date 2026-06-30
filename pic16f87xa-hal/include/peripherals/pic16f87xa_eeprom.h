@@ -17,9 +17,9 @@
  *       (DS39582B §3.4 / Example 3-1).
  *
  *   The driver hides the unlock sequence from the caller. Writes are
- *   blocking in the sense that the test rig has to simulate the
- *   EECON1<WR> clear for the operation to be considered complete
- *   (DS39582B §3.4 step 6).
+ *   non-blocking: the driver returns as soon as the WR bit is set;
+ *   the caller detects completion by polling EEIF (PIR2<4>), which
+ *   fires when the write cycle ends (DS39582B §3.4 step 6).
  *
  *   Reset state: EECON1 = 0x00 (RD/WR cleared).
  */

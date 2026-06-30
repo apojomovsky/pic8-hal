@@ -82,14 +82,6 @@ void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode)
             return;
     }
     PIC16F87XA_REG8(ta) = tris;
-
-    /* For pure output pins we also pre-drive the latch to a known state
-     * so the pin doesn't briefly output whatever was there from power-on.
-     * PORTA pins are analog by default (DS39582B §4.1); leave them alone. */
-    if (mode == GPIO_MODE_OUTPUT && port != GPIOA) {
-        /* leave latch to user control */
-        (void)pa;
-    }
 }
 
 void HAL_GPIO_DeInit(GPIO_TypeDef port)

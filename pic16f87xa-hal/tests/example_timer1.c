@@ -4,7 +4,7 @@
  *
  *   Timer1 is a 16-bit counter clocked from Fosc/4 with a 1:1 prescaler
  *   in this test. Expected behaviour: TMR1IF fires every 65 536 instruction
- *   cycles; we just count interrupts and print a summary.
+ *   cycles; the test counts the number of overflows.
  *
  * Build:
  *   cc -std=c99 -DPIC16F877A -DPIC16F87XA_USE_SIMULATOR -Iinclude \

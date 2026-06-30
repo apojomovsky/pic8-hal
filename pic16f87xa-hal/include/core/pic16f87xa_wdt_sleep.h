@@ -50,8 +50,8 @@ void HAL_WDT_Refresh(void);
  *         implemented with the `sleep` asm instruction; the CPU
  *         halts until any enabled interrupt wakes it (§14.14).
  *
- *         On the host simulator this is a no-op (the test rig keeps
- *         stepping the sim manually).
+ *         On the host simulator this is a no-op; callers should
+ *         continue to drive pic16f87xa_sim_step().
  */
 void HAL_Sleep_Enter(void);
 

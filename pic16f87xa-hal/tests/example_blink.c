@@ -12,8 +12,9 @@
  *   Wiring assumed on a real target:
  *     - LED + resistor between RB0 and GND (active-high).
  *     - 20 MHz crystal on OSC1/OSC2 → FOSC = HS, FCY = 5 MHz.
- *   On the simulator, the test rig drives RB0's "external world" and the
- *   LED is observed via pic16f87xa_sim_read_output().
+ *   On the simulator the LED is observed via
+ *   pic16f87xa_sim_read_output() (no external device drives RB0 in
+ *   this example).
  */
 
 #include "pic16f87xa.h"

@@ -101,9 +101,8 @@ uint16_t HAL_SSP_WriteByte(uint8_t data)
     uint8_t con = PIC16F87XA_REG8(0x14U);
     if (con & PIC_SSPCON_WCOL) return 0xFFFFU;     /* write collision pending. */
     PIC16F87XA_REG8(PIC_REG_SSPBUF) = data;
-    /* Sim: the next sim_step would set BF + SSPIF after "transmission"
-     * completes. We model transmission as instantaneous: BF goes
-     * high on the next sim_step. */
+    /* The sim backend sets BF + SSPIF on the next sim_step
+     * (see sim_step_ssp() in src/sim/pic16f87xa_sim.c). */
     return 0U;
 }
 

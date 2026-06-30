@@ -22,9 +22,6 @@
  *     4. HAL_SSP_Stop() to issue a Stop.
  *   For SPI, the transfer is fully automatic once SSPBUF is written;
  *   the user polls SSPSTAT<BF> to know when a byte is available.
- *
- *   The sim backend does not bit-bang SCL/SDA; tests verify register
- *   configuration only.
  */
 
 #ifndef PIC16F87XA_SSP_H

@@ -3,8 +3,8 @@
 #   cmake -B build && cmake --build build
 #   ./build/example_blink
 #
-# Real PIC target builds use the XC8 toolchain and an MPLAB X project —
-# see docs/getting-started.md (TODO) for the recommended layout.
+# Real PIC target builds use the XC8 toolchain. The MPLAB X project
+# lives at mcu/pic16f87xa-mplabx/; its Makefile produces a .hex via xc8-cc.
 
 cmake_minimum_required(VERSION 3.16)
 project(pic16f87xa_hal C)

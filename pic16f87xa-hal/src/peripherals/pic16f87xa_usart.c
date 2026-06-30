@@ -2,16 +2,10 @@
  * @file    pic16f87xa_usart.c
  * @brief   USART driver — implementation (DS39582B §10.0).
  *
- *   Sim backend notes:
- *     - TXIF = 1 by default after init, becomes 0 on TXREG write, returns
- *       to 1 once TSR has "drained" (we approximate this with a
- *       configurable cycle count).
- *     - RCIF = 0 by default. Becomes 1 when a byte arrives in RCREG,
- *       cleared by reading RCREG.
- *     - The sim backend does NOT actually shift bits onto the TX pin —
- *       the test rig observes TXREG / RCREG / flags directly. A more
- *       elaborate sim would model the bit-time BRG; for now we just
- *       assert the driver programs the registers correctly.
+ *   The driver only programs the SFRs; it does not model the bit
+ *   shifts. The sim backend (src/sim/pic16f87xa_sim.c) re-asserts
+ *   TXIF each cycle when TXEN is set and dispatches RCREG values
+ *   from pic16f87xa_sim_drive_usart_rx().
  */
 
 #include "peripherals/pic16f87xa_usart.h"
@@ -110,15 +104,10 @@ PIC16F87XA_StatusTypeDef HAL_USART_DeInit(void)
 
 void HAL_USART_Transmit(uint8_t data)
 {
-    /* Writing TXREG:
-     *   - clears TXIF immediately (DS39582B §10.2.1).
-     *   - if TSR is empty, transfers immediately (back-to-back).
-     *   - else parks in TXREG until TSR drains.
-     * In the sim we model the transfer as instantaneous: clear TXIF
-     * synchronously with the write. A cycle-accurate sim would defer. */
+    /* Writing TXREG clears TXIF (DS39582B §10.2.1). The hardware
+     * simultaneously starts the TSR→line shift; the sim backend
+     * re-asserts TXIF on the next pic16f87xa_sim_step() call. */
     PIC16F87XA_REG8(PIC_REG_TXREG) = data;
-    /* Sim: TXIF goes low on the write, back high when the next byte
-     * loads TSR. We model "back high" as the next sim_step iteration. */
     PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_TX);
 }
 

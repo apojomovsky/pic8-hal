@@ -84,9 +84,10 @@ PIC16F87XA_StatusTypeDef HAL_EEPROM_WriteByte(uint8_t addr, uint8_t data)
     b3_write(0x18DU, 0x55U);                /* EECON2 = 0x55. */
     b3_write(0x18DU, 0xAAU);                /* EECON2 = 0xAA. */
     b3_write(0x18CU, PIC_EECON1_WREN | PIC_EECON1_WR);  /* start write. */
-    /* Sim: WR clears on the next sim_step; for now we assume
-     * immediate. */
-    b3_write(0x18CU, PIC_EECON1_WREN);       /* WR=0 (cleared by hardware per §3.4). */
+    /* WR is held for the write cycle (DS39582B §3.4). On real
+     * hardware the CPU sees it clear when the cycle completes; the
+     * sim backend mirrors that in sim_step(). The caller polls EEIF
+     * (PIR2<4>) to detect completion. */
     return PIC16F87XA_OK;
 }
 
