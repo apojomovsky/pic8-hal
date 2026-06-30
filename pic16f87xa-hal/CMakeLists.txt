@@ -49,6 +49,7 @@ set(HAL_SOURCES_CORE
     src/peripherals/pic16f87xa_vref.c
     src/peripherals/pic16f87xa_eeprom.c
     src/core/pic16f87xa_interrupt.c
+    src/core/pic16f87xa_wdt_sleep.c
     src/sim/pic16f87xa_sim.c
 )
 
@@ -133,6 +134,13 @@ if(PIC16F87XA_FAMILY_HAS_PSP)
     )
     target_link_libraries(example_psp PRIVATE pic16f87xa_hal)
 endif()
+
+add_executable(example_wdt_sleep tests/example_wdt_sleep.c)
+target_compile_definitions(example_wdt_sleep PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_wdt_sleep PRIVATE pic16f87xa_hal)
 
 # Optional: example for every device in the family.
 foreach(dev PIC16F873A PIC16F874A PIC16F876A PIC16F877A)

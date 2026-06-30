@@ -25,11 +25,11 @@ Done so far:
 - ✅ **Vref driver** (16-tap ladder, low/high range, mV helper)
 - ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
 - ✅ **PSP driver** (40/44-pin only — TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
-- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`
+- ✅ **WDT / BOR / Sleep helpers** (clrwdt / sleep asm, PCON BOR/POR flags)
+- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
 
 Next:
 
-- [ ] WDT, BOR, Sleep
 - [ ] XC8 / MPLAB X project template
 
 ## Layout
