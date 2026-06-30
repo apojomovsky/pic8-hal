@@ -1,0 +1,122 @@
+# PIC16F87XA HAL
+
+Hardware abstraction layer for the **PIC16F873A / 874A / 876A / 877A** family,
+inspired by the STM32Cube HAL API. Every constant, register address and
+behaviour is taken 1-to-1 from the datasheet [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf).
+
+## Status
+
+This is the **first scaffold**: layout + GPIO + interrupt core + simulation
+backend + blink example. Per-peripheral drivers will be added next:
+
+- [ ] Timer0 / Timer1 / Timer2 (`peripherals/pic16f87xa_timer{0,1,2}.{h,c}`)
+- [ ] CCP1 / CCP2 (`peripherals/pic16f87xa_ccp.{h,c}`)
+- [ ] MSSP — SPI master/slave + I²C master/slave
+- [ ] USART — async + sync master/slave
+- [ ] ADC — 10-bit, 5/8 channels
+- [ ] Comparators + Vref
+- [ ] EEPROM
+- [ ] PSP (40/44-pin parts only)
+- [ ] WDT, BOR, Sleep
+- [ ] MSSP TX/RX FIFO + DMA-style buffer API
+- [ ] XC8 build glue (MPLAB X project template)
+
+## Layout
+
+```
+pic16f87xa-hal/
+├── include/
+│   ├── pic16f87xa.h              Family header — device selection, status
+│   │                             codes, bit helpers, SFR mapping macros
+│   ├── pic16f87xa_sfr.h          SFR address map + bit names (1-to-1 with DS39582B)
+│   ├── pic16f87xa_sim.h          Simulation backend public API
+│   ├── core/                     CPU-level features (interrupts, config bits)
+│   └── peripherals/             One .h per peripheral — Cube-style API
+├── src/
+│   ├── core/                     Implementation of core/ headers
+│   ├── peripherals/             Implementation of peripherals/ headers
+│   └── sim/                     Host simulation backend
+├── tests/                        End-to-end smoke tests
+└── CMakeLists.txt                Host build (gcc + cmake)
+```
+
+## Build (host simulation)
+
+```sh
+cmake -B build -S .
+cmake --build build
+
+./build/example_blink
+./build/example_blink_PIC16F873A
+./build/example_blink_PIC16F874A
+./build/example_blink_PIC16F876A
+./build/example_blink_PIC16F877A
+```
+
+## Build (real target — TODO)
+
+The HAL compiles against XC8 via the same sources — define
+`PIC16F87XA_USE_SIMULATOR` is **not** set on a real target, and the SFR
+macros degrade to direct volatile pointer access. An MPLAB X project will
+be added under `mcu/pic16f87xa-mplabx/` so users can build for real
+silicon without touching the source.
+
+## The simulation middleware
+
+The same source file works on host and on-target thanks to a single
+pre-processor switch in `include/pic16f87xa.h`:
+
+```c
+#if defined(PIC16F87XA_USE_SIMULATOR)
+  extern uint8_t pic16f87xa_sim_sfr[0x200];
+  #define pic16f87xa_sfr_read8(addr)   (pic16f87xa_sim_sfr[(uint16_t)(addr)])
+  #define pic16f87xa_sfr_write8(addr, v) pic16f87xa_sim_sfr[(uint16_t)(addr)] = (v)
+#else
+  #define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(addr))
+  #define pic16f87xa_sfr_write8(addr, v) (*(volatile uint8_t *)(addr)) = (v)
+#endif
+```
+
+On host, every SFR read/write is a memory access into a 512-byte array
+(`pic16f87xa_sim_sfr`). On a real PIC, the same macro dereferences the
+literal address — exactly the same code the XC8 linker would generate
+from `*(volatile uint8_t *)&PORTB`.
+
+The simulation backend additionally:
+
+- Implements Timer0 with prescaler and overflow interrupt.
+- Models PORTA..PORTE read-modify-write semantics (writes only update
+  the latch; reads depend on TRIS).
+- Lets the test rig drive external pin levels (`pic16f87xa_sim_drive_input`)
+  and observe what the chip is driving (`pic16f87xa_sim_read_output`).
+- Forwards simulated interrupts to a user callback
+  (`pic16f87xa_sim_set_irq_callback`).
+
+This means **the same `tests/example_blink.c` compiles unchanged for
+host simulation or for an XC8-built firmware targeting a real PIC**.
+
+## Datasheet citations
+
+Every register, bit name, reset value and reset condition is annotated
+with the section of DS39582B it came from. Examples:
+
+- `pic16f87xa_sfr.h` → `/* DS39582B Table 4-3 — PORTB functions */`
+- `pic16f87xa_gpio.c` → `HAL_GPIO_Init()` cites §4.x
+- `core/pic16f87xa_interrupt.h` → every IRQn cites §14.11
+
+If you find a deviation, that's a bug.
+
+## API conventions
+
+Mirror STM32Cube as closely as makes sense for an 8-bit PIC:
+
+- `HAL_PPP_Init(handle, init_struct)` — peripheral bring-up
+- `HAL_PPP_DeInit(handle)` — peripheral tear-down
+- `HAL_PPP_MspInit()` — `__weak` callback the user overrides to wire ISR vectors
+- Pin/port addressing: `GPIOA..GPIOE`, `GPIO_PIN_0..GPIO_PIN_All`,
+  `GPIO_PIN_SET/RESET`
+- Status codes: `PIC16F87XA_OK / ERROR / BUSY / TIMEOUT / INVALID`
+- IRQ enum: `PIC16F87XA_IRQ_TMR0 / _TMR1 / _CCP1 / ...`
+
+Cube users will feel at home. PIC users will see familiar peripheral names
+with the abstraction they always wished for.

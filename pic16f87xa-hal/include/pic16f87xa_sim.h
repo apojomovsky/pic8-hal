@@ -1,0 +1,71 @@
+/**
+ * @file    pic16f87xa_sim.h
+ * @brief   Public API for the PIC16F87XA host simulation backend.
+ *
+ * @details
+ *   Compiling with `-DPIC16F87XA_USE_SIMULATOR` redirects every SFR access
+ *   into a host-side register file (see @ref pic16f87xa_sfr.h). The hooks
+ *   declared here let a test rig:
+ *     - poke inputs (e.g. drive RB0 high),
+ *     - read outputs (e.g. read what PORTB is doing),
+ *     - step the simulated timers / A/D / USART,
+ *     - simulate interrupts.
+ *
+ *   The simulator models the most-used peripherals (Timer0, GPIO, ADC
+ *   front-end); other peripherals are pure software and just expose
+ *   register-level access. See README in src/sim/ for the full list.
+ */
+
+#ifndef PIC16F87XA_SIM_H
+#define PIC16F87XA_SIM_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "pic16f87xa.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Initialize the simulation backend and reset every SFR to its
+ *        power-on-reset value. Must be called before any HAL call.
+ */
+void pic16f87xa_sim_reset(void);
+
+/**
+ * @brief Advance the simulated peripherals by `ticks` instruction cycles.
+ *        Drives Timer0, A/D, etc.
+ */
+void pic16f87xa_sim_step(uint32_t ticks);
+
+/**
+ * @brief Drive a digital input pin from the test rig (when the pin is
+ *        configured as input — TRIS bit = 1).
+ *
+ * @param port   One of 'A'..'E'.
+ * @param pin    Pin number 0..7.
+ * @param level  0 = low, 1 = high.
+ */
+void pic16f87xa_sim_drive_input(char port, uint8_t pin, uint8_t level);
+
+/**
+ * @brief Read the level currently driven onto an output pin (what an
+ *        external load would see). For pins configured as outputs, this
+ *        returns the latched value in PORTx. For inputs, this returns
+ *        the last value driven via @ref pic16f87xa_sim_drive_input.
+ */
+uint8_t pic16f87xa_sim_read_output(char port, uint8_t pin);
+
+/**
+ * @brief Hook a user callback fired whenever the simulated CPU would take
+ *        an interrupt. Lets tests assert "an interrupt should fire here".
+ */
+typedef void (*pic16f87xa_sim_irq_cb_t)(void);
+void pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* PIC16F87XA_SIM_H */

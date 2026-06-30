@@ -1,0 +1,55 @@
+# PIC16F87XA HAL — host simulation build.
+#
+#   cmake -B build && cmake --build build
+#   ./build/example_blink
+#
+# Real PIC target builds use the XC8 toolchain and an MPLAB X project —
+# see docs/getting-started.md (TODO) for the recommended layout.
+
+cmake_minimum_required(VERSION 3.16)
+project(pic16f87xa_hal C)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Default device — can be overridden with -DPIC16F87XA_DEVICE=873A.
+if(NOT DEFINED PIC16F87XA_DEVICE)
+    set(PIC16F87XA_DEVICE "PIC16F877A")
+endif()
+
+set(PIC16F87XA_DEFINES
+    -DPIC16F87XA_USE_SIMULATOR
+    -DPIC16F87XA_HOST_BUILD
+)
+
+# The device-select macro is set per-target so each example can pick its
+# own part (PIC16F873A / 874A / 876A / 877A) without polluting other targets.
+set(PIC16F87XA_DEFAULT_DEVICE PIC16F877A)
+
+set(HAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_library(pic16f87xa_hal STATIC
+    src/peripherals/pic16f87xa_gpio.c
+    src/core/pic16f87xa_interrupt.c
+    src/sim/pic16f87xa_sim.c
+)
+target_include_directories(pic16f87xa_hal PUBLIC ${HAL_INCLUDE_DIR})
+target_compile_options(pic16f87xa_hal PRIVATE ${PIC16F87XA_DEFINES})
+target_compile_definitions  (pic16f87xa_hal PRIVATE -D${PIC16F87XA_DEFAULT_DEVICE})
+
+add_executable(example_blink tests/example_blink.c)
+target_compile_definitions(example_blink PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_blink PRIVATE pic16f87xa_hal)
+
+# Optional: example for every device in the family.
+foreach(dev PIC16F873A PIC16F874A PIC16F876A PIC16F877A)
+    add_executable(example_blink_${dev} tests/example_blink.c)
+    target_compile_definitions(example_blink_${dev} PRIVATE
+        -D${dev}
+        -DPIC16F87XA_USE_SIMULATOR
+    )
+    target_link_libraries(example_blink_${dev} PRIVATE pic16f87xa_hal)
+endforeach()
