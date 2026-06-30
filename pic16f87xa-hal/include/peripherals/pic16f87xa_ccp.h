@@ -1,0 +1,137 @@
+/**
+ * @file    peripherals/pic16f87xa_ccp.h
+ * @brief   CCP1 / CCP2 driver — Capture / Compare / PWM.
+ *
+ * @details
+ *   Source: DS39582B §8.0 (Capture/Compare/PWM Modules), Register 8-1
+ *   (CCPxCON), Tables 8-1..8-4.
+ *
+ *   The PIC16F87XA has two CCP modules. CCP1 and CCP2 are identical except
+ *   for their special-event trigger: CCP1's trigger resets Timer1;
+ *   CCP2's trigger resets Timer1 *and* starts an A/D conversion.
+ *   See §8.2.4.
+ *
+ *   Timer resources required (DS39582B Table 8-1):
+ *     - Capture  → Timer1 (must be in Timer or Synchronized Counter mode)
+ *     - Compare  → Timer1
+ *     - PWM      → Timer2
+ *
+ *   Two modules are exposed through the same driver, selected by
+ *   `CCP_Instance` in the handle. That keeps Cube-style symmetry:
+ *     HAL_CCP_Init(&h, CCP_INSTANCE_1, &cfg);
+ *
+ *   Reset state (DS39582B Table 14-6): CCPxCON = 0x00, all modes off.
+ *   CCPRxL / CCPRxH are unknown on POR.
+ */
+
+#ifndef PIC16F87XA_CCP_H
+#define PIC16F87XA_CCP_H
+
+#include "pic16f87xa.h"
+#include "pic16f87xa_sfr.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Which CCP module a handle refers to.
+ */
+typedef enum {
+    CCP_INSTANCE_1 = 1,    /**< CCP1 — pins RC2/CCP1. */
+    CCP_INSTANCE_2 = 2,    /**< CCP2 — pins RC1/CCP2. */
+} CCP_InstanceTypeDef;
+
+/**
+ * @brief CCP operating mode (CCPxCON<3:0>, DS39582B Register 8-1).
+ */
+typedef enum {
+    CCP_MODE_OFF              = 0x0U,   /**< 0000 — module disabled. */
+    CCP_MODE_COMPARE_SET      = 0x8U,   /**< 1000 — set output on match. */
+    CCP_MODE_COMPARE_CLEAR    = 0x9U,   /**< 1001 — clear output on match. */
+    CCP_MODE_COMPARE_SOFT_IF  = 0xAU,   /**< 1010 — software interrupt only. */
+    CCP_MODE_COMPARE_TRIGGER  = 0xBU,   /**< 1011 — special event trigger. */
+    CCP_MODE_PWM              = 0xCU,   /**< 11xx — PWM (any 11xx). */
+    CCP_MODE_CAPTURE_FALLING  = 0x4U,   /**< 0100 — every falling edge.  */
+    CCP_MODE_CAPTURE_RISING   = 0x5U,   /**< 0101 — every rising edge.   */
+    CCP_MODE_CAPTURE_4TH      = 0x6U,   /**< 0110 — every 4th rising.    */
+    CCP_MODE_CAPTURE_16TH     = 0x7U,   /**< 0111 — every 16th rising.   */
+} CCP_ModeTypeDef;
+
+/**
+ * @brief Configuration for PWM mode.
+ *
+ * Duty is 10-bit, encoded as `duty_full = (CCPRxL:CCPxCON<5:4>)`.
+ * Set `Duty` in the range 0..1023; the driver writes it into
+ * CCPRxL and CCPxCON<5:4>.
+ */
+typedef struct {
+    uint16_t Period;   /**< Timer2 PR2 value, 0..255. */
+    uint16_t Duty;     /**< 10-bit PWM duty, 0..1023. */
+} CCP_PWMConfigTypeDef;
+
+/**
+ * @brief Driver handle (Cube-style).
+ *
+ *   One HAL_CCP_HandleTypeDef is sufficient per CCP instance; the same
+ *   struct can also be reused for both.
+ */
+typedef struct {
+    CCP_InstanceTypeDef      Instance;
+    CCP_ModeTypeDef          Mode;
+    /** @brief 16-bit compare / capture value. For capture mode this is
+     *         the last captured value (read-only). For compare / PWM it
+     *         is the value to match / the duty cycle. */
+    uint16_t                 CompareValue;
+    /** @brief PWM configuration (only used when Mode == CCP_MODE_PWM). */
+    CCP_PWMConfigTypeDef     PWM;
+    /** @brief Optional event callback (fires on CCP1IF / CCP2IF). */
+    void (*EventCallback)(void);
+} CCP_HandleTypeDef;
+
+/* ───────────────────────── init / deinit ────────────────────────── */
+
+/**
+ * @brief  Configure the CCP module. Programs CCPxCON, sets the initial
+ *         compare/capture value, and (if `EventCallback != NULL`)
+ *         enables the matching PIR1/PIR2 interrupt.
+ *
+ * @param  h     handle with Instance, Mode, CompareValue, optional PWM.
+ *
+ * @note   For PWM, also call `HAL_TIMER2_Init` + `HAL_TIMER2_Start`
+ *         with a period matching `h->PWM.Period` before this call.
+ *
+ * @note   For capture, also start Timer1 manually.
+ */
+PIC16F87XA_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h);
+
+/** Reset CCPxCON to 0x00 and clear the corresponding PIR flag. */
+PIC16F87XA_StatusTypeDef HAL_CCP_DeInit(CCP_InstanceTypeDef inst);
+
+/* ───────────────────────── compare / capture / pwm ──────────────── */
+
+/** Set the 16-bit CCPRx value. */
+void HAL_CCP_SetCompare(CCP_InstanceTypeDef inst, uint16_t value);
+
+/** Atomically read the 16-bit CCPRx value. */
+uint16_t HAL_CCP_GetCapture(CCP_InstanceTypeDef inst);
+
+/**
+ * @brief  Set PWM duty in 10-bit units (0..1023).
+ *         For duty=0 the output stays low for the entire period.
+ *         For duty > period the output stays high (per §8.3.2 Note).
+ */
+void HAL_CCP_SetPWMDuty(CCP_InstanceTypeDef inst, uint16_t duty);
+
+/* ───────────────────────── IRQ entries ──────────────────────────── */
+
+/** Weak CCP1 ISR — override in user code. */
+void CCP1_IRQHandler(void) PIC16F87XA_WEAK;
+/** Weak CCP2 ISR — override in user code. */
+void CCP2_IRQHandler(void) PIC16F87XA_WEAK;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* PIC16F87XA_CCP_H */

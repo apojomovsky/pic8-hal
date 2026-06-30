@@ -230,15 +230,13 @@ static void sim_step_timer2(void)
     if (t2_prescaler < pre) return;
     t2_prescaler = 0U;
 
-    /* Increment TMR2. Reset to 0 on TMR2 == PR2 (DS39582B §7.0: "TMR2
-     * is reset when TMR2 = PR2", not on overflow). */
+    /* Increment TMR2. DS39582B §7.0: TMR2 increments until it matches
+     * PR2; on the next cycle it resets. TMR2IF fires once per period
+     * of (PR2+1) cycles. */
     uint8_t t2 = pic16f87xa_sim_sfr[PIC_REG_TMR2];
     t2++;
     if (t2 > pr2) {
-        /* Shouldn't happen with the official behavior, but guard. */
-        t2 = 0U;
-    }
-    if (t2 == pr2) {
+        /* Period complete: TMR2IF (after postscaler) fires here. */
         t2 = 0U;
         t2_post++;
         if (t2_post >= post) {

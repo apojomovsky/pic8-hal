@@ -22,7 +22,7 @@
 #include "core/pic16f87xa_interrupt.h"
 #include <stdio.h>
 
-/** Cycles per TMR2IF: (PR2+1) × pre × post. */
+/** Cycles per TMR2IF: (PR2+1) × pre × post. With PR2=249, this is 250. */
 #define EXPECTED_PERIOD_CYCLES  250UL
 #define EXPECTED_OVERFLOWS      5U
 #define SIM_BUDGET              ((EXPECTED_PERIOD_CYCLES * EXPECTED_OVERFLOWS) + 1024UL)

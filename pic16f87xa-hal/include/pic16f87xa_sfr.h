@@ -236,6 +236,18 @@ extern "C" {
 #define PIC_T2CON_TOUTPS_MASK   0x78U                /* TOUTPS3:TOUTPS0 — bits 3..6. */
 #define PIC_T2CON_TOUTPS_POS    3U
 
+/* ───────────────────────── CCPxCON bits ────────────────────────── */
+
+/* DS39582B §8.0, Register 8-1.
+ * The two LSBs of the 10-bit PWM duty cycle live in CCPxCON<5:4>
+ * (CCPxY:CCPxX) — see §8.3.2. */
+#define PIC_CCP_CCPX_M0         PIC16F87XA_BIT(0)    /* CCPxM0 — mode bit 0.        */
+#define PIC_CCP_CCPX_M1         PIC16F87XA_BIT(1)    /* CCPxM1 — mode bit 1.        */
+#define PIC_CCP_CCPX_M2         PIC16F87XA_BIT(2)    /* CCPxM2 — mode bit 2.        */
+#define PIC_CCP_CCPX_M3         PIC16F87XA_BIT(3)    /* CCPxM3 — mode bit 3.        */
+#define PIC_CCP_CCPX_Y          PIC16F87XA_BIT(4)    /* PWM duty LSB bit 0.         */
+#define PIC_CCP_CCPX_X          PIC16F87XA_BIT(5)    /* PWM duty LSB bit 1.         */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**
