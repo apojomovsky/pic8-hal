@@ -1,0 +1,143 @@
+/**
+ * @file    peripherals/pic16f87xa_timer0.h
+ * @brief   Timer0 driver — 8-bit timer/counter with shared prescaler.
+ *
+ * @details
+ *   Source: DS39582B §5.0 (Timer0 Module), §5.3 (Prescaler),
+ *   Register 5-1 (OPTION_REG), Table 5-1 (PS2:PS0 encoding).
+ *
+ *   Wiring on the part:
+ *     - Counter is read-modify-writable from the CPU.
+ *     - Clock source: internal Fosc/4 (T0CS=0) or RA4/T0CKI pin (T0CS=1).
+ *     - Edge select: rising (T0SE=0) or falling (T0SE=1) on T0CKI.
+ *     - Prescaler: shared with WDT, controlled by PSA + PS2:PS0.
+ *     - Overflow (0xFF → 0x00) sets INTCON<TMR0IF>.
+ *
+ *   ⚠ PIC16F87XA gotchas (cited):
+ *     - Writing TMR0 clears the prescaler when it's assigned to Timer0
+ *       (DS39582B §5.3 Note).
+ *     - Switching the prescaler from TMR0 to WDT requires a specific
+ *       sequence (DS39582B §5.3, footnote 1) to avoid a spurious reset.
+ *       The driver does NOT touch PSA while WDT is active; if you do, you
+ *       must follow the example in the datasheet.
+ */
+
+#ifndef PIC16F87XA_TIMER0_H
+#define PIC16F87XA_TIMER0_H
+
+#include "pic16f87xa.h"
+#include "pic16f87xa_sfr.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Timer0 clock source (OPTION_REG<T0CS>, DS39582B §5.0, Reg 5-1).
+ */
+typedef enum {
+    TIMER0_CLOCK_INTERNAL = 0x0U,   /**< Fosc/4 — T0CS = 0. */
+    TIMER0_CLOCK_EXTERNAL = 0x1U,   /**< RA4/T0CKI pin — T0CS = 1. */
+} TIMER0_ClockSourceTypeDef;
+
+/**
+ * @brief Timer0 external-clock edge (OPTION_REG<T0SE>, DS39582B §5.2).
+ *        Ignored in internal-clock mode.
+ */
+typedef enum {
+    TIMER0_EDGE_RISING  = 0x0U,     /**< Increment on T0CKI rising edge. */
+    TIMER0_EDGE_FALLING = 0x1U,     /**< Increment on T0CKI falling edge. */
+} TIMER0_ClockEdgeTypeDef;
+
+/**
+ * @brief Timer0 prescaler ratio. Encoded as the value to load into
+ *        OPTION_REG<PS2:PS0> (DS39582B Table 5-1).
+ *
+ *        Note that PS2:PS0=000 is 1:2 for Timer0, NOT 1:1 — the 1:1
+ *        option is "no prescaler" and is selected by NOT assigning the
+ *        prescaler to Timer0 (PSA = 1, then the prescaler applies to
+ *        WDT and TMR0 gets the raw clock).
+ */
+typedef enum {
+    TIMER0_PRESCALER_1_2    = 0x0U,  /**< 1:2  — PS2:PS0 = 000. */
+    TIMER0_PRESCALER_1_4    = 0x1U,  /**< 1:4  — PS2:PS0 = 001. */
+    TIMER0_PRESCALER_1_8    = 0x2U,  /**< 1:8  — PS2:PS0 = 010. */
+    TIMER0_PRESCALER_1_16   = 0x3U,  /**< 1:16 — PS2:PS0 = 011. */
+    TIMER0_PRESCALER_1_32   = 0x4U,  /**< 1:32 — PS2:PS0 = 100. */
+    TIMER0_PRESCALER_1_64   = 0x5U,  /**< 1:64 — PS2:PS0 = 101. */
+    TIMER0_PRESCALER_1_128  = 0x6U,  /**< 1:128 — PS2:PS0 = 110. */
+    TIMER0_PRESCALER_1_256  = 0x7U,  /**< 1:256 — PS2:PS0 = 111. */
+} TIMER0_PrescalerTypeDef;
+
+/**
+ * @brief  Driver handle (Cube-style).
+ */
+typedef struct {
+    TIMER0_ClockSourceTypeDef  ClockSource;     /**< Internal or T0CKI. */
+    TIMER0_ClockEdgeTypeDef    ClockEdge;       /**< T0CKI edge (or rising). */
+    TIMER0_PrescalerTypeDef    Prescaler;       /**< 1:2..1:256. */
+    bool                       PrescalerAssigned; /**< true = prescaler → TMR0. */
+    uint8_t                    ReloadValue;    /**< 0..255 — start counting from here. */
+    /** @brief  Optional overflow callback. Called from interrupt context
+     *         on every TMR0 → 0x00 rollover. */
+    void (*OverflowCallback)(void);
+} TIMER0_HandleTypeDef;
+
+/**
+ * @brief  Default initialiser: internal Fosc/4, prescaler 1:256, no callback.
+ */
+#define TIMER0_HANDLE_DEFAULT {                                         \
+    .ClockSource        = TIMER0_CLOCK_INTERNAL,                        \
+    .ClockEdge          = TIMER0_EDGE_RISING,                           \
+    .Prescaler          = TIMER0_PRESCALER_1_256,                       \
+    .PrescalerAssigned  = true,                                         \
+    .ReloadValue        = 0x00U,                                        \
+    .OverflowCallback   = NULL,                                         \
+}
+
+/**
+ * @brief  Configure Timer0 from the handle. Programs OPTION_REG and
+ *         INTCON<TMR0IE>. Does not start the timer — call @ref
+ *         HAL_TIMER0_Start afterwards.
+ *
+ * @return PIC16F87XA_OK on success, PIC16F87XA_INVALID if `h` is NULL.
+ */
+PIC16F87XA_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h);
+PIC16F87XA_StatusTypeDef HAL_TIMER0_DeInit(void);
+
+/**
+ * @brief  Timer0 weak ISR. Forward-declared so user code can override it
+ *         (Cube-style). When the user provides an `OverflowCallback`
+ *         through `HAL_TIMER0_Init`, the default implementation invokes
+ *         it; otherwise it just clears TMR0IF and returns.
+ */
+void TIMER0_IRQHandler(void) PIC16F87XA_WEAK;
+
+/**
+ * @brief  Enable TMR0 counting. Sets OPTION_REG<T0CS> accordingly and
+ *         writes `h->ReloadValue` into TMR0.
+ *
+ *         Note: writing TMR0 clears the prescaler (DS39582B §5.3 Note).
+ */
+PIC16F87XA_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h);
+
+/** Disable TMR0 counting. Clears OPTION_REG<T0CS> → TMR0 halted. */
+PIC16F87XA_StatusTypeDef HAL_TIMER0_Stop(void);
+
+/** Read the current counter value. */
+uint8_t HAL_TIMER0_ReadCounter(void);
+
+/** Write `value` to the counter (also clears the prescaler). */
+void HAL_TIMER0_WriteCounter(uint8_t value);
+
+/**
+ * @brief  Convert a prescaler enum to its integer ratio (1, 2, 4, ..., 256).
+ *         Used by callers that need the ratio to compute overflow periods.
+ */
+uint16_t HAL_TIMER0_PrescalerToRatio(TIMER0_PrescalerTypeDef p);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* PIC16F87XA_TIMER0_H */

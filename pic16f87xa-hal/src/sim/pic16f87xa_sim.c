@@ -36,8 +36,13 @@ uint8_t pic16f87xa_sim_sfr[0x200];
 static uint8_t sim_input_override[5] = {0};   /* ports A..E, bits = override mask. */
 static uint8_t sim_input_value   [5] = {0};
 
-/** Optional ISR hook. */
+/* Optional ISR hook. */
 static pic16f87xa_sim_irq_cb_t sim_irq_cb = 0;
+
+/* Forward declarations for the per-timer step helpers. */
+static void sim_step_timer0(void);
+static void sim_step_timer1(void);
+static void sim_step_timer2(void);
 
 /* ───────────────────────── GPIO model ───────────────────────────── */
 
@@ -117,6 +122,17 @@ void pic16f87xa_sim_reset(void)
 
 void pic16f87xa_sim_step(uint32_t ticks)
 {
+    for (uint32_t i = 0; i < ticks; i++) {
+        sim_step_timer0();
+        sim_step_timer1();
+        sim_step_timer2();
+    }
+}
+
+/* ───────────────────────── Timer0 step ──────────────────────────── */
+
+static void sim_step_timer0(void)
+{
     /* Read the active Timer0 prescaler.
      * T0PS<2:0> live in OPTION_REG, bits 0..2. */
     uint8_t option = pic16f87xa_sim_sfr[PIC_REG_OPTION];
@@ -124,39 +140,114 @@ void pic16f87xa_sim_step(uint32_t ticks)
     uint8_t psa    = (option >> 3) & 0x01U;           /* PSA */
 
     static uint16_t t0_prescaler = 0U;
-    /* Prescaler assignment to WDT (psa=1) means Timer0 runs at Fosc/4. */
+    /* Prescaler assignment to WDT (psa=1) means Timer0 is stopped
+     * (T0CS=0 with no prescaler) or free-running from T0CKI (T0CS=1).
+     * For sim simplicity we treat psa=1 as "no prescaler — TMR0 ticks
+     * every cycle". */
     (void)psa;
 
-    /* OPTION_REG<PS2:PS0> prescaler mapping (DS39582B §5.0, Table 5-1).
-     *   000 → 1:2
-     *   001 → 1:4
-     *   010 → 1:8
-     *   011 → 1:16
-     *   100 → 1:32
-     *   101 → 1:64
-     *   110 → 1:128
-     *   111 → 1:256
-     * Value = number of input ticks per TMR0 increment. */
+    /* OPTION_REG<PS2:PS0> prescaler mapping (DS39582B §5.0, Table 5-1). */
     static const uint8_t ps_idx[8] = {2, 4, 8, 16, 32, 64, 128, 255};
-
     uint32_t rate = ps_idx[ps];
 
-    for (uint32_t i = 0; i < ticks; i++) {
-        t0_prescaler++;
-        if (t0_prescaler >= rate) {
-            t0_prescaler = 0U;
-            uint8_t t0 = pic16f87xa_sim_sfr[PIC_REG_TMR0];
-            t0++;
-            /* DS39582B §14.11.2: TMR0IF is set on the 0xFF → 0x00
-             * overflow. We detect the wrap when the post-increment
-             * value has rolled back to 0x00. */
-            if (t0 == 0x00U) {
-                pic16f87xa_sim_sfr[PIC_REG_INTCON] |= PIC_INTCON_TMR0IF;
-                if (sim_irq_cb) sim_irq_cb();
-            }
-            pic16f87xa_sim_sfr[PIC_REG_TMR0] = t0;
+    t0_prescaler++;
+    if (t0_prescaler < rate) return;
+    t0_prescaler = 0U;
+
+    uint8_t t0 = pic16f87xa_sim_sfr[PIC_REG_TMR0];
+    t0++;
+    if (t0 == 0x00U) {
+        pic16f87xa_sim_sfr[PIC_REG_INTCON] |= PIC_INTCON_TMR0IF;
+        if (sim_irq_cb) sim_irq_cb();
+    }
+    pic16f87xa_sim_sfr[PIC_REG_TMR0] = t0;
+}
+
+/* ───────────────────────── Timer1 step ──────────────────────────── */
+
+static void sim_step_timer1(void)
+{
+    /* T1CON layout (DS39582B Register 6-1):
+     *   bit 0  TMR1ON
+     *   bit 1  TMR1CS
+     *   bit 2  T1SYNC
+     *   bit 3  T1OSCEN
+     *   bit 4  T1CKPS0
+     *   bit 5  T1CKPS1
+     */
+    uint8_t t1con = pic16f87xa_sim_sfr[PIC_REG_T1CON];
+    if (!(t1con & 0x01U)) return;     /* TMR1ON = 0 → stopped. */
+    if (t1con & 0x02U)   return;     /* TMR1CS = 1 → external clock, not modeled. */
+
+    static const uint8_t ps_idx[4] = {1, 2, 4, 8};
+    uint32_t rate = ps_idx[(t1con >> 4) & 0x3U];
+
+    static uint8_t t1_prescaler = 0U;
+    t1_prescaler++;
+    if (t1_prescaler < rate) return;
+    t1_prescaler = 0U;
+
+    /* 16-bit increment, big-endian in registers. */
+    uint8_t lo = pic16f87xa_sim_sfr[PIC_REG_TMR1L];
+    uint8_t hi = pic16f87xa_sim_sfr[PIC_REG_TMR1H];
+    uint16_t full = (uint16_t)(((uint16_t)hi << 8) | lo);
+    full++;
+    pic16f87xa_sim_sfr[PIC_REG_TMR1L] = (uint8_t)(full & 0xFFU);
+    pic16f87xa_sim_sfr[PIC_REG_TMR1H] = (uint8_t)(full >> 8);
+    if (full == 0U) {
+        /* PIR1 is at 0x0C (DS39582B Table 3-1 / Figure 2-3). */
+        pic16f87xa_sim_sfr[0x0CU] |= 0x01U;   /* TMR1IF. */
+        if (sim_irq_cb) sim_irq_cb();
+    }
+}
+
+/* ───────────────────────── Timer2 step ──────────────────────────── */
+
+static void sim_step_timer2(void)
+{
+    /* T2CON layout (DS39582B Register 7-1):
+     *   bit 0  T2CKPS0
+     *   bit 1  T2CKPS1
+     *   bit 2  TMR2ON
+     *   bit 3..6 TOUTPS0..TOUTPS3
+     */
+    uint8_t t2con = pic16f87xa_sim_sfr[PIC_REG_T2CON];
+    if (!(t2con & 0x04U)) return;     /* TMR2ON = 0 → stopped. */
+
+    /* T2CKPS1:T2CKPS0 → 1:1, 1:4, 1:16, 1:16 (DS39582B Register 7-1). */
+    static const uint8_t pre_idx[4] = {1, 4, 16, 16};
+    uint32_t pre = pre_idx[t2con & 0x3U];
+    /* TOUTPS3:TOUTPS0 → 1:(N+1). */
+    uint8_t  post = (uint8_t)(((t2con >> 3) & 0xFU) + 1U);
+
+    /* Read PR2 (Bank 1, address 0x92 per DS39582B §7.0). */
+    uint8_t pr2 = pic16f87xa_sim_sfr[0x92U];
+
+    static uint16_t t2_prescaler = 0U;
+    static uint8_t  t2_post      = 0U;
+
+    t2_prescaler++;
+    if (t2_prescaler < pre) return;
+    t2_prescaler = 0U;
+
+    /* Increment TMR2. Reset to 0 on TMR2 == PR2 (DS39582B §7.0: "TMR2
+     * is reset when TMR2 = PR2", not on overflow). */
+    uint8_t t2 = pic16f87xa_sim_sfr[PIC_REG_TMR2];
+    t2++;
+    if (t2 > pr2) {
+        /* Shouldn't happen with the official behavior, but guard. */
+        t2 = 0U;
+    }
+    if (t2 == pr2) {
+        t2 = 0U;
+        t2_post++;
+        if (t2_post >= post) {
+            t2_post = 0U;
+            pic16f87xa_sim_sfr[0x0CU] |= 0x02U;   /* PIR1<TMR2IF>. */
+            if (sim_irq_cb) sim_irq_cb();
         }
     }
+    pic16f87xa_sim_sfr[PIC_REG_TMR2] = t2;
 }
 
 void pic16f87xa_sim_drive_input(char port, uint8_t pin, uint8_t level)

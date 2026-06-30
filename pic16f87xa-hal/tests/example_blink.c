@@ -4,80 +4,67 @@
  *          simulated Timer0 overflow.
  *
  * @details
- *   This program is portable across:
- *     - the simulation backend (compiled with -DPIC16F87XA_USE_SIMULATOR),
- *     - a real PIC16F87XA target compiled with XC8.
+ *   Portable across the host simulation backend and a real PIC16F87XA
+ *   target compiled with XC8. Uses the new Timer0 driver — no direct
+ *   register poking — to demonstrate that the Cube-style API is
+ *   sufficient to drive a real application.
  *
  *   Wiring assumed on a real target:
  *     - LED + resistor between RB0 and GND (active-high).
  *     - 20 MHz crystal on OSC1/OSC2 → FOSC = HS, FCY = 5 MHz.
  *   On the simulator, the test rig drives RB0's "external world" and the
  *   LED is observed via pic16f87xa_sim_read_output().
- *
- * Build (host):
- *   cc -std=c99 -Wall -DPIC16F87XA_USE_SIMULATOR \
- *      -I include \
- *      tests/example_blink.c \
- *      src/peripherals/pic16f87xa_gpio.c \
- *      src/core/pic16f87xa_interrupt.c \
- *      src/sim/pic16f87xa_sim.c \
- *      -o example_blink
- *
- * Run:
- *   ./example_blink   # prints "RB0=0 ... RB0=1 ... RB0=0 ..."
  */
 
 #include "pic16f87xa.h"
 #include "pic16f87xa_sim.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_gpio.h"
+#include "peripherals/pic16f87xa_timer0.h"
 #include "core/pic16f87xa_interrupt.h"
 #include <stdio.h>
 
-/** Half-period measured in simulated instruction cycles. */
-#define BLINK_HALF_PERIOD_CYCLES  200000UL
+/** How long the simulated CPU should run, in instruction cycles. */
+#define RUN_CYCLES  200000UL
 
 /* Application state. */
-static volatile uint32_t tick_count = 0;
+static volatile uint32_t tick_count   = 0;
 static volatile uint32_t toggle_count = 0;
 
-/**
- * @brief  IRQ handler — called whenever a simulated interrupt fires.
- *         Implementation matches what an XC8 ISR() function would do.
- */
-void pic16f87xa_on_irq(void)
+/* Driver-managed overflow callback — invoked by the weak TIMER0_IRQHandler
+ * every time TMR0 rolls over. */
+static void on_t0_overflow(void)
 {
-    if (PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_TMR0)) {
-        PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR0);
-        PIC16F87XA_REG8(PIC_REG_TMR0) = 0;   /* reload. */
-        tick_count++;
-    }
+    /* Reload TMR0 with 0 so the next period is exactly 256 input cycles
+     * (DS39582B §5.3: writing TMR0 also clears the prescaler). */
+    PIC16F87XA_REG8(PIC_REG_TMR0) = 0;
+    tick_count++;
 }
 
 int main(void)
 {
     pic16f87xa_sim_reset();
-    pic16f87xa_sim_set_irq_callback(pic16f87xa_on_irq);
+    /* Wire sim backend → driver weak ISR. */
+    pic16f87xa_sim_set_irq_callback(TIMER0_IRQHandler);
 
-    /* 1. Configure RB0 as output. */
+    /* 1. RB0 as output, start low. */
     HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
 
-    /* 2. Configure Timer0: internal clock, no prescaler → 1:1 (simplest).
-     *    OPTION_REG<PSA> = 0 (prescaler to Timer0), <PS2:PS0> = 000 (1:2).
-     *    Real applications would set PS2:PS0 to something non-zero for
-     *    longer periods; we keep it tiny so the test finishes quickly. */
-    uint8_t opt = PIC16F87XA_REG8(PIC_REG_OPTION);
-    opt &= (uint8_t)~0x07U;    /* PS2:PS0 = 000 → prescaler 1:2 */
-    opt &= (uint8_t)~0x08U;    /* PSA  = 0   → prescaler to Timer0 */
-    PIC16F87XA_REG8(PIC_REG_OPTION) = opt;
+    /* 2. Configure Timer0: internal Fosc/4, 1:2 prescaler, no callback
+     *    so we set one inline. Overflow = 256 × 2 = 512 cycles. */
+    TIMER0_HandleTypeDef h = TIMER0_HANDLE_DEFAULT;
+    h.ClockSource        = TIMER0_CLOCK_INTERNAL;
+    h.Prescaler          = TIMER0_PRESCALER_1_2;
+    h.PrescalerAssigned  = true;
+    h.ReloadValue        = 0x00U;
+    h.OverflowCallback   = on_t0_overflow;
 
-    /* 3. Enable Timer0 overflow interrupt. */
-    PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_TMR0);
-    PIC16F87XA_BIT_SET(PIC16F87XA_REG8(PIC_REG_INTCON), PIC_INTCON_GIE);
+    HAL_TIMER0_Init(&h);
+    HAL_TIMER0_Start(&h);
 
-    /* 4. Run the simulated CPU loop. Each TMR0IF toggle flips RB0. */
-    for (uint32_t i = 0; i < BLINK_HALF_PERIOD_CYCLES; i++) {
+    /* 3. Run the simulated CPU loop. Each TMR0IF toggles RB0. */
+    for (uint32_t i = 0; i < RUN_CYCLES; i++) {
         pic16f87xa_sim_step(1);
         if (tick_count >= 1U) {
             HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
@@ -89,7 +76,6 @@ int main(void)
         }
     }
 
-    /* 5. Confirm the LED was driven high at some point during the run. */
     if (toggle_count > 0U) {
         printf("OK: RB0 toggled %u times; final state = %u.\n",
                (unsigned)toggle_count,

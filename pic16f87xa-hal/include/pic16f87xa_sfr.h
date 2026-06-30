@@ -208,6 +208,34 @@ extern "C" {
 #define PIC_ADCON0_POR_VALUE     0x00U
 #define PIC_ADCON1_POR_VALUE     0x00U
 
+/* ───────────────────────── OPTION_REG bits (Timer0 + WDT) ──────── */
+
+/* DS39582B §5.3, Register 5-1. */
+#define PIC_OPTION_RBPU         PIC16F87XA_BIT(7)   /* PORTB pull-up enable (active-low). */
+#define PIC_OPTION_INTEDG       PIC16F87XA_BIT(6)   /* INT edge select.                */
+#define PIC_OPTION_T0CS         PIC16F87XA_BIT(5)   /* TMR0 clock source.              */
+#define PIC_OPTION_T0SE         PIC16F87XA_BIT(4)   /* TMR0 source edge.               */
+#define PIC_OPTION_PSA          PIC16F87XA_BIT(3)   /* Prescaler assignment.           */
+#define PIC_OPTION_PS_MASK      0x07U                /* PS2:PS0 — prescaler ratio.     */
+
+/* ───────────────────────── T1CON bits (Timer1) ─────────────────── */
+
+/* DS39582B §6.0, Register 6-1. */
+#define PIC_T1CON_TMR1ON        PIC16F87XA_BIT(0)
+#define PIC_T1CON_TMR1CS        PIC16F87XA_BIT(1)
+#define PIC_T1CON_T1SYNC        PIC16F87XA_BIT(2)
+#define PIC_T1CON_T1OSCEN       PIC16F87XA_BIT(3)
+#define PIC_T1CON_T1CKPS0       PIC16F87XA_BIT(4)
+#define PIC_T1CON_T1CKPS1       PIC16F87XA_BIT(5)
+
+/* ───────────────────────── T2CON bits (Timer2) ─────────────────── */
+
+/* DS39582B §7.0, Register 7-1. */
+#define PIC_T2CON_T2CKPS_MASK   0x03U                /* T2CKPS1:T2CKPS0 — bits 0..1. */
+#define PIC_T2CON_TMR2ON        PIC16F87XA_BIT(2)
+#define PIC_T2CON_TOUTPS_MASK   0x78U                /* TOUTPS3:TOUTPS0 — bits 3..6. */
+#define PIC_T2CON_TOUTPS_POS    3U
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**

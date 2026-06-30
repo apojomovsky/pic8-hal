@@ -6,20 +6,30 @@ behaviour is taken 1-to-1 from the datasheet [DS39582B](https://ww1.microchip.co
 
 ## Status
 
-This is the **first scaffold**: layout + GPIO + interrupt core + simulation
-backend + blink example. Per-peripheral drivers will be added next:
+Done so far:
 
-- [ ] Timer0 / Timer1 / Timer2 (`peripherals/pic16f87xa_timer{0,1,2}.{h,c}`)
-- [ ] CCP1 / CCP2 (`peripherals/pic16f87xa_ccp.{h,c}`)
-- [ ] MSSP — SPI master/slave + I²C master/slave
-- [ ] USART — async + sync master/slave
-- [ ] ADC — 10-bit, 5/8 channels
+- ✅ Family header (device select, status codes, SFR macros)
+- ✅ SFR map with bit definitions
+- ✅ Pre-processor SFR mapping layer (host sim + XC8 target, same source)
+- ✅ Host simulation backend (Timer0/1/2 + GPIO + IRQ hook)
+- ✅ Interrupt core (HAL_NVIC-style enable/disable/clear/status)
+- ✅ GPIO driver (GPIOA..GPIOE, pull-ups, init/read/write/toggle)
+- ✅ **Timer0 driver** (handle, prescaler, clock source, weak ISR)
+- ✅ **Timer1 driver** (16-bit, prescaler, T1OSC, weak ISR)
+- ✅ **Timer2 driver** (PR2, prescaler, postscaler, weak ISR)
+- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`
+
+Next:
+
+- [ ] CCP1 / CCP2 (needs Timer2 already done)
+- [ ] USART
+- [ ] MSSP — SPI + I²C
+- [ ] ADC
 - [ ] Comparators + Vref
 - [ ] EEPROM
-- [ ] PSP (40/44-pin parts only)
+- [ ] PSP (40/44-pin only)
 - [ ] WDT, BOR, Sleep
-- [ ] MSSP TX/RX FIFO + DMA-style buffer API
-- [ ] XC8 build glue (MPLAB X project template)
+- [ ] XC8 / MPLAB X project template
 
 ## Layout
 

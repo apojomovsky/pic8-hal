@@ -30,6 +30,9 @@ set(HAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_library(pic16f87xa_hal STATIC
     src/peripherals/pic16f87xa_gpio.c
+    src/peripherals/pic16f87xa_timer0.c
+    src/peripherals/pic16f87xa_timer1.c
+    src/peripherals/pic16f87xa_timer2.c
     src/core/pic16f87xa_interrupt.c
     src/sim/pic16f87xa_sim.c
 )
@@ -43,6 +46,20 @@ target_compile_definitions(example_blink PRIVATE
     -DPIC16F87XA_USE_SIMULATOR
 )
 target_link_libraries(example_blink PRIVATE pic16f87xa_hal)
+
+add_executable(example_timer1 tests/example_timer1.c)
+target_compile_definitions(example_timer1 PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_timer1 PRIVATE pic16f87xa_hal)
+
+add_executable(example_timer2 tests/example_timer2.c)
+target_compile_definitions(example_timer2 PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_timer2 PRIVATE pic16f87xa_hal)
 
 # Optional: example for every device in the family.
 foreach(dev PIC16F873A PIC16F874A PIC16F876A PIC16F877A)
