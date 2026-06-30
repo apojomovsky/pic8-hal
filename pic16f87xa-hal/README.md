@@ -19,11 +19,11 @@ Done so far:
 - ✅ **Timer2 driver** (PR2, prescaler, postscaler, weak ISR)
 - ✅ **CCP1 / CCP2 driver** (Capture / Compare / PWM, weak ISRs)
 - ✅ **USART driver** (async + sync, SPBRG baud-rate computation, weak ISRs)
-- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`
+- ✅ **MSSP driver** (SPI master/slave + I²C master/slave, register-level)
+- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`
 
 Next:
 
-- [ ] MSSP — SPI + I²C
 - [ ] ADC
 - [ ] Comparators + Vref
 - [ ] EEPROM

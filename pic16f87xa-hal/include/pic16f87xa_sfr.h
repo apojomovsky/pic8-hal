@@ -271,6 +271,37 @@ extern "C" {
 #define PIC_RCSTA_RX9          PIC16F87XA_BIT(6)    /* 9-bit RX. */
 #define PIC_RCSTA_SPEN         PIC16F87XA_BIT(7)    /* Serial port enable. */
 
+/* ───────────────────────── SSPCON / SSPSTAT bits (MSSP) ──────────── */
+
+/* DS39582B §9.0, Registers 9-1 (SSPSTAT), 9-2/9-4 (SSPCON),
+ * 9-5 (SSPCON2). The same SSPCON<3:0> field selects mode in both
+ * SPI and I²C operation. */
+#define PIC_SSPCON_SSPM_MASK   0x0FU                /* SSPM3:SSPM0.       */
+#define PIC_SSPCON_CKP         PIC16F87XA_BIT(4)    /* Clock polarity.    */
+#define PIC_SSPCON_SSPEN       PIC16F87XA_BIT(5)    /* SSP enable.        */
+#define PIC_SSPCON_SSPOV       PIC16F87XA_BIT(6)    /* Receive overflow.  */
+#define PIC_SSPCON_WCOL        PIC16F87XA_BIT(7)    /* Write collision.   */
+
+/* SSPCON2 (I²C only) — Register 9-5. */
+#define PIC_SSPCON2_SEN        PIC16F87XA_BIT(0)    /* Start condition enable. */
+#define PIC_SSPCON2_RSEN       PIC16F87XA_BIT(1)    /* Repeated start enable.  */
+#define PIC_SSPCON2_PEN        PIC16F87XA_BIT(2)    /* Stop condition enable.  */
+#define PIC_SSPCON2_RCEN       PIC16F87XA_BIT(3)    /* Receive enable.         */
+#define PIC_SSPCON2_ACKEN      PIC16F87XA_BIT(4)    /* Acknowledge sequence.   */
+#define PIC_SSPCON2_ACKDT      PIC16F87XA_BIT(5)    /* Acknowledge data.       */
+#define PIC_SSPCON2_ACKSTAT    PIC16F87XA_BIT(6)    /* Acknowledge status.     */
+#define PIC_SSPCON2_GCEN       PIC16F87XA_BIT(7)    /* General call enable.    */
+
+/* SSPSTAT — Register 9-1. */
+#define PIC_SSPSTAT_BF         PIC16F87XA_BIT(0)    /* Buffer full.        */
+#define PIC_SSPSTAT_UA         PIC16F87XA_BIT(1)    /* Update address.     */
+#define PIC_SSPSTAT_RW         PIC16F87XA_BIT(2)    /* Read/write (I²C).    */
+#define PIC_SSPSTAT_S          PIC16F87XA_BIT(3)    /* Start (I²C).         */
+#define PIC_SSPSTAT_P          PIC16F87XA_BIT(4)    /* Stop (I²C).          */
+#define PIC_SSPSTAT_DA         PIC16F87XA_BIT(5)    /* Data/address (I²C).  */
+#define PIC_SSPSTAT_CKE        PIC16F87XA_BIT(6)    /* Clock edge (SPI).    */
+#define PIC_SSPSTAT_SMP        PIC16F87XA_BIT(7)    /* Sample bit (SPI).    */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**

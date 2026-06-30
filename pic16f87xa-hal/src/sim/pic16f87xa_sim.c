@@ -314,3 +314,21 @@ void pic16f87xa_sim_drive_usart_rx(uint8_t data)
     pic16f87xa_sim_sfr[0x0CU] |= 0x20U;
     if (sim_irq_cb) sim_irq_cb();
 }
+
+void pic16f87xa_sim_drive_ssp_rx(uint8_t data)
+{
+    /* Place byte in SSPBUF (0x13 — DS39582B §9.x). */
+    pic16f87xa_sim_sfr[PIC_REG_SSPBUF] = data;
+    /* Set SSPSTAT<BF> (Bank 1, addr 0x94, bit 0). */
+    {
+        uint8_t prev = (pic16f87xa_sim_sfr[PIC_REG_STATUS] >> 5) & 0x03U;
+        pic16f87xa_sim_sfr[PIC_REG_STATUS] =
+            (uint8_t)((pic16f87xa_sim_sfr[PIC_REG_STATUS] & 0x1FU) | (1U << 5));
+        pic16f87xa_sim_sfr[0x94U] |= 0x01U;
+        pic16f87xa_sim_sfr[PIC_REG_STATUS] =
+            (uint8_t)((pic16f87xa_sim_sfr[PIC_REG_STATUS] & 0x1FU) | (prev << 5));
+    }
+    /* Set PIR1<SSPIF> (bit 3). */
+    pic16f87xa_sim_sfr[0x0CU] |= 0x08U;
+    if (sim_irq_cb) sim_irq_cb();
+}

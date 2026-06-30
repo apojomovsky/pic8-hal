@@ -71,6 +71,13 @@ void pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb);
  */
 void pic16f87xa_sim_drive_usart_rx(uint8_t data);
 
+/**
+ * @brief Inject a byte into the SSP receiver (SPI slave or I²C target).
+ *        Sets SSPSTAT<BF> and PIR1<SSPIF>. The next call to
+ *        HAL_SSP_ReadByte() will return the byte.
+ */
+void pic16f87xa_sim_drive_ssp_rx(uint8_t data);
+
 #ifdef __cplusplus
 }
 #endif
