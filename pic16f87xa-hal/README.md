@@ -21,11 +21,12 @@ Done so far:
 - ✅ **USART driver** (async + sync, SPBRG baud-rate computation, weak ISRs)
 - ✅ **MSSP driver** (SPI master/slave + I²C master/slave, register-level)
 - ✅ **ADC driver** (10-bit, 5/8 channels, TAD clock + reference config, weak ISR)
-- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`
+- ✅ **Comparator driver** (2 comparators, 8 modes, weak ISR)
+- ✅ **Vref driver** (16-tap ladder, low/high range, mV helper)
+- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`
 
 Next:
 
-- [ ] Comparators + Vref
 - [ ] EEPROM
 - [ ] PSP (40/44-pin only)
 - [ ] WDT, BOR, Sleep

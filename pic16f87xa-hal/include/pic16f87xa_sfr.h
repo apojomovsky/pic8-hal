@@ -316,6 +316,24 @@ extern "C" {
 #define PIC_ADCON1_ADCS2       PIC16F87XA_BIT(6)    /* ADCS2 — bit 6. */
 #define PIC_ADCON1_ADFM        PIC16F87XA_BIT(7)    /* Result format. */
 
+/* ───────────────────────── CMCON bits (Comparator) ────────────────── */
+
+/* DS39582B §12.0, Register 12-1. */
+#define PIC_CMCON_CM_MASK      0x07U                /* CM2:CM0 — bits 2:0. */
+#define PIC_CMCON_CIS          PIC16F87XA_BIT(3)    /* Comparator input switch. */
+#define PIC_CMCON_C1INV        PIC16F87XA_BIT(4)    /* C1 output invert. */
+#define PIC_CMCON_C2INV        PIC16F87XA_BIT(5)    /* C2 output invert. */
+#define PIC_CMCON_C1OUT        PIC16F87XA_BIT(6)    /* C1 output (read-only). */
+#define PIC_CMCON_C2OUT        PIC16F87XA_BIT(7)    /* C2 output (read-only). */
+
+/* ───────────────────────── CVRCON bits (Vref) ────────────────────── */
+
+/* DS39582B §13.0, Register 13-1. */
+#define PIC_CVRCON_CVR_MASK    0x0FU                /* CVR3:CVR0 — bits 3:0. */
+#define PIC_CVRCON_CVRR         PIC16F87XA_BIT(5)    /* Vref range select. */
+#define PIC_CVRCON_CVROE        PIC16F87XA_BIT(6)    /* Vref output enable. */
+#define PIC_CVRCON_CVREN        PIC16F87XA_BIT(7)    /* Vref circuit enable. */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**
