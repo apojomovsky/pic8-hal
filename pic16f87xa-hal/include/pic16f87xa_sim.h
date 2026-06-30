@@ -78,6 +78,14 @@ void pic16f87xa_sim_drive_usart_rx(uint8_t data);
  */
 void pic16f87xa_sim_drive_ssp_rx(uint8_t data);
 
+/**
+ * @brief Drive an A/D conversion to completion with a given 10-bit
+ *        result. Stores `result` in ADRESH:ADRESL (right-justified),
+ *        clears GO/DONE, and sets PIR1<ADIF>. The next call to
+ *        HAL_ADC_Read() will return the result.
+ */
+void pic16f87xa_sim_drive_adc_done(uint16_t result);
+
 #ifdef __cplusplus
 }
 #endif

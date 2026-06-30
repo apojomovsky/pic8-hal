@@ -36,6 +36,7 @@ add_library(pic16f87xa_hal STATIC
     src/peripherals/pic16f87xa_ccp.c
     src/peripherals/pic16f87xa_usart.c
     src/peripherals/pic16f87xa_ssp.c
+    src/peripherals/pic16f87xa_adc.c
     src/core/pic16f87xa_interrupt.c
     src/sim/pic16f87xa_sim.c
 )
@@ -84,6 +85,13 @@ target_compile_definitions(example_ssp PRIVATE
     -DPIC16F87XA_USE_SIMULATOR
 )
 target_link_libraries(example_ssp PRIVATE pic16f87xa_hal)
+
+add_executable(example_adc tests/example_adc.c)
+target_compile_definitions(example_adc PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_adc PRIVATE pic16f87xa_hal)
 
 # Optional: example for every device in the family.
 foreach(dev PIC16F873A PIC16F874A PIC16F876A PIC16F877A)

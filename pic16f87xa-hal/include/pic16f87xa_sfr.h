@@ -302,6 +302,20 @@ extern "C" {
 #define PIC_SSPSTAT_CKE        PIC16F87XA_BIT(6)    /* Clock edge (SPI).    */
 #define PIC_SSPSTAT_SMP        PIC16F87XA_BIT(7)    /* Sample bit (SPI).    */
 
+/* ───────────────────────── ADCON0 / ADCON1 bits (A/D) ─────────────── */
+
+/* DS39582B §11.0, Registers 11-1 (ADCON0) and 11-2 (ADCON1). */
+#define PIC_ADCON0_ADON        PIC16F87XA_BIT(0)    /* A/D on.        */
+#define PIC_ADCON0_GO_DONE     PIC16F87XA_BIT(2)    /* Start / status. */
+#define PIC_ADCON0_CHS_MASK    0x1CU                /* CHS2:CHS0 — bits 5:3. */
+#define PIC_ADCON0_CHS_POS     3U
+#define PIC_ADCON0_ADCS_MASK   0xC0U                /* ADCS1:ADCS0 — bits 7:6. */
+#define PIC_ADCON0_ADCS_POS    6U
+
+#define PIC_ADCON1_PCFG_MASK   0x0FU                /* PCFG3:PCFG0 — bits 3:0. */
+#define PIC_ADCON1_ADCS2       PIC16F87XA_BIT(6)    /* ADCS2 — bit 6. */
+#define PIC_ADCON1_ADFM        PIC16F87XA_BIT(7)    /* Result format. */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**

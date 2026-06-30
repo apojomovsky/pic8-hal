@@ -332,3 +332,26 @@ void pic16f87xa_sim_drive_ssp_rx(uint8_t data)
     pic16f87xa_sim_sfr[0x0CU] |= 0x08U;
     if (sim_irq_cb) sim_irq_cb();
 }
+
+void pic16f87xa_sim_drive_adc_done(uint16_t result)
+{
+    /* Clear GO/DONE in ADCON0. */
+    pic16f87xa_sim_sfr[0x1FU] &= (uint8_t)~0x04U;
+    /* Store result right-justified in ADRESH:ADRESL.
+     * DS39582B §11.4.1 + Figure 11-4 (ADFM=1):
+     *   ADRESH[1:0] = result[9:8], ADRESH[7:2] = 0
+     *   ADRESL[7:0] = result[7:0]
+     */
+    pic16f87xa_sim_sfr[0x1EU] = (uint8_t)((result >> 8) & 0x03U);
+    {
+        uint8_t prev = (pic16f87xa_sim_sfr[PIC_REG_STATUS] >> 5) & 0x03U;
+        pic16f87xa_sim_sfr[PIC_REG_STATUS] =
+            (uint8_t)((pic16f87xa_sim_sfr[PIC_REG_STATUS] & 0x1FU) | (1U << 5));
+        pic16f87xa_sim_sfr[0x9EU] = (uint8_t)(result & 0xFFU);
+        pic16f87xa_sim_sfr[PIC_REG_STATUS] =
+            (uint8_t)((pic16f87xa_sim_sfr[PIC_REG_STATUS] & 0x1FU) | (prev << 5));
+    }
+    /* Set PIR1<ADIF> (bit 6). */
+    pic16f87xa_sim_sfr[0x0CU] |= 0x40U;
+    if (sim_irq_cb) sim_irq_cb();
+}
