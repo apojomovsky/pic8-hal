@@ -43,6 +43,7 @@ static pic16f87xa_sim_irq_cb_t sim_irq_cb = 0;
 static void sim_step_timer0(void);
 static void sim_step_timer1(void);
 static void sim_step_timer2(void);
+static void sim_step_usart(void);
 
 /* ───────────────────────── GPIO model ───────────────────────────── */
 
@@ -97,6 +98,10 @@ void pic16f87xa_sim_reset(void)
     pic16f87xa_sim_sfr[PIC_REG_INTCON]   = PIC_INTCON_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_PIR1]     = PIC_PIR1_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_PIR2]     = PIC_PIR2_POR_VALUE;
+    /* PIR1 <TXIF> resets to 1 (TXREG empty after POR — §10.2.1).
+     * PIR1 = 0x0C, TXIF is bit 4. */
+    pic16f87xa_sim_sfr[0x0CU] |= 0x10U;
+
     /* PIE1 / PIE2 reset to 0 — same addresses as PIR1/PIR2 in bank 1. */
     pic16f87xa_sim_sfr[0x8CU]            = PIC_PIE1_POR_VALUE;
     pic16f87xa_sim_sfr[0x8DU]            = PIC_PIE2_POR_VALUE;
@@ -126,6 +131,7 @@ void pic16f87xa_sim_step(uint32_t ticks)
         sim_step_timer0();
         sim_step_timer1();
         sim_step_timer2();
+        sim_step_usart();
     }
 }
 
@@ -248,6 +254,25 @@ static void sim_step_timer2(void)
     pic16f87xa_sim_sfr[PIC_REG_TMR2] = t2;
 }
 
+/* ───────────────────────── USART step ───────────────────────────── */
+
+static void sim_step_usart(void)
+{
+    /* USART sim model (DS39582B §10.2.1, simplified):
+     *   - TXIF stays 1 once the (instantaneous) "transmit" completes.
+     *   - RCIF is set by the test rig via pic16f87xa_sim_drive_usart_rx;
+     *     reading RCREG clears it.
+     *   - The sim does not actually shift bits onto the TX pin. The
+     *     test rig observes TXREG / RCREG / flags directly.
+     *
+     * The sim simply re-asserts TXIF every cycle (when TXEN is on)
+     * because the cycle-accurate BRG + TSR model is out of scope. */
+    uint8_t txsta = PIC16F87XA_REG8(PIC_REG_TXSTA);
+    if (txsta & PIC_TXSTA_TXEN) {
+        PIC16F87XA_REG8(0x0CU) |= 0x10U;     /* PIR1<TXIF> */
+    }
+}
+
 void pic16f87xa_sim_drive_input(char port, uint8_t pin, uint8_t level)
 {
     if (pin > 7U) return;
@@ -279,4 +304,13 @@ uint8_t pic16f87xa_sim_read_output(char port, uint8_t pin)
 void pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb)
 {
     sim_irq_cb = cb;
+}
+
+void pic16f87xa_sim_drive_usart_rx(uint8_t data)
+{
+    /* Place the byte in RCREG (0x1A — DS39582B §10.x). */
+    pic16f87xa_sim_sfr[PIC_REG_RCREG] = data;
+    /* Set PIR1<RCIF> (bit 5). */
+    pic16f87xa_sim_sfr[0x0CU] |= 0x20U;
+    if (sim_irq_cb) sim_irq_cb();
 }

@@ -64,6 +64,13 @@ uint8_t pic16f87xa_sim_read_output(char port, uint8_t pin);
 typedef void (*pic16f87xa_sim_irq_cb_t)(void);
 void pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb);
 
+/**
+ * @brief Inject a byte into the USART receiver as if it had just been
+ *        received off the wire. Sets PIR1<RCIF> and stores the byte in
+ *        RCREG. The next call to HAL_USART_Receive() will return it.
+ */
+void pic16f87xa_sim_drive_usart_rx(uint8_t data);
+
 #ifdef __cplusplus
 }
 #endif

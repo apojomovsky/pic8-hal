@@ -248,6 +248,29 @@ extern "C" {
 #define PIC_CCP_CCPX_Y          PIC16F87XA_BIT(4)    /* PWM duty LSB bit 0.         */
 #define PIC_CCP_CCPX_X          PIC16F87XA_BIT(5)    /* PWM duty LSB bit 1.         */
 
+/* ───────────────────────── TXSTA bits (USART) ────────────────────── */
+
+/* DS39582B §10.0, Register 10-1. */
+#define PIC_TXSTA_TX9D         PIC16F87XA_BIT(0)    /* 9th bit of TX data. */
+#define PIC_TXSTA_TRMT         PIC16F87XA_BIT(1)    /* TSR empty. */
+#define PIC_TXSTA_BRGH         PIC16F87XA_BIT(2)    /* High baud rate. */
+#define PIC_TXSTA_SYNC         PIC16F87XA_BIT(4)    /* Sync mode. */
+#define PIC_TXSTA_TXEN         PIC16F87XA_BIT(5)    /* TX enable. */
+#define PIC_TXSTA_TX9          PIC16F87XA_BIT(6)    /* 9-bit TX. */
+#define PIC_TXSTA_CSRC         PIC16F87XA_BIT(7)    /* Clock source (sync). */
+
+/* ───────────────────────── RCSTA bits (USART) ────────────────────── */
+
+/* DS39582B §10.0, Register 10-2. */
+#define PIC_RCSTA_RX9D         PIC16F87XA_BIT(0)    /* 9th bit of RX data. */
+#define PIC_RCSTA_OERR         PIC16F87XA_BIT(1)    /* Overrun error. */
+#define PIC_RCSTA_FERR         PIC16F87XA_BIT(2)    /* Framing error. */
+#define PIC_RCSTA_ADDEN        PIC16F87XA_BIT(3)    /* Address detect (9-bit). */
+#define PIC_RCSTA_CREN         PIC16F87XA_BIT(4)    /* Continuous receive. */
+#define PIC_RCSTA_SREN         PIC16F87XA_BIT(5)    /* Single receive. */
+#define PIC_RCSTA_RX9          PIC16F87XA_BIT(6)    /* 9-bit RX. */
+#define PIC_RCSTA_SPEN         PIC16F87XA_BIT(7)    /* Serial port enable. */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**
