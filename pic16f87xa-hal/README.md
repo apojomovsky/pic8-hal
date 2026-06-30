@@ -23,11 +23,11 @@ Done so far:
 - ✅ **ADC driver** (10-bit, 5/8 channels, TAD clock + reference config, weak ISR)
 - ✅ **Comparator driver** (2 comparators, 8 modes, weak ISR)
 - ✅ **Vref driver** (16-tap ladder, low/high range, mV helper)
-- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`
+- ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
+- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`
 
 Next:
 
-- [ ] EEPROM
 - [ ] PSP (40/44-pin only)
 - [ ] WDT, BOR, Sleep
 - [ ] XC8 / MPLAB X project template

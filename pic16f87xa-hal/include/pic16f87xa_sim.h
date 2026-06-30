@@ -86,6 +86,18 @@ void pic16f87xa_sim_drive_ssp_rx(uint8_t data);
  */
 void pic16f87xa_sim_drive_adc_done(uint16_t result);
 
+/**
+ * @brief Place a byte in the simulated EEPROM. Subsequent calls to
+ *        HAL_EEPROM_ReadByte(addr) return it.
+ */
+void pic16f87xa_sim_drive_eeprom_byte(uint8_t addr, uint8_t data);
+
+/**
+ * @brief Simulate a completed EEPROM write at `addr` with `data` and
+ *        set PIR2<EEIF>.
+ */
+void pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data);
+
 #ifdef __cplusplus
 }
 #endif

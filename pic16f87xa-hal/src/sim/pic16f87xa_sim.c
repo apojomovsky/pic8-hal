@@ -355,3 +355,32 @@ void pic16f87xa_sim_drive_adc_done(uint16_t result)
     pic16f87xa_sim_sfr[0x0CU] |= 0x40U;
     if (sim_irq_cb) sim_irq_cb();
 }
+
+/* Simulated EEPROM storage. The PIC16F877A has 256 bytes, so use
+ * a full 256-cell table. Smaller parts have 128; we just don't use
+ * the upper half for them. */
+static uint8_t sim_eeprom[256];
+static uint8_t sim_eeprom_loaded[256];
+
+void pic16f87xa_sim_drive_eeprom_byte(uint8_t addr, uint8_t data)
+{
+    if (addr >= 256U) return;
+    sim_eeprom[addr] = data;
+    sim_eeprom_loaded[addr] = 1U;
+}
+
+void pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data)
+{
+    if (addr >= 256U) return;
+    sim_eeprom[addr] = data;
+    sim_eeprom_loaded[addr] = 1U;
+    /* Set PIR2<EEIF> (bit 4). */
+    pic16f87xa_sim_sfr[0x0DU] |= 0x10U;
+    if (sim_irq_cb) sim_irq_cb();
+}
+
+uint8_t pic16f87xa_sim_eeprom_read(uint8_t addr)
+{
+    if (addr >= 256U) return 0xFFU;
+    return sim_eeprom[addr];
+}

@@ -334,6 +334,15 @@ extern "C" {
 #define PIC_CVRCON_CVROE        PIC16F87XA_BIT(6)    /* Vref output enable. */
 #define PIC_CVRCON_CVREN        PIC16F87XA_BIT(7)    /* Vref circuit enable. */
 
+/* ───────────────────────── EECON1 bits (EEPROM) ──────────────────── */
+
+/* DS39582B §3.0, Register 3-1. */
+#define PIC_EECON1_RD          PIC16F87XA_BIT(0)    /* Read control.   */
+#define PIC_EECON1_WR          PIC16F87XA_BIT(1)    /* Write control.  */
+#define PIC_EECON1_WREN        PIC16F87XA_BIT(2)    /* Write enable.   */
+#define PIC_EECON1_WRERR       PIC16F87XA_BIT(3)    /* Write error.    */
+#define PIC_EECON1_EEIF        PIC16F87XA_BIT(4)    /* EEPROM IRQ.     */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**
