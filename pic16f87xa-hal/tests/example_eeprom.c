@@ -25,7 +25,7 @@
 } while (0)
 
 /* Helper: read a register from a non-default bank. */
-static uint8_t b_read(uint8_t bank, uint8_t addr)
+static uint8_t b_read(uint8_t bank, uint16_t addr)
 {
     uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(bank);

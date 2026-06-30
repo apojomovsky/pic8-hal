@@ -26,11 +26,10 @@ Done so far:
 - ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
 - ✅ **PSP driver** (40/44-pin only — TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
 - ✅ **WDT / BOR / Sleep helpers** (clrwdt / sleep asm, PCON BOR/POR flags)
+- ✅ **MPLAB X / XC8 project template** (Makefile + `nbproject/configurations.xml`)
 - ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
 
-Next:
-
-- [ ] XC8 / MPLAB X project template
+**All planned peripherals + XC8 build glue done.**
 
 ## Layout
 
