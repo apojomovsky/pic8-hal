@@ -26,9 +26,17 @@ set(PIC16F87XA_DEFINES
 # own part (PIC16F873A / 874A / 876A / 877A) without polluting other targets.
 set(PIC16F87XA_DEFAULT_DEVICE PIC16F877A)
 
+# Determine whether the default device has the PSP (40/44-pin only).
+if(PIC16F87XA_DEFAULT_DEVICE STREQUAL "PIC16F874A" OR
+   PIC16F87XA_DEFAULT_DEVICE STREQUAL "PIC16F877A")
+    set(PIC16F87XA_FAMILY_HAS_PSP 1)
+else()
+    set(PIC16F87XA_FAMILY_HAS_PSP 0)
+endif()
+
 set(HAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_library(pic16f87xa_hal STATIC
+set(HAL_SOURCES_CORE
     src/peripherals/pic16f87xa_gpio.c
     src/peripherals/pic16f87xa_timer0.c
     src/peripherals/pic16f87xa_timer1.c
@@ -43,6 +51,13 @@ add_library(pic16f87xa_hal STATIC
     src/core/pic16f87xa_interrupt.c
     src/sim/pic16f87xa_sim.c
 )
+
+# PSP is only on 40/44-pin parts. PIC16F877A is the default.
+if(PIC16F87XA_FAMILY_HAS_PSP)
+    list(APPEND HAL_SOURCES_CORE src/peripherals/pic16f87xa_psp.c)
+endif()
+
+add_library(pic16f87xa_hal STATIC ${HAL_SOURCES_CORE})
 target_include_directories(pic16f87xa_hal PUBLIC ${HAL_INCLUDE_DIR})
 target_compile_options(pic16f87xa_hal PRIVATE ${PIC16F87XA_DEFINES})
 target_compile_definitions  (pic16f87xa_hal PRIVATE -D${PIC16F87XA_DEFAULT_DEVICE})
@@ -109,6 +124,15 @@ target_compile_definitions(example_eeprom PRIVATE
     -DPIC16F87XA_USE_SIMULATOR
 )
 target_link_libraries(example_eeprom PRIVATE pic16f87xa_hal)
+
+if(PIC16F87XA_FAMILY_HAS_PSP)
+    add_executable(example_psp tests/example_psp.c)
+    target_compile_definitions(example_psp PRIVATE
+        -D${PIC16F87XA_DEFAULT_DEVICE}
+        -DPIC16F87XA_USE_SIMULATOR
+    )
+    target_link_libraries(example_psp PRIVATE pic16f87xa_hal)
+endif()
 
 # Optional: example for every device in the family.
 foreach(dev PIC16F873A PIC16F874A PIC16F876A PIC16F877A)

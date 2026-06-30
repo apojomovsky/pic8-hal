@@ -343,6 +343,15 @@ extern "C" {
 #define PIC_EECON1_WRERR       PIC16F87XA_BIT(3)    /* Write error.    */
 #define PIC_EECON1_EEIF        PIC16F87XA_BIT(4)    /* EEPROM IRQ.     */
 
+/* ───────────────────────── TRISE bits (PORT E / PSP) ─────────────── */
+
+/* DS39582B §4.5, Register 4-9. PSP is 40/44-pin only. */
+#define PIC_TRISE_PSPIE        PIC16F87XA_BIT(0)    /* PSP read/write IRQ enable. */
+#define PIC_TRISE_IBF          PIC16F87XA_BIT(1)    /* Input buffer full.        */
+#define PIC_TRISE_OBF          PIC16F87XA_BIT(2)    /* Output buffer full.       */
+#define PIC_TRISE_IBOV         PIC16F87XA_BIT(3)    /* Input buffer overflow.    */
+#define PIC_TRISE_PSPMODE      PIC16F87XA_BIT(4)    /* PSP mode select.          */
+
 /* ───────────────────────── Bank-selection helper ───────────────── */
 
 /**
