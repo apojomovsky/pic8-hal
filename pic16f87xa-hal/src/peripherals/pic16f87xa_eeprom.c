@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_eeprom.c
- * @brief   Data EEPROM driver — implementation (DS39582B §3.0).
+ * @brief   Data EEPROM driver, implementation (DS39582B §3.0).
  */
 
 #include "peripherals/pic16f87xa_eeprom.h"
@@ -8,7 +8,7 @@
 
 static void (*g_eeprom_cb)(void) = NULL;
 
-/* Bank helpers — EEPROM registers are in Banks 2 and 3. */
+/* Bank helpers, EEPROM registers are in Banks 2 and 3. */
 static void b3_write(uint16_t addr, uint8_t v)
 {
     uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
@@ -80,7 +80,7 @@ PIC16F87XA_StatusTypeDef HAL_EEPROM_WriteByte(uint8_t addr, uint8_t data)
     b2_write(0x0DU, addr);                  /* EEADR. */
     b3_write(0x18CU, 0x00U);                /* clear WREN/WR. */
     b3_write(0x18CU, 0x04U);                /* WREN=1. */
-    /* Unlock sequence — §3.4 / Example 3-1. */
+    /* Unlock sequence, §3.4 / Example 3-1. */
     b3_write(0x18DU, 0x55U);                /* EECON2 = 0x55. */
     b3_write(0x18DU, 0xAAU);                /* EECON2 = 0xAA. */
     b3_write(0x18CU, PIC_EECON1_WREN | PIC_EECON1_WR);  /* start write. */

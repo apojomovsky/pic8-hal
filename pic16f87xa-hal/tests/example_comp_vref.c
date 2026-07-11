@@ -83,6 +83,6 @@ int main(void)
     CHECK(HAL_VREF_MilliVolts(5000U, VREF_RANGE_HIGH, 8U)  == 2500U,
           "Vref high tap 8 != 2500 mV at 5V");
 
-    printf("OK: Comparator + Vref drivers — mode, inverted, milliVolts all pass.\n");
+    printf("OK: Comparator + Vref drivers, mode, inverted, milliVolts all pass.\n");
     return 0;
 }

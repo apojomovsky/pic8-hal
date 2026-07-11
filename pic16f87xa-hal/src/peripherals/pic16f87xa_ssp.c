@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_ssp.c
- * @brief   MSSP driver — implementation (DS39582B §9.0).
+ * @brief   MSSP driver, implementation (DS39582B §9.0).
  *
  *   This is a register-level driver: the actual I²C state machine
  *   (Start/Stop/ACK timing, slave address matching) is left to the
@@ -73,7 +73,7 @@ PIC16F87XA_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h)
     con |= PIC_SSPCON_SSPEN;
     PIC16F87XA_REG8(0x14U) = con;
 
-    /* SSPCON2 (Bank 1, address 0x91) — clear all bits (idle state). */
+    /* SSPCON2 (Bank 1, address 0x91), clear all bits (idle state). */
     ssp_b1_write(0x91U, 0x00U);
 
     /* Interrupt enable. */

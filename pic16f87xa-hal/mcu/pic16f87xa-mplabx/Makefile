@@ -1,4 +1,4 @@
-# PIC16F87XA HAL — MPLAB XC8 Makefile
+# PIC16F87XA HAL, MPLAB XC8 Makefile
 #
 # Builds the HAL on real silicon via MPLAB XC8. Tested with:
 #   - MPLAB X IDE v6.x
@@ -67,7 +67,7 @@ CFLAGS := $(DFP_FLAG) \
 
 # ─────────────────────────── source layout ─────────────────────────
 # The HAL sources in src/ compile for both host (sim) and target.
-# The sim/ subdirectory is NOT compiled on real targets — XC8 never
+# The sim/ subdirectory is NOT compiled on real targets, XC8 never
 # links pic16f87xa_sim.c. The host/target SFR mapping is chosen by the
 # include path (include/target first), and the host-only harness /
 # wdt_sleep-sim implementations are simply absent from this source list.
@@ -114,7 +114,7 @@ VPATH := $(sort $(dir $(SRCS)))
 # ─────────────────────────── config word ───────────────────────────
 # The PIC16F87XA Configuration Word is a flash-locked register that
 # defines oscillator, WDT, PWRT, BOR, code protection, and LVP at
-# programming time.  This file emits the directives — adjust as
+# programming time.  This file emits the directives, adjust as
 # needed per your hardware.  See DS39582B §14.1 (Register 14-1).
 CONFIG_SRC := $(BUILD_DIR)/config_$(MCU).c
 CONFIG_OBJ := $(BUILD_DIR)/config_$(MCU).p1
@@ -138,7 +138,7 @@ $(CONFIG_SRC): | $(BUILD_DIR)
 
 # Compile a HAL/app source to p-code. VPATH resolves the basename to
 # the real path under HAL_DIR. The order-only prereq ensures build/
-# exists — xc8-cc refuses to write into a missing output directory.
+# exists, xc8-cc refuses to write into a missing output directory.
 $(BUILD_DIR)/%.p1: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -150,7 +150,7 @@ $(CONFIG_OBJ): $(CONFIG_SRC) | $(BUILD_DIR)
 $(TARGET).hex: $(OBJS) $(CONFIG_OBJ)
 	$(CC) $(CFLAGS) $(OBJS) $(CONFIG_OBJ) -o $@ -ginhx32
 	@echo ""
-	@echo "Built $@ — program with MPLAB X or your favorite programmer."
+	@echo "Built $@, program with MPLAB X or your favorite programmer."
 
 clean:
 	rm -rf $(BUILD_DIR)

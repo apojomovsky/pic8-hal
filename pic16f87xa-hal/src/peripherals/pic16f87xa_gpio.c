@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_gpio.c
- * @brief   GPIO driver — implementation matching datasheet §4.1..§4.5.
+ * @brief   GPIO driver, implementation matching datasheet §4.1..§4.5.
  */
 
 #include "peripherals/pic16f87xa_gpio.h"
@@ -46,7 +46,7 @@ static uint8_t port_addr(GPIO_TypeDef port)
 /**
  * @brief  Upper pin bound for a port. PORTA = 6, PORTE = 3, others = 8.
  *         Anything above this is unimplemented (DS39582B Table 4-1..4-9,
- *         "—" marks).
+ *         marked with a dash in the datasheet).
  */
 static uint8_t port_width(GPIO_TypeDef port)
 {

@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_psp.c
- * @brief   Parallel Slave Port driver — implementation (DS39582B §4.5).
+ * @brief   Parallel Slave Port driver, implementation (DS39582B §4.5).
  */
 
 #include "peripherals/pic16f87xa_psp.h"
@@ -30,7 +30,7 @@ PIC16F87XA_StatusTypeDef HAL_PSP_Init(void (*callback)(void))
     g_psp_cb = callback;
     /* Clear the read-only status flags (IBF, OBF, IBOV) by writing
      * TRISE with them clear. The lower 4 bits of TRISE are
-     * read-only — we leave PSPIE/PSPMODE managed by the user. */
+     * read-only, we leave PSPIE/PSPMODE managed by the user. */
     b1_trise_write(b1_trise() &
                    (uint8_t)~(PIC_TRISE_IBF | PIC_TRISE_OBF | PIC_TRISE_IBOV));
     PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_PSP);

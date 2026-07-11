@@ -59,6 +59,6 @@ int main(void)
     /* After DeInit TRISE = 0x07 (POR default). */
     CHECK(trise == 0x07U, "TRISE not 0x07 after DeInit");
 
-    printf("OK: PSP driver — enable/disable, buffer flags, TRISE state all pass.\n");
+    printf("OK: PSP driver, enable/disable, buffer flags, TRISE state all pass.\n");
     return 0;
 }

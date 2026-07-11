@@ -4,7 +4,7 @@ Hardware abstraction layer for the **PIC16F873A / 874A / 876A / 877A** family,
 inspired by the STM32Cube HAL API. Every constant, register address and
 behaviour is taken 1-to-1 from the datasheet [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf).
 
-➜ **[MANUAL.md](MANUAL.md)** is the full, human-readable manual —
+➜ **[MANUAL.md](MANUAL.md)** is the full, human-readable manual:
 architecture, both builds, the simulator, the harness, and a per-peripheral
 reference. Start there if you are new to the HAL.
 
@@ -28,10 +28,10 @@ Done so far:
 - ✅ **Comparator driver** (2 comparators, 8 modes, weak ISR)
 - ✅ **Vref driver** (16-tap ladder, low/high range, mV helper)
 - ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
-- ✅ **PSP driver** (40/44-pin only — TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
+- ✅ **PSP driver** (40/44-pin only, TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
 - ✅ **WDT / BOR / Sleep helpers** (clrwdt / sleep asm, PCON BOR/POR flags)
-- ✅ **Shared interrupt dispatch** (`pic16f87xa_dispatch_all_irqs`) — fans the single vector at 0x0004 out to every peripheral IRQHandler. On a real target the XC8 `__interrupt()` (`src/core/pic16f87xa_isr_vector.c`) calls it; on the host the harness registers it as the sim IRQ callback. One source of truth.
-- ✅ **Test/firmware harness** (`include/core/pic16f87xa_harness.h`) — lets every example build for the host sim and a real XC8 target with **no `#ifdef` in the example code**. The build links the host harness (`*_harness_sim.c`) or the target harness (`*_harness_target.c`); the harness abstracts the only two execution-model differences (pumping simulated time vs. real time, terminating test vs. firmware that runs forever).
+- ✅ **Shared interrupt dispatch** (`pic16f87xa_dispatch_all_irqs`), fans the single vector at 0x0004 out to every peripheral IRQHandler. On a real target the XC8 `__interrupt()` (`src/core/pic16f87xa_isr_vector.c`) calls it; on the host the harness registers it as the sim IRQ callback. One source of truth.
+- ✅ **Test/firmware harness** (`include/core/pic16f87xa_harness.h`), lets every example build for the host sim and a real XC8 target with **no `#ifdef` in the example code**. The build links the host harness (`*_harness_sim.c`) or the target harness (`*_harness_target.c`); the harness abstracts the only two execution-model differences (pumping simulated time vs. real time, terminating test vs. firmware that runs forever).
 - ✅ **MPLAB X / XC8 project template** (Makefile + `nbproject/configurations.xml`)
 - ✅ End-to-end tests: `example_blink`, `example_idle_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
 
@@ -42,12 +42,12 @@ Done so far:
 ```
 pic16f87xa-hal/
 ├── include/
-│   ├── pic16f87xa.h              Family header — device selection, status
+│   ├── pic16f87xa.h              Family header, device selection, status
 │   │                             codes, bit helpers, SFR mapping macros
 │   ├── pic16f87xa_sfr.h          SFR address map + bit names (1-to-1 with DS39582B)
 │   ├── pic16f87xa_sim.h          Simulation backend public API
 │   ├── core/                     CPU-level features (interrupts, config bits)
-│   └── peripherals/             One .h per peripheral — Cube-style API
+│   └── peripherals/             One .h per peripheral, Cube-style API
 ├── src/
 │   ├── core/                     Implementation of core/ headers
 │   ├── peripherals/             Implementation of peripherals/ headers
@@ -101,20 +101,20 @@ extern uint8_t pic16f87xa_sim_sfr[0x200];
 ```
 
 CMake puts `include/host` first on the include path; the XC8 Makefile puts
-`include/target` first — so the one `#include "pic16f87xa_platform.h"` in
+`include/target` first, so the one `#include "pic16f87xa_platform.h"` in
 `pic16f87xa.h` resolves to the right copy per build, with no preprocessor
 branching.
 
 Likewise the test/firmware harness (`core/pic16f87xa_harness.h`) and the
-WDT/Sleep helpers are each provided by two implementation files —
-`*_sim.c` linked by CMake, `*_target.c` linked by the XC8 Makefile — so
+WDT/Sleep helpers are each provided by two implementation files:
+`*_sim.c` linked by CMake, `*_target.c` linked by the XC8 Makefile, so
 examples call `pic16f87xa_harness_init/tick/running/log`,
 `HAL_WDT_Refresh`, `HAL_Sleep_Enter` unconditionally and the build picks
 the behaviour. See `core/pic16f87xa_harness.h` for the rationale.
 
 On host, every SFR read/write is a memory access into a 512-byte array
 (`pic16f87xa_sim_sfr`). On a real PIC, the same macro dereferences the
-literal address — exactly the same code the XC8 linker would generate
+literal address, exactly the same code the XC8 linker would generate
 from `*(volatile uint8_t *)&PORTB`.
 
 The simulation backend additionally:
@@ -136,7 +136,7 @@ host simulation or for an XC8-built firmware targeting a real PIC**.
 Every register, bit name, reset value and reset condition is annotated
 with the section of DS39582B it came from. Examples:
 
-- `pic16f87xa_sfr.h` → `/* DS39582B Table 4-3 — PORTB functions */`
+- `pic16f87xa_sfr.h` → `/* DS39582B Table 4-3, PORTB functions */`
 - `pic16f87xa_gpio.c` → `HAL_GPIO_Init()` cites §4.x
 - `core/pic16f87xa_interrupt.h` → every IRQn cites §14.11
 
@@ -146,9 +146,9 @@ If you find a deviation, that's a bug.
 
 Mirror STM32Cube as closely as makes sense for an 8-bit PIC:
 
-- `HAL_PPP_Init(handle, init_struct)` — peripheral bring-up
-- `HAL_PPP_DeInit(handle)` — peripheral tear-down
-- `HAL_PPP_MspInit()` — `__weak` callback the user overrides to wire ISR vectors
+- `HAL_PPP_Init(handle, init_struct)`, peripheral bring-up
+- `HAL_PPP_DeInit(handle)`, peripheral tear-down
+- `HAL_PPP_MspInit()`, `__weak` callback the user overrides to wire ISR vectors
 - Pin/port addressing: `GPIOA..GPIOE`, `GPIO_PIN_0..GPIO_PIN_All`,
   `GPIO_PIN_SET/RESET`
 - Status codes: `PIC16F87XA_OK / ERROR / BUSY / TIMEOUT / INVALID`

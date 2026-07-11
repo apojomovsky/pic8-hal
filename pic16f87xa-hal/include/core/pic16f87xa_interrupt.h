@@ -1,6 +1,6 @@
 /**
  * @file    core/pic16f87xa_interrupt.h
- * @brief   Interrupt controller — enable / disable / dispatch helpers.
+ * @brief   Interrupt controller, enable / disable / dispatch helpers.
  *
  * @details
  *   Mirrors `HAL_NVIC_*` from STM32Cube: the application never touches
@@ -67,7 +67,7 @@ typedef enum {
 uint8_t PIC16F87XA_IRQ_Disable(void);
 
 /**
- * @brief Restore the global interrupt enable to `prev_state` — pair with
+ * @brief Restore the global interrupt enable to `prev_state`, pair with
  *        @ref PIC16F87XA_IRQ_Disable.
  */
 void PIC16F87XA_IRQ_Restore(uint8_t prev_state);

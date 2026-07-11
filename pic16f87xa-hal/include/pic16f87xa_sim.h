@@ -39,7 +39,7 @@ void pic16f87xa_sim_step(uint32_t ticks);
 
 /**
  * @brief Drive a digital input pin from the test rig (when the pin is
- *        configured as input — TRIS bit = 1).
+ *        configured as input, TRIS bit = 1).
  *
  * @param port   One of 'A'..'E'.
  * @param pin    Pin number 0..7.

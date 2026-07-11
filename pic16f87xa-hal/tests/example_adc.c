@@ -66,6 +66,6 @@ int main(void)
     HAL_ADC_DeInit();
     CHECK(PIC16F87XA_REG8(0x1FU) == 0x00U, "ADCON0 not zero after DeInit");
 
-    printf("OK: ADC driver — channel/clock config, start, complete, read all pass.\n");
+    printf("OK: ADC driver, channel/clock config, start, complete, read all pass.\n");
     return 0;
 }

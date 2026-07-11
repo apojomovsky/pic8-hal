@@ -1,21 +1,21 @@
 /**
  * @file    task_manager.h
  * @brief   A tiny cooperative (non-preemptive) task scheduler for the
- *          PIC16F87XA family — "kinda like an RTOS, not an RTOS."
+ *          PIC16F87XA family, "kinda like an RTOS, not an RTOS."
  *
  * @details
  *   A real preemptive RTOS is a poor fit for a PIC16F87XA: the core has no
- *   software stack and only 192–368 B of RAM, so per-task stacks and context
+ *   software stack and only 192-368 B of RAM, so per-task stacks and context
  *   switching are off the table. This module gives the part of an RTOS that
  *   *does* make sense there: a single shared kernel stack (the ordinary
  *   call stack) and a scheduler that runs a set of registered tasks in a
  *   cooperative, priority-ordered round on each tick. No task is ever
- *   preempted mid-execution — each runs to completion and returns, exactly
+ *   preempted mid-execution, each runs to completion and returns, exactly
  *   like an interrupt handler. That is the textbook "cooperative scheduler"
  *   shape, and it is what makes it *not* an RTOS.
  *
  *   Two execution models are supported with the same source, reusing the
- *   HAL's host/target harness seam (core/pic16f87xa_harness.h) — there is no
+ *   HAL's host/target harness seam (core/pic16f87xa_harness.h), there is no
  *   `#ifdef` in the scheduler or in example code:
  *
  *     - Host simulator: `task_manager_run()` calls `pic16f87xa_harness_tick()`
@@ -32,7 +32,7 @@
  *   helper `task_manager_attach_timer0()` wires a HAL Timer0 overflow to
  *   `task_manager_tick()`. Tick rate is set by the Timer0 reload + prescaler
  *   (real Fosc/4 timing on target; the sim reproduces the plumbing, not the
- *   wall-clock rate — same simplification the HAL's example_idle_blink
+ *   wall-clock rate, same simplification the HAL's example_idle_blink
  *   documents). You may instead call `task_manager_tick()` from any other
  *   timer ISR; the scheduler does not care where the tick comes from.
  *
@@ -40,7 +40,7 @@
  *   context while `task_manager_run_once()` runs in main context. The
  *   scheduler disables interrupts only for the brief snapshot of the
  *   ready set, then runs tasks with interrupts re-enabled, so a tick that
- *   arrives during a long task is not lost — it arms the task for the next
+ *   arrives during a long task is not lost, it arms the task for the next
  *   round. The mutators (`task_spawn`, `task_stop`, `task_set_period`) take
  *   the same short critical section so they are safe to call from a running
  *   task (e.g. a supervisor task that spawns one-shot children at runtime).
@@ -60,7 +60,7 @@
  * @brief Maximum number of simultaneously registered tasks. Each slot costs
  *        ~12 B of RAM (two 3-byte PIC16 pointers + two uint16 + a flags
  *        byte). The default scales to the part: 6 on the 192 B
- *        PIC16F873A/874A, 8 on the 368 B PIC16F876A/877A — so the scheduler
+ *        PIC16F873A/874A, 8 on the 368 B PIC16F876A/877A, so the scheduler
  *        banks cleanly into every device in the family. Override by defining
  *        TASK_MGR_MAX_TASKS before including this header.
  *
@@ -87,13 +87,13 @@ typedef uint8_t task_id_t;
 /**
  * @brief Task entry point. A task is a plain function that runs to
  *        completion and returns; it is called with the `arg` passed to
- *        @ref task_spawn. Keep it short — nothing else runs while it does.
+ *        @ref task_spawn. Keep it short, nothing else runs while it does.
  *
  *        A periodic task is called every `period_ticks` ticks; a one-shot
  *        task (period 0) is called once and then its slot is freed (so a
  *        periodic task that re-spawns one-shots never exhausts the table).
  *        Persist per-task state in storage reached through `arg` (a struct
- *        you own), not in locals — locals do not survive between calls.
+ *        you own), not in locals, locals do not survive between calls.
  */
 typedef void (*task_fn_t)(void *arg);
 
@@ -103,7 +103,7 @@ typedef void (*task_fn_t)(void *arg);
  *        All fields are internal; users address tasks by @ref task_id_t.
  *
  *        The state bits (used / enabled / ready) are packed into one
- *        @ref flags byte rather than three bools — this keeps each TCB to
+ *        @ref flags byte rather than three bools, this keeps each TCB to
  *        ~12 B so the whole table banks cleanly into the 192 B parts.
  */
 typedef struct {
@@ -169,7 +169,7 @@ void task_set_period(task_id_t id, uint16_t period_ticks);
  *         periodic tasks) reload the countdown to the period. One-shot tasks
  *         are marked ready immediately on their first tick.
  *
- *         Call this from a timer interrupt service routine — typically the
+ *         Call this from a timer interrupt service routine, typically the
  *         Timer0 overflow wired by @ref task_manager_attach_timer0. It is
  *         short (O(n), n ≤ @ref TASK_MGR_MAX_TASKS) and never runs user code,
  *         so it is safe in interrupt context.
@@ -223,7 +223,7 @@ uint8_t task_manager_count(void);
  *                     prescaler 1:256, reload 61 → ~10 ms per tick.
  * @param  prescaler   A @ref TIMER0_PrescalerTypeDef (1:2 .. 1:256).
  *
- * @note   The sim does not model real Fosc timing — it reproduces the
+ * @note   The sim does not model real Fosc timing, it reproduces the
  *         overflow/IRQ plumbing, not the wall-clock period (same caveat as
  *         the HAL's example_idle_blink). Periods are therefore in *ticks*,
  *         which are deterministic on the sim and ~wall-clock on the target.

@@ -78,6 +78,6 @@ int main(void)
         CHECK((sspcon2 & PIC_SSPCON2_PEN) != 0U, "PEN not set after Stop");
     }
 
-    printf("OK: SSP driver — SSPADD math, SPI master, I2C master all pass.\n");
+    printf("OK: SSP driver, SSPADD math, SPI master, I2C master all pass.\n");
     return 0;
 }

@@ -1,6 +1,6 @@
 /**
  * @file    example_idle_blink.c
- * @brief   Blink an LED on RB0 with the CPU asleep — fully peripheral
+ * @brief   Blink an LED on RB0 with the CPU asleep, fully peripheral
  *          driven, so the CPU is mostly idle.
  *
  * @details
@@ -10,10 +10,10 @@
  *   sleep. The CPU is awake for only a handful of cycles per overflow.
  *
  *   One source builds for both the host simulation backend and a real XC8
- *   target with no `#ifdef` in the code — the same Timer1 configuration on
+ *   target with no `#ifdef` in the code, the same Timer1 configuration on
  *   both. On a real target: Timer1 on the 32.768 kHz watch crystal (T1OSC)
  *   on T1OSO/T1OSI, asynchronous (the only Timer1 mode that keeps counting
- *   in Sleep — DS39582B §6.5), 1:1, reload 0x8000 (32768) → 1 s overflow.
+ *   in Sleep, DS39582B §6.5), 1:1, reload 0x8000 (32768) → 1 s overflow.
  *   The host sim models the external/T1OSC clock at a simplified rate, so
  *   the identical configuration drives the same ISR → callback → GPIO
  *   path there too.
@@ -34,7 +34,7 @@
 #include "core/pic16f87xa_harness.h"
 
 /**
- * @brief  Timer1 reload — 0x8000 (32768). On the T1OSC timebase that is
+ * @brief  Timer1 reload, 0x8000 (32768). On the T1OSC timebase that is
  *         exactly 1 s of the 32.768 kHz crystal; the ISR writes it back
  *         after each overflow to re-arm the 1 s period.
  */
@@ -44,11 +44,11 @@
  *  count per cycle, so 32768 cycles per overflow → ~6 toggles in 200k. */
 #define SIM_CYCLES  200000UL
 
-/* Toggle count — the ISR is the only writer. */
+/* Toggle count, the ISR is the only writer. */
 static volatile uint32_t g_toggle_count = 0;
 
 /**
- * @brief  Timer1 overflow callback — re-arms the period, toggles the LED,
+ * @brief  Timer1 overflow callback, re-arms the period, toggles the LED,
  *         and refreshes the WDT (a no-op on the host). Runs in interrupt
  *         context on the target and in the sim IRQ callback on the host.
  */
@@ -97,7 +97,7 @@ int main(void)
      *    wake-up. */
     PIC16F87XA_IRQ_Restore(1);
 
-    /* 5. Idle loop — the heart of "CPU mostly idle". On the host the
+    /* 5. Idle loop, the heart of "CPU mostly idle". On the host the
      *    harness bounds the loop to SIM_CYCLES; on the target it runs
      *    forever. Each iteration pumps the sim (host) / is empty (target),
      *    then sleeps (a no-op on the host). Each Timer1 overflow wakes the

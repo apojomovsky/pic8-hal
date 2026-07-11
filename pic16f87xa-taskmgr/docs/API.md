@@ -11,20 +11,20 @@ Configuration and the concurrency model are covered in
 typedef void (*task_fn_t)(void *arg);   /* a task: runs to completion, returns */
 typedef uint8_t task_id_t;               /* opaque task id */
 #define TASK_ID_INVALID  ((task_id_t)0xFFU)
-#define TASK_MGR_MAX_TASKS  8            /* default; 6 on 192 B parts — see below */
+#define TASK_MGR_MAX_TASKS  8            /* default; 6 on 192 B parts, see below */
 ```
 
 A task is a plain function that runs to completion and returns. It is called
 with the `arg` passed to `task_spawn`. Persist per-task state in storage reached
-through `arg` (a struct you own), not in locals — locals do not survive between
+through `arg` (a struct you own), not in locals, locals do not survive between
 calls.
 
 ### `TASK_MGR_MAX_TASKS`
 
 Maximum number of simultaneously registered tasks. Each slot costs ~12 B of
 RAM (two 3-byte PIC16 pointers + two `uint16` + a flags byte). The default
-scales to the part — 6 on the 192 B PIC16F873A/874A, 8 on the 368 B
-PIC16F876A/877A — so the table banks cleanly into every device in the family.
+scales to the part, 6 on the 192 B PIC16F873A/874A, 8 on the 368 B
+PIC16F876A/877A, so the table banks cleanly into every device in the family.
 Override by defining `TASK_MGR_MAX_TASKS` before including the header.
 
 One-shot tasks free their slot after they run (see `task_manager_run_once`),
@@ -42,12 +42,12 @@ Call once before spawning tasks or attaching a tick source. Idempotent.
 
 Register a task and arm it.
 
-- `fn` — entry point (must not be `NULL`).
-- `arg` — opaque pointer passed back to `fn` (may be `NULL`).
-- `period_ticks` — call interval in scheduler ticks. `0` = one-shot (called
+- `fn`, entry point (must not be `NULL`).
+- `arg`, opaque pointer passed back to `fn` (may be `NULL`).
+- `period_ticks`, call interval in scheduler ticks. `0` = one-shot (called
   once on the next tick, then its slot is freed). For periodic tasks the first
   call happens after `period_ticks` ticks.
-- `priority` — scheduling priority within a round; lower numbers run first.
+- `priority`, scheduling priority within a round; lower numbers run first.
   Ties break by spawn order.
 
 Returns the new task id, or `TASK_ID_INVALID` if `fn` is `NULL` or all
@@ -78,7 +78,7 @@ countdown; when it reaches zero, mark the task ready and (for periodic tasks)
 reload the countdown to `period − 1`. One-shot tasks are marked ready
 immediately on their first tick.
 
-Call this from a timer interrupt service routine — typically the Timer0
+Call this from a timer interrupt service routine, typically the Timer0
 overflow wired by `task_manager_attach_timer0`. It is short (O(n),
 n ≤ `TASK_MGR_MAX_TASKS`) and never runs user code, so it is safe in interrupt
 context.
@@ -130,15 +130,15 @@ reload, and `task_manager_tick` as the overflow callback. The TMR0 interrupt
 enable is set; arm it for real by calling `PIC16F87XA_IRQ_Restore(1)`
 afterwards.
 
-- `reload` — TMR0 reload value (0..255). On a 20 MHz target, prescaler 1:256,
+- `reload`, TMR0 reload value (0..255). On a 20 MHz target, prescaler 1:256,
   reload 61 → ~10 ms per tick.
-- `prescaler` — a `TIMER0_PrescalerTypeDef` (1:2 .. 1:256).
+- `prescaler`, a `TIMER0_PrescalerTypeDef` (1:2 .. 1:256).
 
 The tick ISR reloads TMR0 each overflow for a constant period (Timer0 has no
 auto-reload, unlike Timer2); writing TMR0 also clears the prescaler
 (DS39582B §5.3), so every tick starts a clean count.
 
-> The sim does not model real Fosc timing — it reproduces the overflow/IRQ
+> The sim does not model real Fosc timing, it reproduces the overflow/IRQ
 > plumbing, not the wall-clock period (same caveat as the HAL’s
 > `example_idle_blink`). Periods are therefore in *ticks*, deterministic on the
 > sim and ~wall-clock on the target.
@@ -154,7 +154,7 @@ scheduler does not care where the tick comes from.
 | `task_spawn(fn, arg, period, prio)` | Register + arm a task; returns its id (or `TASK_ID_INVALID`). `period==0` → one-shot. |
 | `task_start(id)` / `task_stop(id)` | Enable / disable a task at runtime. |
 | `task_set_period(id, period)` | Change a task’s period. |
-| `task_manager_tick()` | Advance one tick — call from a timer ISR. |
+| `task_manager_tick()` | Advance one tick, call from a timer ISR. |
 | `task_manager_run_once()` | Run all due tasks once (priority order); returns count run. |
 | `task_manager_run()` | Canonical loop (bounded on sim, forever on target). |
 | `task_manager_ticks()` | Tick counter since init (wraps at 65535). |

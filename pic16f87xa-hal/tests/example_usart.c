@@ -52,7 +52,7 @@ int main(void)
 
     /* 2. Init and verify register state. */
     pic16f87xa_sim_reset();
-    /* No IRQ callback — the test polls flags and registers directly. */
+    /* No IRQ callback, the test polls flags and registers directly. */
     pic16f87xa_sim_set_irq_callback(NULL);
 
     USART_HandleTypeDef h = USART_HANDLE_DEFAULT;
@@ -87,6 +87,6 @@ int main(void)
     CHECK(got == 0xC3U, "Receive did not return 0xC3");
     CHECK((PIC16F87XA_REG8(0x0CU) & 0x20U) == 0U, "RCIF not cleared after Receive");
 
-    printf("OK: USART driver — SPBRG math, init, transmit, receive all pass.\n");
+    printf("OK: USART driver, SPBRG math, init, transmit, receive all pass.\n");
     return 0;
 }

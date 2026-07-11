@@ -23,7 +23,7 @@ void pic16f87xa_harness_init(uint32_t cycles)
 {
     g_cycles = cycles;
     pic16f87xa_sim_reset();
-    /* One sim callback that fans out to every peripheral handler — the
+    /* One sim callback that fans out to every peripheral handler, the
      * host analogue of the real target's single interrupt vector. */
     pic16f87xa_sim_set_irq_callback(pic16f87xa_dispatch_all_irqs);
 }

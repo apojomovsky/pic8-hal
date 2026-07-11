@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa.h
- * @brief   PIC16F87XA family — top-level types, status codes, build-time device
+ * @brief   PIC16F87XA family, top-level types, status codes, build-time device
  *          selection, and the simulated/real-target SFR mapping layer.
  *
  * @details
@@ -14,11 +14,11 @@
  *   peripheral header carries a citation of the datasheet section it maps to.
  *
  * Target family (DS39582B §1.0, Table 1-1):
- *   - PIC16F873A — 28-pin,  4 KW flash, 192 B RAM, 128 B EEPROM, 5 ADC ch.
- *   - PIC16F874A — 40-pin,  4 KW flash, 192 B RAM, 128 B EEPROM, 8 ADC ch.,
+ *   - PIC16F873A, 28-pin,  4 KW flash, 192 B RAM, 128 B EEPROM, 5 ADC ch.
+ *   - PIC16F874A, 40-pin,  4 KW flash, 192 B RAM, 128 B EEPROM, 8 ADC ch.,
  *                   PORTD + PORTE (with PSP).
- *   - PIC16F876A — 28-pin,  8 KW flash, 368 B RAM, 256 B EEPROM, 5 ADC ch.
- *   - PIC16F877A — 40-pin,  8 KW flash, 368 B RAM, 256 B EEPROM, 8 ADC ch.,
+ *   - PIC16F876A, 28-pin,  8 KW flash, 368 B RAM, 256 B EEPROM, 5 ADC ch.
+ *   - PIC16F877A, 40-pin,  8 KW flash, 368 B RAM, 256 B EEPROM, 8 ADC ch.,
  *                   PORTD + PORTE (with PSP).
  *
  * @copyright © 2003 Microchip Technology Inc. (datasheet DS39582B).
@@ -108,7 +108,7 @@ typedef enum {
 
 /**
  * @name    Bit manipulation
- * @brief   Standard set/clr/test helpers — preferred over hand-rolled masks.
+ * @brief   Standard set/clr/test helpers, preferred over hand-rolled masks.
  * @{
  */
 #define PIC16F87XA_BIT(n)                       (1U << (n))

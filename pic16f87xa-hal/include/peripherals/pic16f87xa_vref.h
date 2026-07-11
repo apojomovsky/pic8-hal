@@ -14,7 +14,7 @@
  *   When CVROE=1, the output is routed to the RA2/AN2/VREF- pin
  *   (shared with the comparator and ADC reference inputs).
  *
- *   Reset state: CVRCON = 0x00 — reference disabled, output = 0 V.
+ *   Reset state: CVRCON = 0x00, reference disabled, output = 0 V.
  */
 
 #ifndef PIC16F87XA_VREF_H
@@ -34,7 +34,7 @@ typedef enum {
 /** Driver handle (Cube-style). */
 typedef struct {
     VREF_RangeTypeDef      Range;     /* Low or high range. */
-    uint8_t                Value;     /* 0..15 — ladder tap. */
+    uint8_t                Value;     /* 0..15, ladder tap. */
     bool                   OutputEnable;  /* Route to RA2. */
     bool                   Enabled;        /* CVREN. */
 } VREF_HandleTypeDef;

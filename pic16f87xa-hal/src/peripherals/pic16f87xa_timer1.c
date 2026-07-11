@@ -1,12 +1,12 @@
 /**
  * @file    pic16f87xa_timer1.c
- * @brief   Timer1 driver — implementation (DS39582B §6.0).
+ * @brief   Timer1 driver, implementation (DS39582B §6.0).
  */
 
 #include "peripherals/pic16f87xa_timer1.h"
 #include "core/pic16f87xa_interrupt.h"
 
-/* T1CON prescaler ratios — DS39582B Register 6-1:
+/* T1CON prescaler ratios, DS39582B Register 6-1:
  *   00 → 1:1, 01 → 1:2, 10 → 1:4, 11 → 1:8 */
 static const uint16_t ps_ratio[4] = { 1, 2, 4, 8 };
 
@@ -17,7 +17,7 @@ static const TIMER1_HandleTypeDef *g_t1_handle = NULL;
  *  (DS39582B §6.4.1). Wrap that risk here so callers don't have to. */
 uint16_t HAL_TIMER1_ReadCounter(void)
 {
-    /* Read high byte, then low byte, then high byte again — if the
+    /* Read high byte, then low byte, then high byte again, if the
      * second read differs, the low byte rolled over and we use the
      * refreshed high. Standard PIC16 idiom (DS39582B §6.4.1). */
     uint8_t hi1, lo, hi2;

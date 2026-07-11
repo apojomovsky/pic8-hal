@@ -1,6 +1,6 @@
 /**
  * @file    peripherals/pic16f87xa_ssp.h
- * @brief   MSSP driver — SPI master/slave + I²C master/slave.
+ * @brief   MSSP driver, SPI master/slave + I²C master/slave.
  *
  * @details
  *   Source: DS39582B §9.0 (MSSP Module), Registers 9-1..9-5
@@ -14,7 +14,7 @@
  *     - I²C slave (7-bit or 10-bit address, with/without S/S interrupts)
  *     - I²C firmware-controlled master (slave idle)
  *
- *   ⚠ This driver is **register-level only** — it does not implement
+ *   ⚠ This driver is **register-level only**, it does not implement
  *   the I²C state machine. A user-space I²C master needs to:
  *     1. HAL_SSP_Start() to issue a Start condition,
  *     2. write the address byte to SSPBUF,
@@ -34,18 +34,18 @@
  * @brief SSP mode select (SSPCON<3:0>, Registers 9-2 / 9-4).
  */
 typedef enum {
-    SSP_MODE_SPI_MASTER_FOSC_4   = 0x0U,   /**< 0000 — SPI master, Fosc/4.   */
-    SSP_MODE_SPI_MASTER_FOSC_16  = 0x1U,   /**< 0001 — SPI master, Fosc/16.  */
-    SSP_MODE_SPI_MASTER_FOSC_64  = 0x2U,   /**< 0010 — SPI master, Fosc/64.  */
-    SSP_MODE_SPI_MASTER_TMR2     = 0x3U,   /**< 0011 — SPI master, TMR2/2.   */
-    SSP_MODE_SPI_SLAVE_SS_DIS    = 0x4U,   /**< 0100 — SPI slave, SS disabled. */
-    SSP_MODE_SPI_SLAVE_SS_EN     = 0x5U,   /**< 0101 — SPI slave, SS enabled. */
-    SSP_MODE_I2C_SLAVE_7BIT      = 0x6U,   /**< 0110 — I²C slave, 7-bit. */
-    SSP_MODE_I2C_SLAVE_10BIT     = 0x7U,   /**< 0111 — I²C slave, 10-bit. */
-    SSP_MODE_I2C_MASTER_FW       = 0x8U,   /**< 1000 — I²C master, firmware. */
-    SSP_MODE_I2C_SLAVE_7BIT_SS   = 0x9U,   /**< 1001 — I²C slave, 7-bit + S/S. */
-    SSP_MODE_I2C_SLAVE_10BIT_SS  = 0xAU,   /**< 1010 — I²C slave, 10-bit + S/S. */
-    SSP_MODE_I2C_MASTER_FOSC     = 0xBU,   /**< 1011 — I²C master, hardware. */
+    SSP_MODE_SPI_MASTER_FOSC_4   = 0x0U,   /**< 0000, SPI master, Fosc/4.   */
+    SSP_MODE_SPI_MASTER_FOSC_16  = 0x1U,   /**< 0001, SPI master, Fosc/16.  */
+    SSP_MODE_SPI_MASTER_FOSC_64  = 0x2U,   /**< 0010, SPI master, Fosc/64.  */
+    SSP_MODE_SPI_MASTER_TMR2     = 0x3U,   /**< 0011, SPI master, TMR2/2.   */
+    SSP_MODE_SPI_SLAVE_SS_DIS    = 0x4U,   /**< 0100, SPI slave, SS disabled. */
+    SSP_MODE_SPI_SLAVE_SS_EN     = 0x5U,   /**< 0101, SPI slave, SS enabled. */
+    SSP_MODE_I2C_SLAVE_7BIT      = 0x6U,   /**< 0110, I²C slave, 7-bit. */
+    SSP_MODE_I2C_SLAVE_10BIT     = 0x7U,   /**< 0111, I²C slave, 10-bit. */
+    SSP_MODE_I2C_MASTER_FW       = 0x8U,   /**< 1000, I²C master, firmware. */
+    SSP_MODE_I2C_SLAVE_7BIT_SS   = 0x9U,   /**< 1001, I²C slave, 7-bit + S/S. */
+    SSP_MODE_I2C_SLAVE_10BIT_SS  = 0xAU,   /**< 1010, I²C slave, 10-bit + S/S. */
+    SSP_MODE_I2C_MASTER_FOSC     = 0xBU,   /**< 1011, I²C master, hardware. */
 } SSP_ModeTypeDef;
 
 /**

@@ -1,16 +1,16 @@
 /**
  * @file    pic16f87xa_timer2.c
- * @brief   Timer2 driver — implementation (DS39582B §7.0).
+ * @brief   Timer2 driver, implementation (DS39582B §7.0).
  */
 
 #include "peripherals/pic16f87xa_timer2.h"
 #include "core/pic16f87xa_interrupt.h"
 
-/* T2CON prescaler — DS39582B Register 7-1:
+/* T2CON prescaler, DS39582B Register 7-1:
  *   00 → 1:1, 01 → 1:4, 1x → 1:16 */
 static const uint8_t pre_ratio[4] = { 1, 4, 16, 16 };
 
-/* T2CON postscaler — DS39582B Register 7-1: 1:(N+1). */
+/* T2CON postscaler, DS39582B Register 7-1: 1:(N+1). */
 static const uint8_t post_ratio[16] = {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 };
@@ -88,7 +88,7 @@ PIC16F87XA_StatusTypeDef HAL_TIMER2_Start(const TIMER2_HandleTypeDef *h)
 {
     if (!h) return PIC16F87XA_INVALID;
 
-    /* Period register first — DS39582B §7.0 recommends setting PR2
+    /* Period register first, DS39582B §7.0 recommends setting PR2
      * before enabling TMR2ON to avoid spurious matches. */
     HAL_TIMER2_WritePeriod(h->Period);
 

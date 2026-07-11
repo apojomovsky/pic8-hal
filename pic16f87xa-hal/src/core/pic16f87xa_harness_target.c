@@ -23,7 +23,7 @@ void pic16f87xa_harness_init(uint32_t cycles)
 
 void pic16f87xa_harness_tick(void)
 {
-    /* Real time advances on its own — nothing to pump. */
+    /* Real time advances on its own, nothing to pump. */
 }
 
 int pic16f87xa_harness_running(uint32_t iteration)

@@ -1,6 +1,6 @@
 /**
  * @file    core/pic16f87xa_harness.h
- * @brief   Build-agnostic test/firmware harness — the one seam that lets
+ * @brief   Build-agnostic test/firmware harness, the one seam that lets
  *          the same example source build for the host simulator and a
  *          real XC8 target with no `#ifdef` in the example code.
  *
@@ -18,7 +18,7 @@
  *   a host implementation (src/core/pic16f87xa_harness_sim.c, linked by
  *   the CMake build) and a target implementation
  *   (src/core/pic16f87xa_harness_target.c, linked by the XC8 Makefile).
- *   The build selects which file links — there is no `#ifdef` anywhere
+ *   The build selects which file links, there is no `#ifdef` anywhere
  *   in the API or in example code that uses it.
  *
  *   Typical example shape (no `#ifdef` around code):
@@ -27,7 +27,7 @@
  *       // ... peripheral setup, identical on both builds ...
  *       for (uint32_t i = 0; pic16f87xa_harness_running(i); i++) {
  *           pic16f87xa_harness_tick();
- *           // ... work — same on both builds ...
+ *           // ... work, same on both builds ...
  *       }
  *       pic16f87xa_harness_log("toggled %u\n", (unsigned)count);
  *       return pic16f87xa_harness_report(count >= 2);
@@ -81,8 +81,8 @@ void pic16f87xa_harness_log(const char *fmt, ...);
 
 /**
  * @brief  Map a pass/fail flag to a process exit code (0 = pass, 1 =
- *         fail). Identical on both builds — the only shared harness
- *         function — so it is inlined here.
+ *         fail). Identical on both builds, the only shared harness
+ *         function, so it is inlined here.
  */
 static inline int pic16f87xa_harness_report(int ok)
 {

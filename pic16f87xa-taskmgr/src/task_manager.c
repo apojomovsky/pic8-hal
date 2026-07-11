@@ -19,10 +19,10 @@
  *        half-initialised TCB.
  *     3. A one-shot task that has run is freed atomically (its slot's flags
  *        are cleared under a critical section), so a periodic task that
- *        re-spawns one-shots — like the example's supervisor — does not
+ *        re-spawns one-shots, like the example's supervisor, does not
  *        exhaust the table one slot per spawn.
  *   On the host sim the tick is delivered synchronously from inside
- *   `pic16f87xa_harness_tick()`, so tick and run_once never truly overlap —
+ *   `pic16f87xa_harness_tick()`, so tick and run_once never truly overlap;
  *   the critical sections are a no-op there but remain correct on the target.
  */
 
@@ -43,7 +43,7 @@ static uint16_t g_ticks = 0U;
  * @brief  The countdown value that makes a task fire after exactly `period`
  *         ticks. The tick logic is "if countdown==0 then fire, else
  *         decrement", so a periodic task reloads to @e period-1 (not
- *         period) to keep the spacing constant — otherwise every fire would
+ *         period) to keep the spacing constant, otherwise every fire would
  *         take period+1 ticks. A one-shot (period 0) uses 0, so it is ready
  *         on the first tick until @ref task_manager_run_once frees it.
  */
@@ -54,7 +54,7 @@ static uint16_t arm_countdown(uint16_t period)
 
 /** Reload written back into TMR0 on each overflow so every tick has the
  *  same period. Timer0 has no hardware auto-reload (unlike Timer2), so a
- *  fixed tick rate requires reloading in the ISR — also the correct pattern
+ *  fixed tick rate requires reloading in the ISR, also the correct pattern
  *  on a real target. Stored by task_manager_attach_timer0. */
 static uint8_t g_tick_reload = 0U;
 
@@ -149,7 +149,7 @@ void task_manager_tick(void)
         if (t->countdown == 0U) {
             /* Due now. Periodic tasks re-arm to period-1 so the next fire is
              * exactly `period` ticks later (not period+1). One-shots
-             * (period 0) leave countdown 0 — ready every tick until
+             * (period 0) leave countdown 0, ready every tick until
              * task_manager_run_once frees the slot. */
             t->flags |= TM_FLAG_READY;
             if (t->period != 0U) {
@@ -249,7 +249,7 @@ static void task_manager_on_timer0_overflow(void)
 {
     /* Reload for a constant period (Timer0 has no auto-reload), then
      * advance the scheduler. Writing TMR0 also clears the prescaler
-     * (DS39582B §5.3) — desirable here: every tick starts a clean count. */
+     * (DS39582B §5.3), desirable here: every tick starts a clean count. */
     HAL_TIMER0_WriteCounter(g_tick_reload);
     task_manager_tick();
 }

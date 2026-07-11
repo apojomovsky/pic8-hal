@@ -6,10 +6,10 @@
  * @details
  *   Every address, bit mask and reset value in this file is taken 1-to-1
  *   from the DS39582B datasheet register maps:
- *     - Figure 2-3 / 2-4 — Register File Map (Bank 0–3).
- *     - Table 3-1        — Data EEPROM and Flash program registers.
- *     - Table 4-2..4-10  — PORTA..PORTE register summaries.
- *     - Table 14-1       — Configuration Word (Register 14-1).
+ *     - Figure 2-3 / 2-4, Register File Map (Bank 0-3).
+ *     - Table 3-1, Data EEPROM and Flash program registers.
+ *     - Table 4-2..4-10, PORTA..PORTE register summaries.
+ *     - Table 14-1, Configuration Word (Register 14-1).
  *   Address conflicts that are family-dependent (PORTD/PORTE/TRISD/TRISE
  *   do not exist on 28-pin parts) are guarded with PIC16F87XA_FAMILY_HAS_*
  *   macros so the same header compiles for any of the four parts.
@@ -20,7 +20,7 @@
 
 #include "pic16f87xa.h"
 
-/* ───────────────────────── Bank 0 — core SFRs ───────────────────── */
+/* ───────────────────────── Bank 0, core SFRs ───────────────────── */
 
 /** Indirect address pointer.                    DS39582B §2.2, addr 00h. */
 #define PIC_REG_INDF          0x00U
@@ -33,7 +33,7 @@
 /** File Select Register (indirect addressing).  DS39582B §2.2, addr 04h. */
 #define PIC_REG_FSR           0x04U
 
-/* I/O ports — Tables 4-2..4-10. */
+/* I/O ports, Tables 4-2..4-10. */
 #define PIC_REG_PORTA         0x05U
 #define PIC_REG_PORTB         0x06U
 #define PIC_REG_PORTC         0x07U
@@ -46,36 +46,36 @@
 #define PIC_REG_TRISD         0x88U   /* 40/44-pin only. */
 #define PIC_REG_TRISE         0x89U   /* 40/44-pin only. */
 
-/* Core CPU control — DS39582B §14.10, §14.11, Table 14-4. */
+/* Core CPU control, DS39582B §14.10, §14.11, Table 14-4. */
 #define PIC_REG_PCLATH        0x0AU
 #define PIC_REG_INTCON        0x0BU
 #define PIC_REG_PIR1          0x0CU
 #define PIC_REG_PIR2          0x0DU
 #define PIC_REG_PCON          0x8EU
 
-/* Timer0 — DS39582B §5.0. */
+/* Timer0, DS39582B §5.0. */
 #define PIC_REG_TMR0          0x01U
 #define PIC_REG_TMR0L         0x0EU   /* (unused on F87XA, kept for naming). */
 
-/* Timer1 — DS39582B §6.0. */
+/* Timer1, DS39582B §6.0. */
 #define PIC_REG_TMR1L         0x0EU
 #define PIC_REG_TMR1H         0x0FU
 #define PIC_REG_T1CON         0x10U
 
-/* Timer2 — DS39582B §7.0. */
+/* Timer2, DS39582B §7.0. */
 #define PIC_REG_TMR2          0x11U
 #define PIC_REG_T2CON         0x12U
 
-/* SSP — DS39582B §9.0. */
+/* SSP, DS39582B §9.0. */
 #define PIC_REG_SSPBUF        0x13U
 #define PIC_REG_SSPCON        0x14U
 
-/* CCP — DS39582B §8.0. */
+/* CCP, DS39582B §8.0. */
 #define PIC_REG_CCP1RL        0x15U
 #define PIC_REG_CCP1RH        0x16U
 #define PIC_REG_CCP1CON       0x17U
 
-/* USART — DS39582B §10.0. */
+/* USART, DS39582B §10.0. */
 #define PIC_REG_RCSTA         0x18U
 #define PIC_REG_TXREG         0x19U
 #define PIC_REG_RCREG         0x1AU
@@ -83,31 +83,31 @@
 #define PIC_REG_CCPR2H        0x1CU
 #define PIC_REG_CCP2CON       0x1DU
 
-/* ADC — DS39582B §11.0. */
+/* ADC, DS39582B §11.0. */
 #define PIC_REG_ADRESH        0x1EU
 #define PIC_REG_ADCON0        0x1FU
 
 /* ───────────────────────── Bank 1 ──────────────────────────────── */
 
-/* SSP — DS39582B §9.0, Bank 1. */
+/* SSP, DS39582B §9.0, Bank 1. */
 #define PIC_REG_SSPCON2       0x91U
 #define PIC_REG_PR2           0x92U
 #define PIC_REG_SSPADD        0x93U
 #define PIC_REG_SSPSTAT       0x94U
 
-/* USART — DS39582B §10.0, Bank 1. */
+/* USART, DS39582B §10.0, Bank 1. */
 #define PIC_REG_TXSTA         0x98U
 #define PIC_REG_SPBRG         0x99U
 
-/* Comparators + Vref — DS39582B §12.0, §13.0, Register 12-1 / 13-1. */
+/* Comparators + Vref, DS39582B §12.0, §13.0, Register 12-1 / 13-1. */
 #define PIC_REG_CMCON         0x9CU
 #define PIC_REG_CVRCON        0x9DU
 
-/* ADC — DS39582B §11.0, Bank 1. */
+/* ADC, DS39582B §11.0, Bank 1. */
 #define PIC_REG_ADRESL        0x9EU
 #define PIC_REG_ADCON1        0x9FU
 
-/* ───────────────────────── Bank 2 — EEPROM ─────────────────────── */
+/* ───────────────────────── Bank 2, EEPROM ─────────────────────── */
 
 /* DS39582B §3.0, Table 3-1. */
 #define PIC_REG_EEDATA        0x10CU
@@ -132,7 +132,7 @@
 /** Register Page Select bits (RP0:RP1).          DS39582B Register 2-1. */
 #define PIC_STATUS_RP0        PIC16F87XA_BIT(5)
 #define PIC_STATUS_RP1        PIC16F87XA_BIT(6)
-/** IRP — unused on PIC16F87XA, reads as 0.       DS39582B Register 2-1. */
+/** IRP, unused on PIC16F87XA, reads as 0.       DS39582B Register 2-1. */
 #define PIC_STATUS_IRP        PIC16F87XA_BIT(7)
 
 /* ───────────────────────── INTCON register bits ────────────────── */
@@ -192,7 +192,7 @@
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 
 /* DS39582B §14, Table 14-6. */
-#define PIC_STATUS_POR_VALUE     0x18U  /* 0001 1xxx — IRP=0,RP1=0,RP0=0,TO=1,PD=1,... */
+#define PIC_STATUS_POR_VALUE     0x18U  /* 0001 1xxx, IRP=0,RP1=0,RP0=0,TO=1,PD=1,... */
 #define PIC_PCON_POR_VALUE       0x0FU  /* BOR and POR flags unknown. */
 #define PIC_INTCON_POR_VALUE     0x00U
 #define PIC_PIR1_POR_VALUE       0x00U
@@ -212,7 +212,7 @@
 #define PIC_OPTION_T0CS         PIC16F87XA_BIT(5)   /* TMR0 clock source.              */
 #define PIC_OPTION_T0SE         PIC16F87XA_BIT(4)   /* TMR0 source edge.               */
 #define PIC_OPTION_PSA          PIC16F87XA_BIT(3)   /* Prescaler assignment.           */
-#define PIC_OPTION_PS_MASK      0x07U                /* PS2:PS0 — prescaler ratio.     */
+#define PIC_OPTION_PS_MASK      0x07U                /* PS2:PS0, prescaler ratio.     */
 
 /* ───────────────────────── T1CON bits (Timer1) ─────────────────── */
 
@@ -227,20 +227,20 @@
 /* ───────────────────────── T2CON bits (Timer2) ─────────────────── */
 
 /* DS39582B §7.0, Register 7-1. */
-#define PIC_T2CON_T2CKPS_MASK   0x03U                /* T2CKPS1:T2CKPS0 — bits 0..1. */
+#define PIC_T2CON_T2CKPS_MASK   0x03U                /* T2CKPS1:T2CKPS0, bits 0..1. */
 #define PIC_T2CON_TMR2ON        PIC16F87XA_BIT(2)
-#define PIC_T2CON_TOUTPS_MASK   0x78U                /* TOUTPS3:TOUTPS0 — bits 3..6. */
+#define PIC_T2CON_TOUTPS_MASK   0x78U                /* TOUTPS3:TOUTPS0, bits 3..6. */
 #define PIC_T2CON_TOUTPS_POS    3U
 
 /* ───────────────────────── CCPxCON bits ────────────────────────── */
 
 /* DS39582B §8.0, Register 8-1.
  * The two LSBs of the 10-bit PWM duty cycle live in CCPxCON<5:4>
- * (CCPxY:CCPxX) — see §8.3.2. */
-#define PIC_CCP_CCPX_M0         PIC16F87XA_BIT(0)    /* CCPxM0 — mode bit 0.        */
-#define PIC_CCP_CCPX_M1         PIC16F87XA_BIT(1)    /* CCPxM1 — mode bit 1.        */
-#define PIC_CCP_CCPX_M2         PIC16F87XA_BIT(2)    /* CCPxM2 — mode bit 2.        */
-#define PIC_CCP_CCPX_M3         PIC16F87XA_BIT(3)    /* CCPxM3 — mode bit 3.        */
+ * (CCPxY:CCPxX), see §8.3.2. */
+#define PIC_CCP_CCPX_M0         PIC16F87XA_BIT(0)    /* CCPxM0, mode bit 0.        */
+#define PIC_CCP_CCPX_M1         PIC16F87XA_BIT(1)    /* CCPxM1, mode bit 1.        */
+#define PIC_CCP_CCPX_M2         PIC16F87XA_BIT(2)    /* CCPxM2, mode bit 2.        */
+#define PIC_CCP_CCPX_M3         PIC16F87XA_BIT(3)    /* CCPxM3, mode bit 3.        */
 #define PIC_CCP_CCPX_Y          PIC16F87XA_BIT(4)    /* PWM duty LSB bit 0.         */
 #define PIC_CCP_CCPX_X          PIC16F87XA_BIT(5)    /* PWM duty LSB bit 1.         */
 
@@ -278,7 +278,7 @@
 #define PIC_SSPCON_SSPOV       PIC16F87XA_BIT(6)    /* Receive overflow.  */
 #define PIC_SSPCON_WCOL        PIC16F87XA_BIT(7)    /* Write collision.   */
 
-/* SSPCON2 (I²C only) — Register 9-5. */
+/* SSPCON2 (I²C only), Register 9-5. */
 #define PIC_SSPCON2_SEN        PIC16F87XA_BIT(0)    /* Start condition enable. */
 #define PIC_SSPCON2_RSEN       PIC16F87XA_BIT(1)    /* Repeated start enable.  */
 #define PIC_SSPCON2_PEN        PIC16F87XA_BIT(2)    /* Stop condition enable.  */
@@ -288,7 +288,7 @@
 #define PIC_SSPCON2_ACKSTAT    PIC16F87XA_BIT(6)    /* Acknowledge status.     */
 #define PIC_SSPCON2_GCEN       PIC16F87XA_BIT(7)    /* General call enable.    */
 
-/* SSPSTAT — Register 9-1. */
+/* SSPSTAT, Register 9-1. */
 #define PIC_SSPSTAT_BF         PIC16F87XA_BIT(0)    /* Buffer full.        */
 #define PIC_SSPSTAT_UA         PIC16F87XA_BIT(1)    /* Update address.     */
 #define PIC_SSPSTAT_RW         PIC16F87XA_BIT(2)    /* Read/write (I²C).    */
@@ -303,19 +303,19 @@
 /* DS39582B §11.0, Registers 11-1 (ADCON0) and 11-2 (ADCON1). */
 #define PIC_ADCON0_ADON        PIC16F87XA_BIT(0)    /* A/D on.        */
 #define PIC_ADCON0_GO_DONE     PIC16F87XA_BIT(2)    /* Start / status. */
-#define PIC_ADCON0_CHS_MASK    0x1CU                /* CHS2:CHS0 — bits 5:3. */
+#define PIC_ADCON0_CHS_MASK    0x1CU                /* CHS2:CHS0, bits 5:3. */
 #define PIC_ADCON0_CHS_POS     3U
-#define PIC_ADCON0_ADCS_MASK   0xC0U                /* ADCS1:ADCS0 — bits 7:6. */
+#define PIC_ADCON0_ADCS_MASK   0xC0U                /* ADCS1:ADCS0, bits 7:6. */
 #define PIC_ADCON0_ADCS_POS    6U
 
-#define PIC_ADCON1_PCFG_MASK   0x0FU                /* PCFG3:PCFG0 — bits 3:0. */
-#define PIC_ADCON1_ADCS2       PIC16F87XA_BIT(6)    /* ADCS2 — bit 6. */
+#define PIC_ADCON1_PCFG_MASK   0x0FU                /* PCFG3:PCFG0, bits 3:0. */
+#define PIC_ADCON1_ADCS2       PIC16F87XA_BIT(6)    /* ADCS2, bit 6. */
 #define PIC_ADCON1_ADFM        PIC16F87XA_BIT(7)    /* Result format. */
 
 /* ───────────────────────── CMCON bits (Comparator) ────────────────── */
 
 /* DS39582B §12.0, Register 12-1. */
-#define PIC_CMCON_CM_MASK      0x07U                /* CM2:CM0 — bits 2:0. */
+#define PIC_CMCON_CM_MASK      0x07U                /* CM2:CM0, bits 2:0. */
 #define PIC_CMCON_CIS          PIC16F87XA_BIT(3)    /* Comparator input switch. */
 #define PIC_CMCON_C1INV        PIC16F87XA_BIT(4)    /* C1 output invert. */
 #define PIC_CMCON_C2INV        PIC16F87XA_BIT(5)    /* C2 output invert. */
@@ -325,7 +325,7 @@
 /* ───────────────────────── CVRCON bits (Vref) ────────────────────── */
 
 /* DS39582B §13.0, Register 13-1. */
-#define PIC_CVRCON_CVR_MASK    0x0FU                /* CVR3:CVR0 — bits 3:0. */
+#define PIC_CVRCON_CVR_MASK    0x0FU                /* CVR3:CVR0, bits 3:0. */
 #define PIC_CVRCON_CVRR         PIC16F87XA_BIT(5)    /* Vref range select. */
 #define PIC_CVRCON_CVROE        PIC16F87XA_BIT(6)    /* Vref output enable. */
 #define PIC_CVRCON_CVREN        PIC16F87XA_BIT(7)    /* Vref circuit enable. */

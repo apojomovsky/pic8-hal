@@ -1,4 +1,4 @@
-# pic16f87xa-taskmgr — cooperative task manager for the PIC16F87XA HAL.
+# pic16f87xa-taskmgr, cooperative task manager for the PIC16F87XA HAL.
 #
 #   cmake -B build && cmake --build build
 #   ./build/example_multi_blink
@@ -8,7 +8,7 @@
 # `pic16f87xa_hal` (and its host platform header / harness) is built once and
 # linked here. Real-target builds use the XC8 Makefile under mcu/.
 #
-# The host/target split is done at build time, not with #ifdef — exactly as
+# The host/target split is done at build time, not with #ifdef, exactly as
 # in the HAL: the CMake build puts include/host first on the HAL's include
 # path (inherited from the `pic16f87xa_hal` target) so the memory-backed SFR
 # platform and the host harness link. No example or scheduler source needs a
@@ -33,7 +33,7 @@ if(NOT TARGET pic16f87xa_hal)
     add_subdirectory(${HAL_DIR} ${CMAKE_CURRENT_BINARY_DIR}/hal)
 endif()
 
-# The task manager itself — a small static library so other projects can
+# The task manager itself, a small static library so other projects can
 # link it the same way the example does.
 add_library(task_manager STATIC src/task_manager.c)
 target_include_directories(task_manager PUBLIC

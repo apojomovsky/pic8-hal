@@ -1,6 +1,6 @@
 /**
  * @file    peripherals/pic16f87xa_adc.h
- * @brief   A/D converter driver — 10-bit, 5/8 channels.
+ * @brief   A/D converter driver, 10-bit, 5/8 channels.
  *
  * @details
  *   Source: DS39582B §11.0, Registers 11-1 (ADCON0) and 11-2 (ADCON1),
@@ -11,12 +11,12 @@
  *       28-pin parts and 8 channels on 40/44-pin parts (§1.0).
  *     - 5/8 analog inputs multiplexed on PORTA / PORTE pins.
  *     - Reference voltage: VDD+VSS, VREF+ + VREF-, or AN2 + AN3.
- *     - Result in two registers ADRESH:ADRESL — 16 bits wide.
+ *     - Result in two registers ADRESH:ADRESL, 16 bits wide.
  *     - Right-justified by default; left-justified with ADFM=0.
  *     - GO/DONE bit starts conversion; ADIF (PIR1<6>) fires on completion.
  *
  *   Acquisition time per §11.1 must elapse between channel selection
- *   and the GO bit — the driver enforces this by requiring the user
+ *   and the GO bit, the driver enforces this by requiring the user
  *   to call HAL_ADC_Start() explicitly (rather than configuring + starting
  *   in one step).
  *
@@ -55,22 +55,22 @@ typedef enum {
  *        respectively (Table 11-1).
  */
 typedef enum {
-    ADC_CLOCK_FOSC_2     = 0x0U,   /**< 000 — Fosc/2.   */
-    ADC_CLOCK_FOSC_8     = 0x1U,   /**< 001 — Fosc/8.   */
-    ADC_CLOCK_FOSC_32    = 0x2U,   /**< 010 — Fosc/32.  */
-    ADC_CLOCK_RC         = 0x3U,   /**< 011 — Internal A/D RC. */
-    ADC_CLOCK_FOSC_4     = 0x4U,   /**< 100 — Fosc/4.   */
-    ADC_CLOCK_FOSC_16    = 0x5U,   /**< 101 — Fosc/16.  */
-    ADC_CLOCK_FOSC_64    = 0x6U,   /**< 110 — Fosc/64.  */
-    /* 111 = RC, same as 011 — kept reserved. */
+    ADC_CLOCK_FOSC_2     = 0x0U,   /**< 000, Fosc/2.   */
+    ADC_CLOCK_FOSC_8     = 0x1U,   /**< 001, Fosc/8.   */
+    ADC_CLOCK_FOSC_32    = 0x2U,   /**< 010, Fosc/32.  */
+    ADC_CLOCK_RC         = 0x3U,   /**< 011, Internal A/D RC. */
+    ADC_CLOCK_FOSC_4     = 0x4U,   /**< 100, Fosc/4.   */
+    ADC_CLOCK_FOSC_16    = 0x5U,   /**< 101, Fosc/16.  */
+    ADC_CLOCK_FOSC_64    = 0x6U,   /**< 110, Fosc/64.  */
+    /* 111 = RC, same as 011, kept reserved. */
 } ADC_ClockSourceTypeDef;
 
 /**
  * @brief Result-format select (ADCON1<ADFM>, Register 11-2).
  */
 typedef enum {
-    ADC_FORMAT_LEFT  = 0x0U,   /**< ADFM=0 — left justified. */
-    ADC_FORMAT_RIGHT = 0x1U,   /**< ADFM=1 — right justified. */
+    ADC_FORMAT_LEFT  = 0x0U,   /**< ADFM=0, left justified. */
+    ADC_FORMAT_RIGHT = 0x1U,   /**< ADFM=1, right justified. */
 } ADC_ResultFormatTypeDef;
 
 /**

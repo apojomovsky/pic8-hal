@@ -27,7 +27,7 @@
  * defined in src/sim/pic16f87xa_sim.c. */
 extern uint8_t pic16f87xa_sim_sfr[0x200];
 
-/* GCC/Clang weak attribute — lets user code override a peripheral's
+/* GCC/Clang weak attribute, lets user code override a peripheral's
  * IRQHandler if it ever needs to. */
 #define PIC16F87XA_WEAK   __attribute__((weak))
 

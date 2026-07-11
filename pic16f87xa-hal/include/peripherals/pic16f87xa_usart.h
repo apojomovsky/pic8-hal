@@ -1,6 +1,6 @@
 /**
  * @file    peripherals/pic16f87xa_usart.h
- * @brief   USART driver — async + sync master/slave.
+ * @brief   USART driver, async + sync master/slave.
  *
  * @details
  *   Source: DS39582B §10.0, Registers 10-1 (TXSTA) and 10-2 (RCSTA),
@@ -40,8 +40,8 @@ typedef enum {
  *        Only meaningful in synchronous mode; ignored otherwise.
  */
 typedef enum {
-    USART_CLOCK_SLAVE        = 0x0U,   /**< CSRC = 0 — clock from external. */
-    USART_CLOCK_MASTER       = 0x1U,   /**< CSRC = 1 — clock from BRG. */
+    USART_CLOCK_SLAVE        = 0x0U,   /**< CSRC = 0, clock from external. */
+    USART_CLOCK_MASTER       = 0x1U,   /**< CSRC = 1, clock from BRG. */
 } USART_ClockSourceTypeDef;
 
 /**
@@ -49,8 +49,8 @@ typedef enum {
  *        Async mode only. Synchronous mode always uses /4.
  */
 typedef enum {
-    USART_BRGH_LOW           = 0x0U,   /**< BRGH = 0 — divisor 64. */
-    USART_BRGH_HIGH          = 0x1U,   /**< BRGH = 1 — divisor 16. */
+    USART_BRGH_LOW           = 0x0U,   /**< BRGH = 0, divisor 64. */
+    USART_BRGH_HIGH          = 0x1U,   /**< BRGH = 1, divisor 16. */
 } USART_BaudRateHighTypeDef;
 
 /**
@@ -81,7 +81,7 @@ typedef struct {
     USART_ClockSourceTypeDef   ClockSource;
     USART_BaudRateHighTypeDef  BaudHigh;
     USART_DataWidthTypeDef     DataWidth;
-    uint8_t                    SPBRG;        /**< 0..255 — pre-computed. */
+    uint8_t                    SPBRG;        /**< 0..255, pre-computed. */
     /** @brief  Optional TX-complete callback (fires on TXIF). */
     void (*TxCpltCallback)(void);
     /** @brief  Optional RX-complete callback (fires on RCIF). */
@@ -111,7 +111,7 @@ PIC16F87XA_StatusTypeDef HAL_USART_DeInit(void);
  *    - else parks it in TXREG until TSR drains,
  *    - sets TXIF = 0 (TXIF is read-only, cleared on TXREG write).
  *
- * @note   TXIF is NOT cleared by reading — only by writing TXREG.
+ * @note   TXIF is NOT cleared by reading, only by writing TXREG.
  *         DS39582B §10.2.1.
  */
 void HAL_USART_Transmit(uint8_t data);
@@ -134,14 +134,14 @@ uint8_t HAL_USART_IsTxShiftRegisterEmpty(void);
  */
 uint8_t HAL_USART_Receive(void);
 
-/** Read RX9D — the 9th bit of the most recently received byte. */
+/** Read RX9D, the 9th bit of the most recently received byte. */
 uint8_t HAL_USART_GetRX9D(void);
 
 /* ───────────────────────── interrupts ───────────────────────────── */
 
-/** Weak USART RX ISR — override in user code. */
+/** Weak USART RX ISR, override in user code. */
 void USART_RX_IRQHandler(void) PIC16F87XA_WEAK;
-/** Weak USART TX ISR — override in user code. */
+/** Weak USART TX ISR, override in user code. */
 void USART_TX_IRQHandler(void) PIC16F87XA_WEAK;
 
 #endif /* PIC16F87XA_USART_H */

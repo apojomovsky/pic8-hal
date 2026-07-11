@@ -1,19 +1,19 @@
 /**
  * @file    example_blink.c
- * @brief   Blink an LED on RB0 from a Timer0 overflow — the canonical
+ * @brief   Blink an LED on RB0 from a Timer0 overflow, the canonical
  *          "the HAL drives a real application" smoke test.
  *
  * @details
  *   One source builds for both the host simulation backend and a real XC8
  *   target with no `#ifdef` in the code: the build selects the harness
  *   implementation (core/pic16f87xa_harness.h), which abstracts the only
- *   two execution-model differences — pumping simulated time vs. real
+ *   two execution-model differences, pumping simulated time vs. real
  *   time advancing on its own, and a terminating pass/fail test vs.
  *   firmware that runs forever.
  *
  *   Timer0 overflows drive an interrupt; the ISR toggles RB0. The main
  *   loop just lets time pass (pumping the sim on the host, busy-spinning
- *   on the target) and refreshes the WDT — the peripheral does the work.
+ *   on the target) and refreshes the WDT, the peripheral does the work.
  *
  *   Wiring (real target): LED + resistor between RB0 and GND
  *   (active-high); 20 MHz crystal on OSC1/OSC2 → FOSC = HS, FCY = 5 MHz.
@@ -34,10 +34,10 @@
  *  overflow at 1:256, so 600k cycles give ~9 toggles. */
 #define SIM_CYCLES  600000UL
 
-/* Toggle count — the ISR is the only writer. */
+/* Toggle count, the ISR is the only writer. */
 static volatile uint32_t g_toggle_count = 0;
 
-/* Timer0 overflow callback — runs in interrupt context (target) or the
+/* Timer0 overflow callback, runs in interrupt context (target) or the
  * sim IRQ callback (host). */
 static void on_t0_overflow(void)
 {

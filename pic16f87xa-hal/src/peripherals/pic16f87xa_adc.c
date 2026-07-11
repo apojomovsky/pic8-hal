@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_adc.c
- * @brief   A/D converter driver — implementation (DS39582B §11.0).
+ * @brief   A/D converter driver, implementation (DS39582B §11.0).
  */
 
 #include "peripherals/pic16f87xa_adc.h"
@@ -13,9 +13,9 @@ PIC16F87XA_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h)
     if (!h) return PIC16F87XA_INVALID;
     g_adc = h;
 
-    /* ADCON0 — Bank 0, address 0x1F.
+    /* ADCON0, Bank 0, address 0x1F.
      *   bit 0    ADON
-     *   bit 2    GO/DONE (clear — not started yet)
+     *   bit 2    GO/DONE (clear, not started yet)
      *   bit 5:3  CHS2:CHS0
      *   bit 7:6  ADCS1:ADCS0
      */
@@ -24,7 +24,7 @@ PIC16F87XA_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h)
     adcon0 |= (uint8_t)((h->ClockSource & 0x3U) << PIC_ADCON0_ADCS_POS);
     PIC16F87XA_REG8(0x1FU) = adcon0;
 
-    /* ADCON1 — Bank 1, address 0x9F.
+    /* ADCON1, Bank 1, address 0x9F.
      *   bit 3:0  PCFG3:PCFG0
      *   bit 6    ADCS2
      *   bit 7    ADFM

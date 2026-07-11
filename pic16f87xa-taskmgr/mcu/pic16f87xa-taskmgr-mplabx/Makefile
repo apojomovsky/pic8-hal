@@ -1,13 +1,13 @@
-# pic16f87xa-taskmgr — MPLAB XC8 Makefile
+# pic16f87xa-taskmgr, MPLAB XC8 Makefile
 #
 # Builds the task manager + the multi-blink example on real silicon via
 # MPLAB XC8. Tested with:
 #   - MPLAB X IDE v6.x
 #   - MPLAB XC8 C Compiler v3.10 (the `xc8-cc` driver)
-#   - PIC16F877A  (and 873A / 874A / 876A — the example uses PORTB only)
+#   - PIC16F877A  (and 873A / 874A / 876A, the example uses PORTB only)
 #
 # This Makefile mirrors the HAL's own mcu/pic16f87xa-mplabx/Makefile: the
-# host/target split is done at build time, not with #ifdef — include/target
+# host/target split is done at build time, not with #ifdef, include/target
 # is put ahead of include on the include path so pic16f87xa_platform.h
 # resolves to the real-target (volatile-dereference) version, and the
 # target-side harness / wdt_sleep / interrupt-vector implementations are
@@ -113,7 +113,7 @@ VPATH := $(sort $(dir $(SRCS)))
 
 # ─────────────────────────── config word ───────────────────────────
 # The PIC16F87XA Configuration Word is flash-locked; this file emits the
-# directives — adjust per your hardware. See DS39582B §14.1 (Register 14-1).
+# directives, adjust per your hardware. See DS39582B §14.1 (Register 14-1).
 CONFIG_SRC := $(BUILD_DIR)/config_$(MCU).c
 CONFIG_OBJ := $(BUILD_DIR)/config_$(MCU).p1
 
@@ -146,7 +146,7 @@ $(CONFIG_OBJ): $(CONFIG_SRC) | $(BUILD_DIR)
 $(TARGET).hex: $(OBJS) $(CONFIG_OBJ)
 	$(CC) $(CFLAGS) $(OBJS) $(CONFIG_OBJ) -o $@ -ginhx32
 	@echo ""
-	@echo "Built $@ — program with MPLAB X or your favorite programmer."
+	@echo "Built $@, program with MPLAB X or your favorite programmer."
 
 clean:
 	rm -rf $(BUILD_DIR)

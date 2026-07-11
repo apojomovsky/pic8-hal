@@ -12,7 +12,7 @@
  *   there is no `#ifdef` around code anywhere in the HAL.
  *
  *   On a real PIC every SFR access is a direct volatile dereference of
- *   the literal address — exactly what the XC8 linker maps to the SFR.
+ *   the literal address, exactly what the XC8 linker maps to the SFR.
  *   The address is cast through uintptr_t so XC8 does not warn about
  *   converting an integer to a pointer. XC8 has no weak symbols, so
  *   PIC16F87XA_WEAK is empty.

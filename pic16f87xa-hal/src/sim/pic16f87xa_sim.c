@@ -7,7 +7,7 @@
  *   register file that the host SFR macros (in
  *   include/host/pic16f87xa_platform.h) dereference.  The peripheral models
  *   (Timer0/1/2, ADC, USART, MSSP, EEPROM, etc.) are listed in the
- *   functions below; the sim never bit-bangs external pins — the test
+ *   functions below; the sim never bit-bangs external pins, the test
  *   rig drives and observes them through the public helpers in
  *   pic16f87xa_sim.h.
  */
@@ -92,11 +92,11 @@ void pic16f87xa_sim_reset(void)
     pic16f87xa_sim_sfr[PIC_REG_INTCON]   = PIC_INTCON_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_PIR1]     = PIC_PIR1_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_PIR2]     = PIC_PIR2_POR_VALUE;
-    /* PIR1 <TXIF> resets to 1 (TXREG empty after POR — §10.2.1).
+    /* PIR1 <TXIF> resets to 1 (TXREG empty after POR, §10.2.1).
      * Bit 4 of PIR1 (at 0x0C). */
     pic16f87xa_sim_sfr[0x0CU] |= 0x10U;
 
-    /* PIE1 / PIE2 — Bank 1 mirrors of PIR1 / PIR2 — reset to 0. */
+    /* PIE1 / PIE2, Bank 1 mirrors of PIR1 / PIR2, reset to 0. */
     pic16f87xa_sim_sfr[0x8CU] = PIC_PIE1_POR_VALUE;
     pic16f87xa_sim_sfr[0x8DU] = PIC_PIE2_POR_VALUE;
     pic16f87xa_sim_sfr[PIC_REG_T1CON]    = PIC_T1CON_POR_VALUE;
@@ -179,7 +179,7 @@ static void sim_step_timer1(void)
     if (!(t1con & 0x01U)) return;     /* TMR1ON = 0 → stopped. */
     /* TMR1CS = 1 (external clock / T1OSC): the sim does not model a real
      * external signal, so it advances the counter at the configured
-     * prescaler rate per instruction cycle — a sim simplification that
+     * prescaler rate per instruction cycle, a sim simplification that
      * lets T1OSC-based firmware (e.g. example_idle_blink) run on the host
      * with the same Timer1 configuration a real target uses. The 32 kHz
      * crystal's actual rate is not reproduced; only the overflow/IRQ
@@ -290,7 +290,7 @@ uint8_t pic16f87xa_sim_read_output(char port, uint8_t pin)
         /* Pin configured as input: return the externally driven level. */
         return (sim_input_override[idx] & mask) ?
                ((sim_input_value[idx] & mask) ? 1U : 0U) :
-               /* No override — input floats to 0. */
+               /* No override, input floats to 0. */
                0U;
     }
     /* Pin configured as output: return the latch bit. */
@@ -304,7 +304,7 @@ void pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb)
 
 void pic16f87xa_sim_drive_usart_rx(uint8_t data)
 {
-    /* Place the byte in RCREG (0x1A — DS39582B §10.x). */
+    /* Place the byte in RCREG (0x1A, DS39582B §10.x). */
     pic16f87xa_sim_sfr[PIC_REG_RCREG] = data;
     /* Set PIR1<RCIF> (bit 5). */
     pic16f87xa_sim_sfr[0x0CU] |= 0x20U;
@@ -313,7 +313,7 @@ void pic16f87xa_sim_drive_usart_rx(uint8_t data)
 
 void pic16f87xa_sim_drive_ssp_rx(uint8_t data)
 {
-    /* Place byte in SSPBUF (0x13 — DS39582B §9.x). */
+    /* Place byte in SSPBUF (0x13, DS39582B §9.x). */
     pic16f87xa_sim_sfr[PIC_REG_SSPBUF] = data;
     /* Set SSPSTAT<BF> (Bank 1, addr 0x94, bit 0). */
     {

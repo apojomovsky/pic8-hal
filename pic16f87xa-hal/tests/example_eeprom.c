@@ -79,6 +79,6 @@ int main(void)
     CHECK(buf[0] == 0x11U && buf[1] == 0x22U && buf[2] == 0x33U,
           "Buffer read did not return written values");
 
-    printf("OK: EEPROM driver — read, write unlock sequence, buffer round-trip.\n");
+    printf("OK: EEPROM driver, read, write unlock sequence, buffer round-trip.\n");
     return 0;
 }

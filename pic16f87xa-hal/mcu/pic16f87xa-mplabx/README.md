@@ -11,7 +11,7 @@ The HAL compiles on XC8 because:
   `include/target/pic16f87xa_platform.h` (the Makefile puts
   `include/target` ahead of `include` on the include path).
 - `pic16f87xa_sim.c` and the host-side harness / WDT-sleep
-  implementations are simply not in this build's source list — XC8 never
+  implementations are simply not in this build's source list, XC8 never
   links them.
 - The weak ISRs (`TIMER0_IRQHandler`, `ADC_IRQHandler`, …) and the
   `clrwdt` / `sleep` asm helpers compile to native instructions on
@@ -67,7 +67,7 @@ The configuration word in the `Makefile` (and the `nbproject` project
 properties) sets:
 
 - FOSC = HS (high-speed crystal, ≤ 20 MHz)
-- WDTE = ON (Watchdog Timer enabled — refresh via `HAL_WDT_Refresh()`)
+- WDTE = ON (Watchdog Timer enabled, refresh via `HAL_WDT_Refresh()`)
 - PWRTE = ON (Power-up Timer, 72 ms)
 - BOREN = ON (Brown-out Reset at 4.0 V)
 - LVP = OFF (low-voltage programming disabled)

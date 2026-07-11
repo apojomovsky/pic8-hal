@@ -4,7 +4,7 @@
  *
  *   Verifies:
  *     1. After sim_reset, BOR and POR flags are set (POR default per
- *        §14.10 — the sim models PCON as 0x0F after reset).
+ *        §14.10, the sim models PCON as 0x0F after reset).
  *     2. HAL_BOR_ClearFlag() / HAL_POR_ClearFlag() clear the
  *        corresponding bits.
  *     3. HAL_WDT_Refresh() / HAL_Sleep_Enter() are no-ops on the
@@ -39,6 +39,6 @@ int main(void)
     HAL_WDT_Refresh();
     HAL_Sleep_Enter();
 
-    printf("OK: WDT/Sleep/BOR/POR helpers — flags and no-op instructions.\n");
+    printf("OK: WDT/Sleep/BOR/POR helpers, flags and no-op instructions.\n");
     return 0;
 }

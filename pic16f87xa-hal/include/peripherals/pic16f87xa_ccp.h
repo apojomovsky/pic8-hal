@@ -1,6 +1,6 @@
 /**
  * @file    peripherals/pic16f87xa_ccp.h
- * @brief   CCP1 / CCP2 driver — Capture / Compare / PWM.
+ * @brief   CCP1 / CCP2 driver, Capture / Compare / PWM.
  *
  * @details
  *   Source: DS39582B §8.0 (Capture/Compare/PWM Modules), Register 8-1
@@ -34,24 +34,24 @@
  * @brief Which CCP module a handle refers to.
  */
 typedef enum {
-    CCP_INSTANCE_1 = 1,    /**< CCP1 — pins RC2/CCP1. */
-    CCP_INSTANCE_2 = 2,    /**< CCP2 — pins RC1/CCP2. */
+    CCP_INSTANCE_1 = 1,    /**< CCP1, pins RC2/CCP1. */
+    CCP_INSTANCE_2 = 2,    /**< CCP2, pins RC1/CCP2. */
 } CCP_InstanceTypeDef;
 
 /**
  * @brief CCP operating mode (CCPxCON<3:0>, DS39582B Register 8-1).
  */
 typedef enum {
-    CCP_MODE_OFF              = 0x0U,   /**< 0000 — module disabled. */
-    CCP_MODE_COMPARE_SET      = 0x8U,   /**< 1000 — set output on match. */
-    CCP_MODE_COMPARE_CLEAR    = 0x9U,   /**< 1001 — clear output on match. */
-    CCP_MODE_COMPARE_SOFT_IF  = 0xAU,   /**< 1010 — software interrupt only. */
-    CCP_MODE_COMPARE_TRIGGER  = 0xBU,   /**< 1011 — special event trigger. */
-    CCP_MODE_PWM              = 0xCU,   /**< 11xx — PWM (any 11xx). */
-    CCP_MODE_CAPTURE_FALLING  = 0x4U,   /**< 0100 — every falling edge.  */
-    CCP_MODE_CAPTURE_RISING   = 0x5U,   /**< 0101 — every rising edge.   */
-    CCP_MODE_CAPTURE_4TH      = 0x6U,   /**< 0110 — every 4th rising.    */
-    CCP_MODE_CAPTURE_16TH     = 0x7U,   /**< 0111 — every 16th rising.   */
+    CCP_MODE_OFF              = 0x0U,   /**< 0000, module disabled. */
+    CCP_MODE_COMPARE_SET      = 0x8U,   /**< 1000, set output on match. */
+    CCP_MODE_COMPARE_CLEAR    = 0x9U,   /**< 1001, clear output on match. */
+    CCP_MODE_COMPARE_SOFT_IF  = 0xAU,   /**< 1010, software interrupt only. */
+    CCP_MODE_COMPARE_TRIGGER  = 0xBU,   /**< 1011, special event trigger. */
+    CCP_MODE_PWM              = 0xCU,   /**< 11xx, PWM (any 11xx). */
+    CCP_MODE_CAPTURE_FALLING  = 0x4U,   /**< 0100, every falling edge.  */
+    CCP_MODE_CAPTURE_RISING   = 0x5U,   /**< 0101, every rising edge.   */
+    CCP_MODE_CAPTURE_4TH      = 0x6U,   /**< 0110, every 4th rising.    */
+    CCP_MODE_CAPTURE_16TH     = 0x7U,   /**< 0111, every 16th rising.   */
 } CCP_ModeTypeDef;
 
 /**
@@ -121,9 +121,9 @@ void HAL_CCP_SetPWMDuty(CCP_InstanceTypeDef inst, uint16_t duty);
 
 /* ───────────────────────── IRQ entries ──────────────────────────── */
 
-/** Weak CCP1 ISR — override in user code. */
+/** Weak CCP1 ISR, override in user code. */
 void CCP1_IRQHandler(void) PIC16F87XA_WEAK;
-/** Weak CCP2 ISR — override in user code. */
+/** Weak CCP2 ISR, override in user code. */
 void CCP2_IRQHandler(void) PIC16F87XA_WEAK;
 
 #endif /* PIC16F87XA_CCP_H */

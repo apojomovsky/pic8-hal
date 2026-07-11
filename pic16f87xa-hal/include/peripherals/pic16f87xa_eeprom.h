@@ -8,12 +8,12 @@
  *
  *   Wiring on the part:
  *     - 128 / 256 bytes of data EEPROM (Table 1-1).
- *     - EEDATA (Bank 2, 0x10C) — 8-bit data register.
- *     - EEADR  (Bank 2, 0x10D) — 8-bit low address register.
- *     - EEDATH (Bank 2, 0x10E) + EEADRH (Bank 2, 0x10F) — flash-only,
+ *     - EEDATA (Bank 2, 0x10C), 8-bit data register.
+ *     - EEADR  (Bank 2, 0x10D), 8-bit low address register.
+ *     - EEDATH (Bank 2, 0x10E) + EEADRH (Bank 2, 0x10F), flash-only,
  *       ignored for EEPROM access.
  *     - EECON1 (Bank 3, 0x18C): RD, WR, WREN, WRERR, EEIF.
- *     - EECON2 (Bank 3, 0x18D) — magic unlock: must write 0x55 then 0xAA
+ *     - EECON2 (Bank 3, 0x18D), magic unlock: must write 0x55 then 0xAA
  *       (DS39582B §3.4 / Example 3-1).
  *
  *   The driver hides the unlock sequence from the caller. Writes are

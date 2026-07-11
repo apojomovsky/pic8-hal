@@ -18,7 +18,7 @@
  *   The handlers are declared `PIC16F87XA_WEAK` in their own headers (to
  *   allow optional user override). That makes a reference through those
  *   headers a *weak* reference, which the linker will NOT use to pull the
- *   handler's object out of the static library — leaving the call target
+ *   handler's object out of the static library, leaving the call target
  *   NULL for any handler not already pulled by a strong reference. To
  *   force the linker to resolve every handler, this file declares them
  *   with strong prototypes and does not include the peripheral headers.

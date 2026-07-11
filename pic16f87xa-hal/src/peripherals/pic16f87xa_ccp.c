@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_ccp.c
- * @brief   CCP1 / CCP2 driver — implementation (DS39582B §8.0).
+ * @brief   CCP1 / CCP2 driver, implementation (DS39582B §8.0).
  */
 
 #include "peripherals/pic16f87xa_ccp.h"
@@ -18,9 +18,9 @@ typedef struct {
 } ccp_addrs_t;
 
 static const ccp_addrs_t addrs[2] = {
-    /* CCP1 — DS39582B Figure 2-3 / §8.0. */
+    /* CCP1, DS39582B Figure 2-3 / §8.0. */
     { 0x15U, 0x16U, 0x17U, PIC16F87XA_IRQ_CCP1 },
-    /* CCP2 — §8.0. */
+    /* CCP2, §8.0. */
     { 0x1BU, 0x1CU, 0x1DU, PIC16F87XA_IRQ_CCP2 },
 };
 
@@ -30,7 +30,7 @@ static const ccp_addrs_t *ccp_sel(CCP_InstanceTypeDef inst)
     return &addrs[0];
 }
 
-/* Static handle storage — one per CCP instance. */
+/* Static handle storage, one per CCP instance. */
 static const CCP_HandleTypeDef *g_ccp_handles[3] = { NULL, NULL, NULL };
 
 /* ───────────────────────── public API ───────────────────────────── */
@@ -56,7 +56,7 @@ PIC16F87XA_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h)
      * DS39582B §8.3.3 step 2: set the PWM duty BEFORE enabling PWM. */
     if (h->Mode == CCP_MODE_PWM) {
         uint16_t duty = h->PWM.Duty & 0x03FFU;       /* 10-bit clamp. */
-        uint8_t  con  = (uint8_t)(h->Mode & 0x0FU);  /* mode 1100 — also handles 1101/1110/1111. */
+        uint8_t  con  = (uint8_t)(h->Mode & 0x0FU);  /* mode 1100, also handles 1101/1110/1111. */
         con |= (uint8_t)((duty & 0x03U) << 4);        /* CCPxY:CCPxX = duty[1:0]. */
         PIC16F87XA_REG8(a->cprl) = (uint8_t)(duty >> 2);
         PIC16F87XA_REG8(a->cprh) = 0U;

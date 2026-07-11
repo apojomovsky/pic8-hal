@@ -5,7 +5,7 @@
  * @details
  *   Each IRQ source maps to a specific bit in INTCON / PIE1 / PIE2
  *   (DS39582B §14.11 + Figure 14-10). The translation table lives at the
- *   top of this file — every other function is a thin wrapper.
+ *   top of this file, every other function is a thin wrapper.
  */
 
 #include "core/pic16f87xa_interrupt.h"
@@ -57,7 +57,7 @@ static uint8_t pir_reg_addr(const irq_desc_t *d)
 
 static uint8_t pie_reg_addr(const irq_desc_t *d)
 {
-    /* PIE1 = 0x8C, PIE2 = 0x8D — Bank 1 mirrors of PIR1/PIR2 (Fig. 2-3). */
+    /* PIE1 = 0x8C, PIE2 = 0x8D, Bank 1 mirrors of PIR1/PIR2 (Fig. 2-3). */
     return d->pir_is_pir2 ? 0x8DU : 0x8CU;
 }
 

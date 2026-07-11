@@ -5,7 +5,7 @@
  * @details
  *   Cube-style API: every pin is addressed by (GPIOx, GPIO_PIN_n). The
  *   PORTx registers are read-modify-write (DS39582B §4.x), so this driver
- *   never reads back the pin level to set a bit — it ORs/ANDs a mask onto
+ *   never reads back the pin level to set a bit, it ORs/ANDs a mask onto
  *   the latch directly. That matches the datasheet's recommended idiom:
  *
  *     BSF   PORTB, 3       ; "set" only touches the latch
@@ -14,7 +14,7 @@
  *   40/44-pin parts, §4.5). The driver enforces those widths.
  *
  *   Pin mapping follows the datasheet pinout tables (Table 1-2 for
- *   28-pin, Table 1-3 for 40/44-pin) — every pin has the same name on
+ *   28-pin, Table 1-3 for 40/44-pin), every pin has the same name on
  *   every part of the family.
  */
 
@@ -29,17 +29,17 @@
  *        `GPIOx` selects the port (x = A..E).
  *
  * PORTA..PORTC are present on every device. PORTD and PORTE exist only on
- * 40/44-pin parts (PIC16F874A / 877A — DS39582B §4.4, §4.5).
+ * 40/44-pin parts (PIC16F874A / 877A, DS39582B §4.4, §4.5).
  */
 typedef enum {
-    GPIOA = 0,   /**< PORTA — 6 bits (RA0..RA5), DS39582B §4.1, Table 4-1. */
-    GPIOB = 1,   /**< PORTB — 8 bits (RB0..RB7), DS39582B §4.2, Table 4-3. */
-    GPIOC = 2,   /**< PORTC — 8 bits (RC0..RC7), DS39582B §4.3, Table 4-5. */
+    GPIOA = 0,   /**< PORTA, 6 bits (RA0..RA5), DS39582B §4.1, Table 4-1. */
+    GPIOB = 1,   /**< PORTB, 8 bits (RB0..RB7), DS39582B §4.2, Table 4-3. */
+    GPIOC = 2,   /**< PORTC, 8 bits (RC0..RC7), DS39582B §4.3, Table 4-5. */
 #if PIC16F87XA_FAMILY_HAS_PORTD
-    GPIOD = 3,   /**< PORTD — 8 bits (RD0..RD7), DS39582B §4.4, Table 4-7. */
+    GPIOD = 3,   /**< PORTD, 8 bits (RD0..RD7), DS39582B §4.4, Table 4-7. */
 #endif
 #if PIC16F87XA_FAMILY_HAS_PORTE
-    GPIOE = 4,   /**< PORTE — 3 bits (RE0..RE2), DS39582B §4.5, Table 4-9. */
+    GPIOE = 4,   /**< PORTE, 3 bits (RE0..RE2), DS39582B §4.5, Table 4-9. */
 #endif
 } GPIO_TypeDef;
 
@@ -84,7 +84,7 @@ typedef enum {
 } GPIO_ModeTypeDef;
 
 /**
- * @brief  Internal weak-pull-up control (PORTB only — DS39582B §4.2,
+ * @brief  Internal weak-pull-up control (PORTB only, DS39582B §4.2,
  *         RBPU bit in OPTION_REG<7>).
  */
 typedef enum {
@@ -102,7 +102,7 @@ typedef enum {
  * @param  mode   One of @ref GPIO_ModeTypeDef
  *
  * @note   Does not configure alternate-function peripherals (e.g. ADC,
- *         USART) — call the relevant peripheral driver first. Specifically
+ *         USART), call the relevant peripheral driver first. Specifically
  *         for PORTA analog pins, set ADCON1<PCFG3:PCFG0> before configuring
  *         the pin as analog (DS39582B §4.1, §11.x).
  */
@@ -116,7 +116,7 @@ void HAL_GPIO_DeInit(GPIO_TypeDef port);
 /**
  * @brief  Drive a pin high or low. Reads-modify-writes the PORTx latch
  *         directly (DS39582B §4.x "write is read-modify-write of the
- *         port pins" — but writes only update the latch; we follow the
+ *         port pins", but writes only update the latch; we follow the
  *         recommended BSF/BCF idiom that masks the latch).
  */
 void HAL_GPIO_WritePin(GPIO_TypeDef port, uint16_t pins, GPIO_PinState state);

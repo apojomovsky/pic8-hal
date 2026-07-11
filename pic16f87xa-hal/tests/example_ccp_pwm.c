@@ -73,7 +73,7 @@ int main(void)
     ch.EventCallback = NULL;      /* Don't need an IRQ. */
     HAL_CCP_Init(&ch);
 
-    /* 3. Start Timer2 — this writes PR2 + T2CON. PWM output is generated
+    /* 3. Start Timer2, this writes PR2 + T2CON. PWM output is generated
      *    as soon as TMR2 starts incrementing (DS39582B §8.3.3 step 4). */
     HAL_TIMER2_Start(&th);
 

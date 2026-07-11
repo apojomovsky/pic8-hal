@@ -3,14 +3,14 @@
  * @brief   Parallel Slave Port driver (40/44-pin only).
  *
  * @details
- *   Source: DS39582B §4.5 (PORTE / TRISE — Register 4-9).
+ *   Source: DS39582B §4.5 (PORTE / TRISE, Register 4-9).
  *
  *   The PSP exposes an 8-bit parallel bus on PORTD (PSP0..PSP7) plus
  *   three control lines on PORTE (RE0/RD, RE1/WR, RE2/CS) when the
  *   PSPMODE bit (TRISE<4>) is set.  An external master can then
  *   read/write the part's data through these pins.
  *
- *   ⚠ This driver is **40/44-pin only** — PIC16F873A and PIC16F876A
+ *   ⚠ This driver is **40/44-pin only**, PIC16F873A and PIC16F876A
  *   do not have a PSP.  The compile-time check
  *   `PIC16F87XA_FAMILY_HAS_PSP` (defined in pic16f87xa.h) lets the
  *   rest of the application avoid building this driver on 28-pin

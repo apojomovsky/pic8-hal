@@ -1,12 +1,12 @@
 /**
  * @file    pic16f87xa_timer0.c
- * @brief   Timer0 driver — implementation (DS39582B §5.0).
+ * @brief   Timer0 driver, implementation (DS39582B §5.0).
  */
 
 #include "peripherals/pic16f87xa_timer0.h"
 #include "core/pic16f87xa_interrupt.h"
 
-/* Prescaler ratios — DS39582B Table 5-1.
+/* Prescaler ratios, DS39582B Table 5-1.
  *   000 → 1:2
  *   001 → 1:4
  *   ...

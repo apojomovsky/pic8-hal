@@ -3,11 +3,11 @@
  * @brief   CPU-level helpers: Watchdog Timer, Brown-out Reset, Sleep.
  *
  * @details
- *   Source: DS39582B §14.10 (PCON — Register 14-2), §14.13 (WDT),
+ *   Source: DS39582B §14.10 (PCON, Register 14-2), §14.13 (WDT),
  *   §14.14 (Power-down Mode / Sleep).
  *
  *   The Watchdog Timer is enabled by the WDT configuration bit
- *   (Register 14-1) which can only be programmed at flash time — the
+ *   (Register 14-1) which can only be programmed at flash time, the
  *   runtime API only provides a refresh helper. Once the WDT is
  *   enabled (WDTEN=1 in CONFIG), the user MUST call
  *   @ref HAL_WDT_Refresh periodically or the chip will reset.

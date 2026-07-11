@@ -1,4 +1,4 @@
-# PIC16F87XA HAL — host simulation build.
+# PIC16F87XA HAL, host simulation build.
 #
 #   cmake -B build && cmake --build build
 #   ./build/example_blink
@@ -18,7 +18,7 @@ project(pic16f87xa_hal C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Default device — can be overridden with -DPIC16F87XA_DEVICE=873A.
+# Default device, can be overridden with -DPIC16F87XA_DEVICE=873A.
 if(NOT DEFINED PIC16F87XA_DEVICE)
     set(PIC16F87XA_DEVICE "PIC16F877A")
 endif()

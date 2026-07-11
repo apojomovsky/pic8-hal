@@ -1,13 +1,13 @@
 /**
  * @file    pic16f87xa_wdt_sleep.c
- * @brief   BOR / POR status helpers — shared by both builds.
+ * @brief   BOR / POR status helpers, shared by both builds.
  *
  * @details
  *   The build-mode-specific helpers HAL_WDT_Refresh and HAL_Sleep_Enter
  *   live in pic16f87xa_wdt_sleep_sim.c (host) and
  *   pic16f87xa_wdt_sleep_target.c (XC8), selected at link time. The BOR/POR
- *   status helpers below are identical on both builds — they just read and
- *   clear bits in PCON through the platform SFR macro — so they stay here
+ *   status helpers below are identical on both builds, they just read and
+ *   clear bits in PCON through the platform SFR macro, so they stay here
  *   as one shared translation unit.
  */
 

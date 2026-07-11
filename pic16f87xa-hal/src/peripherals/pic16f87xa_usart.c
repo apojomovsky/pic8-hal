@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_usart.c
- * @brief   USART driver — implementation (DS39582B §10.0).
+ * @brief   USART driver, implementation (DS39582B §10.0).
  *
  *   The driver only programs the SFRs; it does not model the bit
  *   shifts. The sim backend (src/sim/pic16f87xa_sim.c) re-asserts
@@ -38,19 +38,19 @@ PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
     if (!h) return PIC16F87XA_INVALID;
     g_usart = h;
 
-    /* Program SPBRG (Bank 1, address 0x99 — DS39582B §10.1). */
+    /* Program SPBRG (Bank 1, address 0x99, DS39582B §10.1). */
     uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
     PIC16F87XA_REG8(PIC_REG_SPBRG) = h->SPBRG;
     pic_select_bank(prev);
 
     /* Build TXSTA (Bank 1, address 0x98).
-     *   CSRC  bit 7 — sync clock source
-     *   TX9   bit 6 — 9-bit TX
-     *   TXEN  bit 5 — TX enable
-     *   SYNC  bit 4 — sync/async
-     *   BRGH  bit 2 — high baud rate
-     *   TX9D  bit 0 — 9th bit
+     *   CSRC  bit 7, sync clock source
+     *   TX9   bit 6, 9-bit TX
+     *   TXEN  bit 5, TX enable
+     *   SYNC  bit 4, sync/async
+     *   BRGH  bit 2, high baud rate
+     *   TX9D  bit 0, 9th bit
      * Reset value of TXSTA: 0000 -010 (TRMT=1). */
     uint8_t txsta = 0x02U;
     if (h->Mode == USART_MODE_SYNCHRONOUS) txsta |= PIC_TXSTA_SYNC;
@@ -62,10 +62,10 @@ PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
     PIC16F87XA_REG8(PIC_REG_TXSTA) = txsta;
 
     /* Build RCSTA (Bank 0, address 0x18).
-     *   SPEN bit 7 — enable serial port
-     *   RX9  bit 6 — 9-bit RX
-     *   CREN bit 4 — continuous receive enable
-     *   ADDEN bit 3 — address detect
+     *   SPEN bit 7, enable serial port
+     *   RX9  bit 6, 9-bit RX
+     *   CREN bit 4, continuous receive enable
+     *   ADDEN bit 3, address detect
      * Reset value: 0000 000x. */
     uint8_t rcsta = PIC_RCSTA_SPEN;
     if (h->DataWidth == USART_DATA_9BITS) rcsta |= PIC_RCSTA_RX9;
@@ -145,7 +145,7 @@ uint8_t HAL_USART_GetRX9D(void)
 void USART_TX_IRQHandler(void)
 {
     if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_USART_TX)) return;
-    /* TXIF is read-only and cleared by writing TXREG — there is nothing
+    /* TXIF is read-only and cleared by writing TXREG, there is nothing
      * to clear here. We just call the user callback. */
     if (g_usart && g_usart->TxCpltCallback) g_usart->TxCpltCallback();
 }

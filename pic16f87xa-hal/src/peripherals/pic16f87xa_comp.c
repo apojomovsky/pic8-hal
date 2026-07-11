@@ -1,6 +1,6 @@
 /**
  * @file    pic16f87xa_comp.c
- * @brief   Comparator driver — implementation (DS39582B §12.0).
+ * @brief   Comparator driver, implementation (DS39582B §12.0).
  */
 
 #include "peripherals/pic16f87xa_comp.h"

@@ -1,7 +1,7 @@
 /**
  * @file    example_multi_blink.c
  * @brief   Four independent LED blinks at distinct rates driven by the
- *          cooperative task manager — one source for the host simulator
+ *          cooperative task manager, one source for the host simulator
  *          and a real XC8 target, with no `#ifdef` in the code.
  *
  * @details
@@ -13,7 +13,7 @@
  *     - Periodic tasks at different periods (led_fast / led_med / led_slow).
  *     - Priority ordering: the supervisor (priority 0) runs first each round.
  *     - Runtime task spawning: a periodic supervisor spawns one-shot "blip"
- *       children on the fly — the "spawn tasks, etc." part.
+ *       children on the fly, the "spawn tasks, etc." part.
  *     - One-shot tasks (period 0): a blip runs once and auto-disables.
  *
  *   PORTB is chosen so the example builds unchanged for every device in the
@@ -24,7 +24,7 @@
  *   On the host the harness bounds the run and the example reports the
  *   per-LED toggle counts to stdout; the test passes when the fast LED
  *   toggled more often than the medium, the medium more than the slow, and
- *   at least one blip was spawned — i.e. the four tasks really ran at four
+ *   at least one blip was spawned, i.e. the four tasks really ran at four
  *   different rates. On a real target the loop never returns and the LEDs
  *   just blink forever.
  *
@@ -55,7 +55,7 @@
 
 /** Bounded host run length. The sim clobbers the Timer0 reload after the
  *  ISR (a sim simplification), so the first tick is ~49725 cycles and later
- *  ticks ~65280; 4 M cycles yields ~61 ticks — enough for the period-40
+ *  ticks ~65280; 4 M cycles yields ~61 ticks, enough for the period-40
  *  supervisor to fire and its one-shot blip to land (at tick 41), with the
  *  period-20 slow blink toggling a few times. Override with -DSIM_CYCLES=. */
 #ifndef SIM_CYCLES
@@ -81,7 +81,7 @@
  *
  *         Deliberately pointer-free so it banks cleanly in the 192 B of RAM
  *         on the 28-pin PIC16F873A/876A: `pin` is a bit index (0..7), and
- *         `count` is a plain uint8_t toggle counter (max 255 — far more
+ *         `count` is a plain uint8_t toggle counter (max 255, far more
  *         than any visible blink rate needs).
  */
 typedef struct {
@@ -98,7 +98,7 @@ static blink_arg_t arg_blip = { GPIOB, 3U, 0U };   /* RB3 (spawned at runtime) *
 /* ───────────────────────── tasks ──────────────────────────────────── */
 
 /** Map a LED's pin index to a short label for the log. The string literals
- *  live in program space (not RAM), so this costs no data memory — important
+ *  live in program space (not RAM), so this costs no data memory, important
  *  on the 192 B parts. Padded to 4 chars so the log columns line up. */
 static const char *led_name(uint8_t pin)
 {
@@ -115,7 +115,7 @@ static const char *led_name(uint8_t pin)
  *  its toggle count, and log a line so the run is visible as it happens
  *  (a stream of dispatches rather than one summary at the end). The log is
  *  a no-op on a real target (no stdout), so this is free there. The same
- *  function serves all four LEDs — each carries its own arg. */
+ *  function serves all four LEDs, each carries its own arg. */
 static void task_blink(void *arg)
 {
     blink_arg_t *a = (blink_arg_t *)arg;
@@ -126,9 +126,9 @@ static void task_blink(void *arg)
                            led_name(a->pin), (unsigned)a->count);
 }
 
-/** Periodic supervisor (priority 0 — runs first each round): every
+/** Periodic supervisor (priority 0, runs first each round): every
  *  PERIOD_SUPERVISOR ticks, spawn a fresh one-shot blip on RB3. This is a
- *  task spawning another task at runtime, from inside a running task — the
+ *  task spawning another task at runtime, from inside a running task, the
  *  "etc." The blip fires once on the next tick, toggles RB3, and the
  *  scheduler frees its slot (period 0). */
 static void task_supervisor(void *arg)

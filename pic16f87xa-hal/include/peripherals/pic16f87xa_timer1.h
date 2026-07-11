@@ -1,6 +1,6 @@
 /**
  * @file    peripherals/pic16f87xa_timer1.h
- * @brief   Timer1 driver — 16-bit timer/counter.
+ * @brief   Timer1 driver, 16-bit timer/counter.
  *
  * @details
  *   Source: DS39582B §6.0 (Timer1 Module), §6.1 (Timer mode),
@@ -48,8 +48,8 @@ typedef enum {
  *        the default when the T1OSC crystal oscillator is enabled.
  */
 typedef enum {
-    TIMER1_SYNC_EXTERNAL   = 0x0U,   /**< T1SYNC = 0 — synchronise to Fosc. */
-    TIMER1_ASYNC_EXTERNAL  = 0x1U,   /**< T1SYNC = 1 — free-running. */
+    TIMER1_SYNC_EXTERNAL   = 0x0U,   /**< T1SYNC = 0, synchronise to Fosc. */
+    TIMER1_ASYNC_EXTERNAL  = 0x1U,   /**< T1SYNC = 1, free-running. */
 } TIMER1_ClockSyncTypeDef;
 
 /**
@@ -66,10 +66,10 @@ typedef enum {
  * @brief Prescaler ratio (T1CON<T1CKPS1:T1CKPS0>, DS39582B Register 6-1).
  */
 typedef enum {
-    TIMER1_PRESCALER_1_1 = 0x0U,    /**< 1:1  — 00. */
-    TIMER1_PRESCALER_1_2 = 0x1U,    /**< 1:2  — 01. */
-    TIMER1_PRESCALER_1_4 = 0x2U,    /**< 1:4  — 10. */
-    TIMER1_PRESCALER_1_8 = 0x3U,    /**< 1:8  — 11. */
+    TIMER1_PRESCALER_1_1 = 0x0U,    /**< 1:1, 00. */
+    TIMER1_PRESCALER_1_2 = 0x1U,    /**< 1:2, 01. */
+    TIMER1_PRESCALER_1_4 = 0x2U,    /**< 1:4, 10. */
+    TIMER1_PRESCALER_1_8 = 0x3U,    /**< 1:8, 11. */
 } TIMER1_PrescalerTypeDef;
 
 /** Driver handle (Cube-style). */
@@ -106,7 +106,7 @@ void HAL_TIMER1_WriteCounter(uint16_t value);
 /** Convert a prescaler enum to its integer ratio (1, 2, 4, 8). */
 uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p);
 
-/** Weak Timer1 ISR — override in user code to add application logic. */
+/** Weak Timer1 ISR, override in user code to add application logic. */
 void TIMER1_IRQHandler(void) PIC16F87XA_WEAK;
 
 #endif /* PIC16F87XA_TIMER1_H */

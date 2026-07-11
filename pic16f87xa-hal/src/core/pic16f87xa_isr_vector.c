@@ -10,8 +10,8 @@
  *   routes to every peripheral IRQHandler.
  *
  *   This file is built only by the XC8 Makefile (real target). The host
- *   CMake build does NOT compile it — `__interrupt()` is an XC8-specific
- *   attribute and the host has no interrupt vector — so the selection is
+ *   CMake build does NOT compile it, `__interrupt()` is an XC8-specific
+ *   attribute and the host has no interrupt vector, so the selection is
  *   done at build time, with no `#ifdef` here. On the host the harness
  *   registers the same dispatcher as the sim IRQ callback instead.
  */
