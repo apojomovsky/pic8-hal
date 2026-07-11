@@ -117,8 +117,8 @@ typedef struct {
 
 /* ───────────────────────── init / deinit ────────────────────────── */
 
-PIC16F87XA_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_ADC_DeInit(void);
+HAL_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_ADC_DeInit(void);
 
 /* ───────────────────────── conversion control ────────────────────── */
 
@@ -158,6 +158,6 @@ uint16_t HAL_ADC_Read(void);
 
 /* ───────────────────────── interrupts ───────────────────────────── */
 
-void ADC_IRQHandler(void) PIC16F87XA_WEAK;
+void ADC_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_ADC_H */

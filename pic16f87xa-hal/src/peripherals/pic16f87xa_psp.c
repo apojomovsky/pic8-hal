@@ -4,28 +4,28 @@
  */
 
 #include "peripherals/pic16f87xa_psp.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 static void (*g_psp_cb)(void) = NULL;
 
 static uint8_t b1_trise(void)
 {
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    uint8_t v = PIC16F87XA_REG8(0x89U);
+    uint8_t v = PIC8_REG8(0x89U);
     pic_select_bank(prev);
     return v;
 }
 
 static void b1_trise_write(uint8_t v)
 {
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    PIC16F87XA_REG8(0x89U) = v;
+    PIC8_REG8(0x89U) = v;
     pic_select_bank(prev);
 }
 
-PIC16F87XA_StatusTypeDef HAL_PSP_Init(void (*callback)(void))
+HAL_StatusTypeDef HAL_PSP_Init(void (*callback)(void))
 {
     g_psp_cb = callback;
     /* Clear the read-only status flags (IBF, OBF, IBOV) by writing
@@ -33,19 +33,19 @@ PIC16F87XA_StatusTypeDef HAL_PSP_Init(void (*callback)(void))
      * read-only; PSPIE/PSPMODE are left to the user. */
     b1_trise_write(b1_trise() &
                    (uint8_t)~(PIC_TRISE_IBF | PIC_TRISE_OBF | PIC_TRISE_IBOV));
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_PSP);
-    if (callback) PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_PSP);
-    else          PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_PSP);
-    return PIC16F87XA_OK;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_PSP);
+    if (callback) HAL_IRQ_Enable(PIC16_IRQ_PSP);
+    else          HAL_IRQ_DisableSrc(PIC16_IRQ_PSP);
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_PSP_DeInit(void)
+HAL_StatusTypeDef HAL_PSP_DeInit(void)
 {
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_PSP);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_PSP);
+    HAL_IRQ_DisableSrc(PIC16_IRQ_PSP);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_PSP);
     b1_trise_write(0x07U);    /* POR default: I/O mode, no PSP. */
     g_psp_cb = NULL;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
 void HAL_PSP_Enable(void)
@@ -80,7 +80,7 @@ void HAL_PSP_ClearInputOverflow(void)
 
 void PSP_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_PSP)) return;
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_PSP);
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_PSP)) return;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_PSP);
     if (g_psp_cb) g_psp_cb();
 }

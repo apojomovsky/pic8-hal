@@ -17,7 +17,7 @@
 #include "pic16f87xa_sim.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_eeprom.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 #include <stdio.h>
 
 #define CHECK(cond, msg) do { \
@@ -27,9 +27,9 @@
 /* Helper: read a register from a non-default bank. */
 static uint8_t b_read(uint8_t bank, uint16_t addr)
 {
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(bank);
-    uint8_t v = PIC16F87XA_REG8(addr);
+    uint8_t v = PIC8_REG8(addr);
     pic_select_bank(prev);
     return v;
 }
@@ -66,8 +66,8 @@ int main(void)
     /* 4. Buffer write. */
     pic16f87xa_sim_reset();
     uint8_t data[3] = { 0x11, 0x22, 0x33 };
-    PIC16F87XA_StatusTypeDef st = HAL_EEPROM_WriteBuffer(0x20U, data, 3);
-    CHECK(st == PIC16F87XA_OK, "WriteBuffer returned error");
+    HAL_StatusTypeDef st = HAL_EEPROM_WriteBuffer(0x20U, data, 3);
+    CHECK(st == HAL_OK, "WriteBuffer returned error");
     /* Drive the write-completion sim helper for each byte. */
     for (uint8_t i = 0; i < 3; i++) {
         pic16f87xa_sim_drive_eeprom_done((uint8_t)(0x20U + i), data[i]);

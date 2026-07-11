@@ -1,12 +1,12 @@
 /**
- * @file    pic16f87xa_irq_dispatch.c
+ * @file    pic16_irq_dispatch.c
  * @brief   Fan-out from the single PIC16 interrupt vector to every
  *          peripheral IRQHandler. Shared by both builds.
  *
  * @details
  *   The PIC16F87XA family has a single interrupt vector at 0x0004
  *   (DS39582B §14.11). On a real target the XC8 `__interrupt()` handler in
- *   pic16f87xa_isr_vector.c calls this; on the host the harness registers
+ *   pic16_isr_vector.c calls this; on the host the harness registers
  *   this as the sim IRQ callback. Both reach the same dispatch, so there
  *   is one source of truth and no duplication.
  *
@@ -15,7 +15,7 @@
  *   @ref TIMER0_IRQHandler), so calling them all in turn is correct and
  *   costs only a few cycles per interrupt.
  *
- *   The handlers are declared `PIC16F87XA_WEAK` in their own headers (to
+ *   The handlers are declared `PIC8_WEAK` in their own headers (to
  *   allow optional user override). That makes a reference through those
  *   headers a *weak* reference, which the linker will NOT use to pull the
  *   handler's object out of the static library, leaving the call target
@@ -26,7 +26,7 @@
  *   there; it only matters for the host link.)
  */
 
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 extern void TIMER0_IRQHandler(void);
 extern void TIMER1_IRQHandler(void);
@@ -43,7 +43,7 @@ extern void COMP_IRQHandler(void);
 extern void PSP_IRQHandler(void);
 #endif
 
-void pic16f87xa_dispatch_all_irqs(void)
+void pic8_dispatch_all_irqs(void)
 {
     TIMER0_IRQHandler();
     TIMER1_IRQHandler();

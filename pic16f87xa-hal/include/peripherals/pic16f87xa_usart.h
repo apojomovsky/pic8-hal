@@ -100,8 +100,8 @@ typedef struct {
 
 /* ───────────────────────── init / deinit ────────────────────────── */
 
-PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_USART_DeInit(void);
+HAL_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_USART_DeInit(void);
 
 /* ───────────────────────── transmit ──────────────────────────────── */
 
@@ -140,8 +140,8 @@ uint8_t HAL_USART_GetRX9D(void);
 /* ───────────────────────── interrupts ───────────────────────────── */
 
 /** Weak USART RX ISR, override in user code. */
-void USART_RX_IRQHandler(void) PIC16F87XA_WEAK;
+void USART_RX_IRQHandler(void) PIC8_WEAK;
 /** Weak USART TX ISR, override in user code. */
-void USART_TX_IRQHandler(void) PIC16F87XA_WEAK;
+void USART_TX_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_USART_H */

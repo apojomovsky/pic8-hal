@@ -96,10 +96,10 @@ typedef struct {
  *         INTCON<TMR0IE>. Does not start the timer, call @ref
  *         HAL_TIMER0_Start afterwards.
  *
- * @return PIC16F87XA_OK on success, PIC16F87XA_INVALID if `h` is NULL.
+ * @return HAL_OK on success, HAL_INVALID if `h` is NULL.
  */
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_TIMER0_DeInit(void);
+HAL_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_TIMER0_DeInit(void);
 
 /**
  * @brief  Timer0 weak ISR. Forward-declared so user code can override it
@@ -107,7 +107,7 @@ PIC16F87XA_StatusTypeDef HAL_TIMER0_DeInit(void);
  *         through `HAL_TIMER0_Init`, the default implementation invokes
  *         it; otherwise it just clears TMR0IF and returns.
  */
-void TIMER0_IRQHandler(void) PIC16F87XA_WEAK;
+void TIMER0_IRQHandler(void) PIC8_WEAK;
 
 /**
  * @brief  Enable TMR0 counting. Sets OPTION_REG<T0CS> accordingly and
@@ -115,10 +115,10 @@ void TIMER0_IRQHandler(void) PIC16F87XA_WEAK;
  *
  *         Note: writing TMR0 clears the prescaler (DS39582B §5.3 Note).
  */
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h);
 
 /** Disable TMR0 counting. Clears OPTION_REG<T0CS> → TMR0 halted. */
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Stop(void);
+HAL_StatusTypeDef HAL_TIMER0_Stop(void);
 
 /** Read the current counter value. */
 uint8_t HAL_TIMER0_ReadCounter(void);

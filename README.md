@@ -92,8 +92,16 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 
 ```
 .
-├── pic16f87xa-hal/                 # the HAL
-│   ├── include/                    # public headers (core/ + peripherals/)
+├── pic8-common/                    # shared layer (every family reuses this)
+│   ├── include/core/              #   hal_status.h (HAL_* / PIC8_BIT*), pic8_harness.h
+│   ├── src/core/                  #   pic8_harness_target.c (family-blind no-ops)
+│   ├── cmake/  mk/                #   shared pic8_family.cmake / pic8_family.mk
+│   └── README.md
+│
+├── pic16f87xa-hal/                 # the HAL (PIC16F87XA family)
+│   ├── include/                    # public headers (core/ + peripherals/); core/
+│   │                               #   holds pic16_irq.h + wdt_sleep, the shared
+│   │                               #   harness header lives in pic8-common/
 │   ├── src/                        # drivers + host sim backend
 │   ├── tests/                      # end-to-end examples (blink, USART, ADC, …)
 │   ├── mcu/pic16f87xa-mplabx/      # XC8 Makefile for real silicon

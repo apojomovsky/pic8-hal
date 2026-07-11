@@ -65,8 +65,8 @@ typedef struct {
     .ChangeCallback  = NULL,                                               \
 }
 
-PIC16F87XA_StatusTypeDef HAL_COMP_Init(const COMP_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_COMP_DeInit(void);
+HAL_StatusTypeDef HAL_COMP_Init(const COMP_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_COMP_DeInit(void);
 
 /** Returns 1 if C1 output is high (CMCON<C1OUT>). */
 uint8_t HAL_COMP_C1Out(void);
@@ -80,6 +80,6 @@ uint8_t HAL_COMP_IsChangeFlag(void);
 /** Clear the CMIF flag (must be done in the change IRQ). */
 void HAL_COMP_ClearChangeFlag(void);
 
-void COMP_IRQHandler(void) PIC16F87XA_WEAK;
+void COMP_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_COMP_H */

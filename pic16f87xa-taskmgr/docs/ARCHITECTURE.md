@@ -56,10 +56,10 @@ supervisor spawn blips indefinitely without exhausting the table.
 
 The scheduler and its examples build for two execution models with no
 `#ifdef`, reusing the HAL's host/target harness seam
-(`core/pic16f87xa_harness.h`):
+(`core/pic8_harness.h`):
 
 - **Host simulator**: a normal program. `task_manager_run()` calls
-  `pic16f87xa_harness_tick()` each iteration, which pumps the simulated
+  `pic8_harness_tick()` each iteration, which pumps the simulated
   Timer0; its overflow ISR calls `task_manager_tick()` synchronously, marking
   due tasks ready; `task_manager_run_once()` then runs them. The loop is
   bounded by the harness so the test can report pass/fail.
@@ -68,7 +68,7 @@ The scheduler and its examples build for two execution models with no
   ready; the main loop's `task_manager_run_once()` runs them. The loop never
   exits.
 
-On the host, `pic16f87xa_harness_log` is a `printf`; on the target it is a
+On the host, `pic8_harness_log` is a `printf`; on the target it is a
 no-op (no stdout). That is how the example streams a dispatch log on the host
 while staying build-agnostic.
 
@@ -95,9 +95,9 @@ thing: the task table. Three rules keep it race-free:
 3. A one-shot is freed atomically after it runs (the same critical section),
    so the tick ISR never observes a half-freed slot.
 
-The critical sections use the HAL's `PIC16F87XA_IRQ_Disable/Restore`, which
+The critical sections use the HAL's `HAL_IRQ_Disable/Restore`, which
 save and restore the GIE bit. On the host sim the tick is delivered
-synchronously from inside `pic16f87xa_harness_tick()`, so tick and `run_once`
+synchronously from inside `pic8_harness_tick()`, so tick and `run_once`
 never truly overlap; the critical sections are a no-op there but remain
 correct on the target. `task_manager_ticks()` also takes a critical section
 because a 16-bit read is not atomic on an 8-bit PIC.

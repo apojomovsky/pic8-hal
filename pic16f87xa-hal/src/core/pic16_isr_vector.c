@@ -1,12 +1,12 @@
 /**
- * @file    pic16f87xa_isr_vector.c
+ * @file    pic16_isr_vector.c
  * @brief   Real-target interrupt-vector entry (XC8 target build only).
  *
  * @details
  *   The PIC16F87XA family has a single interrupt vector at 0x0004
  *   (DS39582B §14.11). On a real XC8 target this file installs the
  *   `__interrupt()` handler the CPU jumps to on any enabled IRQ. It just
- *   calls the shared fan-out @ref pic16f87xa_dispatch_all_irqs, which
+ *   calls the shared fan-out @ref pic8_dispatch_all_irqs, which
  *   routes to every peripheral IRQHandler.
  *
  *   This file is built only by the XC8 Makefile (real target). The host
@@ -16,13 +16,20 @@
  *   registers the same dispatcher as the sim IRQ callback instead.
  */
 
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
+
+/* Declared in pic8_harness.h (shared). Declared here as a strong extern
+ * prototype instead of including that header, to keep the harness's
+ * unused inline (pic8_harness_report) out of this translation unit's
+ * warning surface — same pattern pic16_irq_dispatch.c uses for the
+ * peripheral handlers. */
+extern void pic8_dispatch_all_irqs(void);
 
 /**
  * @brief  Single PIC16 interrupt-vector handler. Delegates to the shared
  *         dispatcher so the fan-out logic lives in one place.
  */
-void __interrupt() PIC16F87XA_IRQ_Handler(void)
+void __interrupt() PIC16_IRQ_Handler(void)
 {
-    pic16f87xa_dispatch_all_irqs();
+    pic8_dispatch_all_irqs();
 }

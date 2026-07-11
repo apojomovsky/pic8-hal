@@ -9,7 +9,7 @@
  */
 
 #include "peripherals/pic16f87xa_ssp.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 /* ───────────────────────── handle storage ───────────────────────── */
 
@@ -20,18 +20,18 @@ static const SSP_HandleTypeDef *g_ssp = NULL;
  * SSPADD=0x93) per DS39582B Figure 2-4. */
 static uint8_t ssp_b1_read(uint8_t addr)
 {
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    uint8_t v = PIC16F87XA_REG8(addr);
+    uint8_t v = PIC8_REG8(addr);
     pic_select_bank(prev);
     return v;
 }
 
 static void ssp_b1_write(uint8_t addr, uint8_t v)
 {
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    PIC16F87XA_REG8(addr) = v;
+    PIC8_REG8(addr) = v;
     pic_select_bank(prev);
 }
 
@@ -47,9 +47,9 @@ uint16_t SSP_ComputeSSPADD(uint32_t fosc_hz, uint32_t fscl_hz)
 
 /* ───────────────────────── public API ───────────────────────────── */
 
-PIC16F87XA_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
     g_ssp = h;
 
     /* Program SSPADD (Bank 1, address 0x93). */
@@ -71,36 +71,36 @@ PIC16F87XA_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h)
     uint8_t con = (uint8_t)(h->Mode & 0x0FU);
     if (h->ClockPolarity == SSP_SPI_CKP_IDLE_HIGH) con |= PIC_SSPCON_CKP;
     con |= PIC_SSPCON_SSPEN;
-    PIC16F87XA_REG8(0x14U) = con;
+    PIC8_REG8(0x14U) = con;
 
     /* SSPCON2 (Bank 1, address 0x91), clear all bits (idle state). */
     ssp_b1_write(0x91U, 0x00U);
 
     /* Interrupt enable. */
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_SSP);
-    if (h->TransferCallback) PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_SSP);
-    else                     PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_SSP);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_SSP);
+    if (h->TransferCallback) HAL_IRQ_Enable(PIC16_IRQ_SSP);
+    else                     HAL_IRQ_DisableSrc(PIC16_IRQ_SSP);
 
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_SSP_DeInit(void)
+HAL_StatusTypeDef HAL_SSP_DeInit(void)
 {
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_SSP);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_SSP);
-    PIC16F87XA_REG8(0x14U) = 0x00U;
+    HAL_IRQ_DisableSrc(PIC16_IRQ_SSP);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_SSP);
+    PIC8_REG8(0x14U) = 0x00U;
     ssp_b1_write(0x91U, 0x00U);
     ssp_b1_write(0x94U, 0x00U);
     ssp_b1_write(0x93U, 0x00U);
     g_ssp = NULL;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
 uint16_t HAL_SSP_WriteByte(uint8_t data)
 {
-    uint8_t con = PIC16F87XA_REG8(0x14U);
+    uint8_t con = PIC8_REG8(0x14U);
     if (con & PIC_SSPCON_WCOL) return 0xFFFFU;     /* write collision pending. */
-    PIC16F87XA_REG8(PIC_REG_SSPBUF) = data;
+    PIC8_REG8(PIC_REG_SSPBUF) = data;
     /* The sim backend sets BF + SSPIF on the next sim_step
      * (see sim_step_ssp() in src/sim/pic16f87xa_sim.c). */
     return 0U;
@@ -109,24 +109,24 @@ uint16_t HAL_SSP_WriteByte(uint8_t data)
 uint8_t HAL_SSP_ReadByte(void)
 {
     /* Reading SSPBUF clears BF (Register 9-1). */
-    uint8_t v = PIC16F87XA_REG8(PIC_REG_SSPBUF);
-    PIC16F87XA_REG8(0x94U) &= (uint8_t)~PIC_SSPSTAT_BF;
+    uint8_t v = PIC8_REG8(PIC_REG_SSPBUF);
+    PIC8_REG8(0x94U) &= (uint8_t)~PIC_SSPSTAT_BF;
     return v;
 }
 
 uint8_t HAL_SSP_IsBufferFull(void)
 {
-    return (PIC16F87XA_REG8(0x94U) & PIC_SSPSTAT_BF) ? 1U : 0U;
+    return (PIC8_REG8(0x94U) & PIC_SSPSTAT_BF) ? 1U : 0U;
 }
 
 uint8_t HAL_SSP_HasWriteCollision(void)
 {
-    return (PIC16F87XA_REG8(0x14U) & PIC_SSPCON_WCOL) ? 1U : 0U;
+    return (PIC8_REG8(0x14U) & PIC_SSPCON_WCOL) ? 1U : 0U;
 }
 
 void HAL_SSP_ClearWriteCollision(void)
 {
-    PIC16F87XA_REG8(0x14U) &= (uint8_t)~PIC_SSPCON_WCOL;
+    PIC8_REG8(0x14U) &= (uint8_t)~PIC_SSPCON_WCOL;
 }
 
 void HAL_SSP_Start(void)
@@ -166,7 +166,7 @@ uint8_t HAL_SSP_AcknowledgeStatus(void)
 
 void SSP_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_SSP)) return;
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_SSP);
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_SSP)) return;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_SSP);
     if (g_ssp && g_ssp->TransferCallback) g_ssp->TransferCallback();
 }

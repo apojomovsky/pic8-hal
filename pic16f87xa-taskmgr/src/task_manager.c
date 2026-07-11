@@ -22,13 +22,13 @@
  *        re-spawns one-shots, like the example's supervisor, does not
  *        exhaust the table one slot per spawn.
  *   On the host sim the tick is delivered synchronously from inside
- *   `pic16f87xa_harness_tick()`, so tick and run_once never truly overlap;
+ *   `pic8_harness_tick()`, so tick and run_once never truly overlap;
  *   the critical sections are a no-op there but remain correct on the target.
  */
 
 #include "task_manager.h"
-#include "core/pic16f87xa_interrupt.h"   /* PIC16F87XA_IRQ_Disable/Restore */
-#include "core/pic16f87xa_harness.h"      /* harness_tick / harness_running */
+#include "core/pic16_irq.h"   /* HAL_IRQ_Disable/Restore */
+#include "core/pic8_harness.h"      /* harness_tick / harness_running */
 #include "core/pic16f87xa_wdt_sleep.h"    /* HAL_WDT_Refresh */
 
 /* ───────────────────────── state ─────────────────────────────────── */
@@ -62,7 +62,7 @@ static uint8_t g_tick_reload = 0U;
 
 void task_manager_init(void)
 {
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     for (uint8_t i = 0; i < TASK_MGR_MAX_TASKS; i++) {
         g_tasks[i].fn        = NULL;
         g_tasks[i].arg       = NULL;
@@ -72,7 +72,7 @@ void task_manager_init(void)
         g_tasks[i].flags     = 0U;
     }
     g_ticks = 0U;
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
 }
 
 task_id_t task_spawn(task_fn_t fn, void *arg, uint16_t period_ticks,
@@ -84,7 +84,7 @@ task_id_t task_spawn(task_fn_t fn, void *arg, uint16_t period_ticks,
 
     /* Claim and fill a free slot under a critical section so a tick ISR
      * can never observe a half-initialised TCB. */
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     task_id_t id = TASK_ID_INVALID;
     for (uint8_t i = 0; i < TASK_MGR_MAX_TASKS; i++) {
         if (!(g_tasks[i].flags & TM_FLAG_USED)) {
@@ -98,40 +98,40 @@ task_id_t task_spawn(task_fn_t fn, void *arg, uint16_t period_ticks,
             break;
         }
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
     return id;
 }
 
 void task_start(task_id_t id)
 {
     if (id >= TASK_MGR_MAX_TASKS) return;
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     if (g_tasks[id].flags & TM_FLAG_USED) {
         g_tasks[id].countdown = arm_countdown(g_tasks[id].period);
         g_tasks[id].flags |=  TM_FLAG_ENABLED;
         g_tasks[id].flags &= (uint8_t)~TM_FLAG_READY;
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
 }
 
 void task_stop(task_id_t id)
 {
     if (id >= TASK_MGR_MAX_TASKS) return;
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     if (g_tasks[id].flags & TM_FLAG_USED) {
         g_tasks[id].flags &= (uint8_t)~(TM_FLAG_ENABLED | TM_FLAG_READY);
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
 }
 
 void task_set_period(task_id_t id, uint16_t period_ticks)
 {
     if (id >= TASK_MGR_MAX_TASKS) return;
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     if (g_tasks[id].flags & TM_FLAG_USED) {
         g_tasks[id].period = period_ticks;
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
 }
 
 /* ───────────────────────── the scheduler ─────────────────────────── */
@@ -165,9 +165,9 @@ uint16_t task_manager_ticks(void)
 {
     /* 16-bit read is not atomic on an 8-bit PIC; take a critical section so
      * a tick ISR landing between the byte reads can't tear the value. */
-    uint8_t  prev = PIC16F87XA_IRQ_Disable();
+    uint8_t  prev = HAL_IRQ_Disable();
     uint16_t v    = g_ticks;
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
     return v;
 }
 
@@ -179,7 +179,7 @@ uint8_t task_manager_run_once(void)
     task_id_t order[TASK_MGR_MAX_TASKS];
     uint8_t   n = 0U;
 
-    uint8_t prev = PIC16F87XA_IRQ_Disable();
+    uint8_t prev = HAL_IRQ_Disable();
     for (;;) {
         /* Pick the lowest-numbered-priority ready task (ties: lowest slot). */
         int      best      = -1;
@@ -200,7 +200,7 @@ uint8_t task_manager_run_once(void)
         order[n] = (task_id_t)best;
         n++;
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
 
     /* Run with interrupts enabled. */
     for (uint8_t k = 0; k < n; k++) {
@@ -209,10 +209,10 @@ uint8_t task_manager_run_once(void)
         if (t->period == 0U) {
             /* One-shot: free the slot atomically so a periodic task that
              * re-spawns one-shots does not exhaust the table. */
-            uint8_t p = PIC16F87XA_IRQ_Disable();
+            uint8_t p = HAL_IRQ_Disable();
             t->flags = 0U;
             t->fn    = NULL;
-            PIC16F87XA_IRQ_Restore(p);
+            HAL_IRQ_Restore(p);
         }
     }
     return n;
@@ -220,8 +220,8 @@ uint8_t task_manager_run_once(void)
 
 void task_manager_run(void)
 {
-    for (uint32_t i = 0; pic16f87xa_harness_running(i); i++) {
-        pic16f87xa_harness_tick();    /* host: pumps sim → Timer0 ISR → tick */
+    for (uint32_t i = 0; pic8_harness_running(i); i++) {
+        pic8_harness_tick();    /* host: pumps sim → Timer0 ISR → tick */
         (void)task_manager_run_once();
         HAL_WDT_Refresh();            /* no-op on the host */
     }
@@ -230,13 +230,13 @@ void task_manager_run(void)
 uint8_t task_manager_count(void)
 {
     uint8_t count = 0U;
-    uint8_t prev  = PIC16F87XA_IRQ_Disable();
+    uint8_t prev  = HAL_IRQ_Disable();
     for (uint8_t i = 0; i < TASK_MGR_MAX_TASKS; i++) {
         if (g_tasks[i].flags & TM_FLAG_USED) {
             count++;
         }
     }
-    PIC16F87XA_IRQ_Restore(prev);
+    HAL_IRQ_Restore(prev);
     return count;
 }
 

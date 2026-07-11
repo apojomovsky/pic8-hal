@@ -29,9 +29,9 @@
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_gpio.h"
 #include "peripherals/pic16f87xa_timer1.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 #include "core/pic16f87xa_wdt_sleep.h"
-#include "core/pic16f87xa_harness.h"
+#include "core/pic8_harness.h"
 
 /**
  * @brief  Timer1 reload, 0x8000 (32768). On the T1OSC timebase that is
@@ -62,7 +62,7 @@ static void on_t1_overflow(void)
 
 int main(void)
 {
-    pic16f87xa_harness_init(SIM_CYCLES);
+    pic8_harness_init(SIM_CYCLES);
 
     /* 1. RB0 as output, start low. */
     HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
@@ -84,18 +84,18 @@ int main(void)
 
     /* 3. Wait for the T1OSC crystal to start ticking before sleeping (a
      *    32 kHz crystal can take a few hundred ms), refreshing the WDT
-     *    meanwhile. pic16f87xa_harness_tick pumps the sim on the host (so
+     *    meanwhile. pic8_harness_tick pumps the sim on the host (so
      *    the counter advances and the loop exits) and is a no-op on the
      *    target, where the real crystal advances the counter on its own. */
     while (HAL_TIMER1_ReadCounter() <= T1_RELOAD) {
         HAL_WDT_Refresh();
-        pic16f87xa_harness_tick();
+        pic8_harness_tick();
     }
 
     /* 4. Enable global interrupts (HAL_TIMER1_Init already set TMR1IE
      *    and PEIE). On the sim this is harmless; on the target it arms the
      *    wake-up. */
-    PIC16F87XA_IRQ_Restore(1);
+    HAL_IRQ_Restore(1);
 
     /* 5. Idle loop, the heart of "CPU mostly idle". On the host the
      *    harness bounds the loop to SIM_CYCLES; on the target it runs
@@ -104,12 +104,12 @@ int main(void)
      *    CPU; the vector dispatcher calls TIMER1_IRQHandler, which clears
      *    the flag and runs on_t1_overflow (reload + toggle + WDT refresh),
      *    and the CPU sleeps again. */
-    for (uint32_t i = 0; pic16f87xa_harness_running(i); i++) {
-        pic16f87xa_harness_tick();
+    for (uint32_t i = 0; pic8_harness_running(i); i++) {
+        pic8_harness_tick();
         HAL_Sleep_Enter();
     }
 
-    pic16f87xa_harness_log("RB0 toggled %u times; CPU idle between overflows.\n",
+    pic8_harness_log("RB0 toggled %u times; CPU idle between overflows.\n",
                            (unsigned)g_toggle_count);
-    return pic16f87xa_harness_report(g_toggle_count >= 2U);
+    return pic8_harness_report(g_toggle_count >= 2U);
 }

@@ -20,8 +20,15 @@
 #   make MCU=16F877A            # default; also 873A / 874A / 876A
 #   make clean
 #
-# To program the device with PICkit 2/3/4 or ICD, open MPLAB X and use the
-# "Make and Program" button. The .hex here suits any external programmer.
+# To program the device with PICkit 2/3/4 or ICD, open MPLAB X and use
+# the "Make and Program" button. The .hex here suits any external
+# programmer.
+#
+# This file is a thin caller of the shared pic8_family.mk fragment
+# (pic8-common/mk/): the `.c` -> `.p1` pattern rule, the `.hex` link
+# step, and clean all live there. Only what is taskmgr/PIC16-specific
+# stays here: device selection, the DFP flag, the source list, the
+# include path, and the configuration-word directives.
 
 # ─────────────────────────── device selection ─────────────────────
 MCU     ?= 16F877A
@@ -41,13 +48,15 @@ endif
 
 # ─────────────────────────── paths ────────────────────────────────
 # HAL_DIR points at the pic16f87xa-hal tree; APP_DIR at this task-manager
-# tree. Adjust if the layout differs from the default sibling layout.
-HAL_DIR ?= ../../../pic16f87xa-hal
-APP_DIR ?= ../..
-BUILD_DIR ?= build
-TARGET := $(BUILD_DIR)/$(MCU)-multi-blink
+# tree; COMMON_DIR at the shared pic8-common layer. Adjust if the layout
+# differs from the default sibling layout.
+HAL_DIR    ?= ../../../pic16f87xa-hal
+COMMON_DIR ?= $(HAL_DIR)/../pic8-common
+APP_DIR    ?= ../..
+BUILD_DIR  ?= build
+TARGET     := $(BUILD_DIR)/$(MCU)-multi-blink
 
-# XC8 v3.x device family pack. Empty → the flag is omitted (use when
+# XC8 v3.x device family pack. Empty -> the flag is omitted (use when
 # the toolchain resolves devices without an explicit DFP, e.g. older XC8).
 DFP_DIR ?= /opt/microchip/xc8/v3.10/pic/packs/Microchip.PIC16Fxxx_DFP/xc8
 ifneq ($(strip $(DFP_DIR)),)
@@ -59,8 +68,9 @@ endif
 CC     := xc8-cc
 # include/target ahead of include so pic16f87xa_platform.h resolves to the
 # real-target (volatile-dereference) version, not the host memory-backed one.
-# The task-manager headers live under APP_DIR/include.
-INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(APP_DIR)/include
+# The task-manager headers live under APP_DIR/include; the shared HAL
+# status / harness headers live under pic8-common/include.
+INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(COMMON_DIR)/include -I$(APP_DIR)/include
 CFLAGS := $(DFP_FLAG) \
           -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
           -O2 -std=c99 -Wall -Wextra \
@@ -71,8 +81,10 @@ CFLAGS := $(DFP_FLAG) \
 # ─────────────────────────── source layout ─────────────────────────
 # The HAL peripheral/core sources compile for the target exactly as they do
 # for the host; the sim/ backend and the *_sim.c harness are NOT compiled
-# (XC8 never links pic16f87xa_sim.c). The task-manager source is added to
-# the HAL set.
+# (XC8 never links pic16f87xa_sim.c). The family-blind harness target impl
+# lives in pic8-common and is linked here alongside the PIC16 core and the
+# task-manager source.
+
 HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_gpio.c     \
   $(HAL_DIR)/src/peripherals/pic16f87xa_timer0.c   \
@@ -85,12 +97,12 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_comp.c     \
   $(HAL_DIR)/src/peripherals/pic16f87xa_vref.c     \
   $(HAL_DIR)/src/peripherals/pic16f87xa_eeprom.c   \
-  $(HAL_DIR)/src/core/pic16f87xa_interrupt.c       \
+  $(HAL_DIR)/src/core/pic16_irq.c                  \
   $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep.c       \
   $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep_target.c \
-  $(HAL_DIR)/src/core/pic16f87xa_isr_vector.c       \
-  $(HAL_DIR)/src/core/pic16f87xa_irq_dispatch.c    \
-  $(HAL_DIR)/src/core/pic16f87xa_harness_target.c
+  $(HAL_DIR)/src/core/pic16_isr_vector.c          \
+  $(HAL_DIR)/src/core/pic16_irq_dispatch.c        \
+  $(COMMON_DIR)/src/core/pic8_harness_target.c
 
 # PSP is only on 40/44-pin parts.
 ifeq ($(filter $(MCU),16F874A 16F877A),$(MCU))
@@ -117,12 +129,13 @@ VPATH := $(sort $(dir $(SRCS)))
 CONFIG_SRC := $(BUILD_DIR)/config_$(MCU).c
 CONFIG_OBJ := $(BUILD_DIR)/config_$(MCU).p1
 
-# ─────────────────────────── targets ──────────────────────────────
-.PHONY: all clean
-all: $(TARGET).hex
-
-$(BUILD_DIR):
-	mkdir -p $@
+# ─────────────────────────── shared build rules ────────────────────
+# Pull in the shared boilerplate (the `.c` -> `.p1` pattern rule, the
+# generated config-word translation unit, the single `.hex` link step,
+# and clean). Included AFTER all variables above are defined, and
+# BEFORE the family-specific config-word recipe below so `all` stays
+# the default goal.
+include $(COMMON_DIR)/mk/pic8_family.mk
 
 $(CONFIG_SRC): | $(BUILD_DIR)
 	@printf '/* Auto-generated. Do not edit. */\n' > $@
@@ -133,20 +146,3 @@ $(CONFIG_SRC): | $(BUILD_DIR)
 	@printf '#pragma config BOREN = ON\n' >> $@
 	@printf '#pragma config LVP = OFF\n' >> $@
 	@printf '#pragma config WRT = OFF\n' >> $@
-
-# Compile a source to p-code. VPATH resolves the basename to the real path.
-$(BUILD_DIR)/%.p1: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# The generated config word is its own translation unit.
-$(CONFIG_OBJ): $(CONFIG_SRC) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Single link step over all .p1 intermediates → Intel HEX.
-$(TARGET).hex: $(OBJS) $(CONFIG_OBJ)
-	$(CC) $(CFLAGS) $(OBJS) $(CONFIG_OBJ) -o $@ -ginhx32
-	@echo ""
-	@echo "Built $@, program with MPLAB X or your favorite programmer."
-
-clean:
-	rm -rf $(BUILD_DIR)

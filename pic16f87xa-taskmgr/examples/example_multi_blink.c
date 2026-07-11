@@ -35,8 +35,8 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_gpio.h"
-#include "core/pic16f87xa_interrupt.h"
-#include "core/pic16f87xa_harness.h"
+#include "core/pic16_irq.h"
+#include "core/pic8_harness.h"
 
 #include "task_manager.h"
 
@@ -115,9 +115,9 @@ static const char *led_name(uint8_t pin)
 static void task_blink(void *arg)
 {
     blink_arg_t *a = (blink_arg_t *)arg;
-    HAL_GPIO_TogglePin(a->port, PIC16F87XA_BIT(a->pin));
+    HAL_GPIO_TogglePin(a->port, PIC8_BIT(a->pin));
     a->count++;
-    pic16f87xa_harness_log("[t=%3u] %s  #%u\n",
+    pic8_harness_log("[t=%3u] %s  #%u\n",
                            (unsigned)task_manager_ticks(),
                            led_name(a->pin), (unsigned)a->count);
 }
@@ -131,13 +131,13 @@ static void task_supervisor(void *arg)
 {
     (void)arg;
     task_spawn(task_blink, &arg_blip, 0U, 2U);   /* one-shot (period 0) */
-    pic16f87xa_harness_log("[t=%3u] super  spawned blip\n",
+    pic8_harness_log("[t=%3u] super  spawned blip\n",
                            (unsigned)task_manager_ticks());
 }
 
 int main(void)
 {
-    pic16f87xa_harness_init(SIM_CYCLES);
+    pic8_harness_init(SIM_CYCLES);
     task_manager_init();
 
     /* 1. RB0..RB3 as outputs, all starting low. */
@@ -160,7 +160,7 @@ int main(void)
      *    arm it on the target by enabling global interrupts (harmless on
      *    the sim, where the IRQ fires regardless). */
     task_manager_attach_timer0(TICK_RELOAD, TICK_PRESCALER);
-    PIC16F87XA_IRQ_Restore(1);
+    HAL_IRQ_Restore(1);
 
     /* 4. Run the scheduler. On the host the harness bounds the loop to
      *    SIM_CYCLES; on the target it runs forever. */
@@ -168,7 +168,7 @@ int main(void)
 
     /* 5. Host-only epilogue: the verdict after the dispatch stream. On the
      *    target these lines are unreachable (the loop never returns). */
-    pic16f87xa_harness_log("done: fast=%u med=%u slow=%u blips=%u "
+    pic8_harness_log("done: fast=%u med=%u slow=%u blips=%u "
                            "(ticks=%u, tasks=%u)\n",
                            (unsigned)arg_fast.count, (unsigned)arg_med.count,
                            (unsigned)arg_slow.count, (unsigned)arg_blip.count,
@@ -181,5 +181,5 @@ int main(void)
              (arg_med.count  > arg_slow.count) &&
              (arg_slow.count >= 2U) &&
              (arg_blip.count >= 1U);
-    return pic16f87xa_harness_report(ok);
+    return pic8_harness_report(ok);
 }

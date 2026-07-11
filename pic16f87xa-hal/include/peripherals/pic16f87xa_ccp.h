@@ -99,10 +99,10 @@ typedef struct {
  *
  * @note   For capture, also start Timer1 manually.
  */
-PIC16F87XA_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h);
 
 /** Reset CCPxCON to 0x00 and clear the corresponding PIR flag. */
-PIC16F87XA_StatusTypeDef HAL_CCP_DeInit(CCP_InstanceTypeDef inst);
+HAL_StatusTypeDef HAL_CCP_DeInit(CCP_InstanceTypeDef inst);
 
 /* ───────────────────────── compare / capture / pwm ──────────────── */
 
@@ -122,8 +122,8 @@ void HAL_CCP_SetPWMDuty(CCP_InstanceTypeDef inst, uint16_t duty);
 /* ───────────────────────── IRQ entries ──────────────────────────── */
 
 /** Weak CCP1 ISR, override in user code. */
-void CCP1_IRQHandler(void) PIC16F87XA_WEAK;
+void CCP1_IRQHandler(void) PIC8_WEAK;
 /** Weak CCP2 ISR, override in user code. */
-void CCP2_IRQHandler(void) PIC16F87XA_WEAK;
+void CCP2_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_CCP_H */

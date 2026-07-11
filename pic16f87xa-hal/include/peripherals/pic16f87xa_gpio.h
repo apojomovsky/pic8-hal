@@ -47,14 +47,14 @@ typedef enum {
  * @brief Pin identifiers. Each port has up to 8 pins.
  *        Use @ref GPIO_PIN_All for whole-port operations.
  */
-#define GPIO_PIN_0    PIC16F87XA_BIT(0)
-#define GPIO_PIN_1    PIC16F87XA_BIT(1)
-#define GPIO_PIN_2    PIC16F87XA_BIT(2)
-#define GPIO_PIN_3    PIC16F87XA_BIT(3)
-#define GPIO_PIN_4    PIC16F87XA_BIT(4)
-#define GPIO_PIN_5    PIC16F87XA_BIT(5)
-#define GPIO_PIN_6    PIC16F87XA_BIT(6)
-#define GPIO_PIN_7    PIC16F87XA_BIT(7)
+#define GPIO_PIN_0    PIC8_BIT(0)
+#define GPIO_PIN_1    PIC8_BIT(1)
+#define GPIO_PIN_2    PIC8_BIT(2)
+#define GPIO_PIN_3    PIC8_BIT(3)
+#define GPIO_PIN_4    PIC8_BIT(4)
+#define GPIO_PIN_5    PIC8_BIT(5)
+#define GPIO_PIN_6    PIC8_BIT(6)
+#define GPIO_PIN_7    PIC8_BIT(7)
 #define GPIO_PIN_All  0xFFU
 
 /**

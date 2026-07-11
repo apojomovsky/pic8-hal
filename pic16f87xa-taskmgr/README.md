@@ -103,7 +103,7 @@ int main(void) {
     task_spawn(my_task, NULL, /*period_ticks=*/10, /*priority=*/1);
 
     task_manager_attach_timer0(61, TIMER0_PRESCALER_1_256);  /* ~10 ms tick */
-    PIC16F87XA_IRQ_Restore(1);   /* arm the Timer0 interrupt */
+    HAL_IRQ_Restore(1);   /* arm the Timer0 interrupt */
 
     task_manager_run();          /* never returns on target */
 }

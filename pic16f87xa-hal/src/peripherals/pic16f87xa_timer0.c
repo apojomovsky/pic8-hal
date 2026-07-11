@@ -4,7 +4,7 @@
  */
 
 #include "peripherals/pic16f87xa_timer0.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 /* Prescaler ratios, DS39582B Table 5-1.
  *   000 → 1:2
@@ -21,47 +21,47 @@ static const TIMER0_HandleTypeDef *g_t0_handle = NULL;
 /** Read-modify-write helper for OPTION_REG. */
 static void option_clr_set(uint8_t clr_mask, uint8_t set_mask)
 {
-    uint8_t opt = PIC16F87XA_REG8(PIC_REG_OPTION);
+    uint8_t opt = PIC8_REG8(PIC_REG_OPTION);
     opt = (uint8_t)((opt & (uint8_t)~clr_mask) | set_mask);
-    PIC16F87XA_REG8(PIC_REG_OPTION) = opt;
+    PIC8_REG8(PIC_REG_OPTION) = opt;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
 
     /* Stop the timer before reconfiguring. */
-    PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
+    PIC8_BIT_CLR(PIC8_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
 
     /* Clear TMR0IF; configure TMR0IE if a callback is provided. */
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR0);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR0);
     if (h->OverflowCallback) {
-        PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_TMR0);
+        HAL_IRQ_Enable(PIC16_IRQ_TMR0);
     } else {
-        PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_TMR0);
+        HAL_IRQ_DisableSrc(PIC16_IRQ_TMR0);
     }
 
     g_t0_handle = h;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER0_DeInit(void)
+HAL_StatusTypeDef HAL_TIMER0_DeInit(void)
 {
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_TMR0);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR0);
-    PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
-    PIC16F87XA_REG8(PIC_REG_TMR0) = 0x00U;
-    return PIC16F87XA_OK;
+    HAL_IRQ_DisableSrc(PIC16_IRQ_TMR0);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR0);
+    PIC8_BIT_CLR(PIC8_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
+    PIC8_REG8(PIC_REG_TMR0) = 0x00U;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
 
     /* DS39582B §5.3: writing TMR0 when the prescaler is assigned to
      * Timer0 clears the prescaler. Reload before re-enabling so the
      * first overflow happens after a clean prescaler cycle. */
-    PIC16F87XA_REG8(PIC_REG_TMR0) = h->ReloadValue;
+    PIC8_REG8(PIC_REG_TMR0) = h->ReloadValue;
 
     /* Program the prescaler assignment + ratio + clock source + edge
      * in one atomic read-modify-write. */
@@ -75,23 +75,23 @@ PIC16F87XA_StatusTypeDef HAL_TIMER0_Start(const TIMER0_HandleTypeDef *h)
                                  PIC_OPTION_T0CS  | PIC_OPTION_T0SE);
     option_clr_set(clr_mask, set_mask);
 
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER0_Stop(void)
+HAL_StatusTypeDef HAL_TIMER0_Stop(void)
 {
-    PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
-    return PIC16F87XA_OK;
+    PIC8_BIT_CLR(PIC8_REG8(PIC_REG_OPTION), PIC_OPTION_T0CS);
+    return HAL_OK;
 }
 
 uint8_t HAL_TIMER0_ReadCounter(void)
 {
-    return PIC16F87XA_REG8(PIC_REG_TMR0);
+    return PIC8_REG8(PIC_REG_TMR0);
 }
 
 void HAL_TIMER0_WriteCounter(uint8_t value)
 {
-    PIC16F87XA_REG8(PIC_REG_TMR0) = value;
+    PIC8_REG8(PIC_REG_TMR0) = value;
 }
 
 uint16_t HAL_TIMER0_PrescalerToRatio(TIMER0_PrescalerTypeDef p)
@@ -106,8 +106,8 @@ uint16_t HAL_TIMER0_PrescalerToRatio(TIMER0_PrescalerTypeDef p)
 
 void TIMER0_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_TMR0)) return;
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR0);
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_TMR0)) return;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR0);
     if (g_t0_handle && g_t0_handle->OverflowCallback) {
         g_t0_handle->OverflowCallback();
     }

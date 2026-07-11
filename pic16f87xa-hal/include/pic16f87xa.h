@@ -90,47 +90,30 @@
 #endif
 /** @} */
 
-/* ───────────────────────── HAL status / error codes ─────────────── */
-
+/* ─────────── shared HAL status codes + bit helpers (pic8-common) ── */
 /**
- * @brief   Standard HAL status codes. Mirrors `HAL_StatusTypeDef` from
- *          STM32Cube so users familiar with that HAL get the same flow.
+ * The status enum (`HAL_StatusTypeDef` / `HAL_OK` / ...) and the bit
+ * macros (`PIC8_BIT` / `PIC8_BIT_SET` / ...) are architecture-blind, so
+ * they live in the shared layer and are identical on every 8-bit PIC
+ * family. Pulled in here so a single `#include "pic16f87xa.h"` gives the
+ * whole family the same status/bit vocabulary every consumer codebase
+ * (the task manager, the examples) shares.
  */
-typedef enum {
-    PIC16F87XA_OK       = 0x00U, /**< Operation completed successfully. */
-    PIC16F87XA_ERROR    = 0x01U, /**< Generic error. */
-    PIC16F87XA_BUSY     = 0x02U, /**< Resource busy with ongoing operation. */
-    PIC16F87XA_TIMEOUT  = 0x03U, /**< Operation timed out. */
-    PIC16F87XA_INVALID  = 0x04U  /**< Invalid parameter or state. */
-} PIC16F87XA_StatusTypeDef;
-
-/* ───────────────────────── bit / register helpers ───────────────── */
-
-/**
- * @name    Bit manipulation
- * @brief   Standard set/clr/test helpers, preferred over hand-rolled masks.
- * @{
- */
-#define PIC16F87XA_BIT(n)                       (1U << (n))
-#define PIC16F87XA_BIT_SET(reg, mask)           ((reg) |=  (uint8_t)(mask))
-#define PIC16F87XA_BIT_CLR(reg, mask)           ((reg) &= ~(uint8_t)(mask))
-#define PIC16F87XA_BIT_TGL(reg, mask)           ((reg) ^=  (uint8_t)(mask))
-#define PIC16F87XA_BIT_READ(reg, mask)          ((reg) &   (uint8_t)(mask))
-/** @} */
+#include "core/hal_status.h"
 
 /* ───────────── platform: SFR mapping + weak attribute ───────────── */
 /**
  * @defgroup PIC16F87XA_SFR Special Function Register mapping
  * @brief   How every SFR is stored and how the weak attribute is spelled.
  *
- * The same source code reads `pic16f87xa_sfr_read8(0x05)` (or uses the
- * convenience macro `PIC16F87XA_REG8`) on both builds, but the
+ * The same source code reads `pic8_sfr_read8(0x05)` (or uses the
+ * convenience macro `PIC8_REG8`) on both builds, but the
  * implementation is chosen by the build's include path, not by `#ifdef`:
  * the CMake host build resolves `pic16f87xa_platform.h` to
  * `include/host/...` (a 512-byte memory-backed register file), and the
  * XC8 Makefile resolves it to `include/target/...` (direct volatile
  * dereference of the literal SFR address). See those two headers for the
- * exact macros; @ref PIC16F87XA_WEAK is likewise defined there.
+ * exact macros; @ref PIC8_WEAK is likewise defined there.
  * @{
  */
 #include "pic16f87xa_platform.h"

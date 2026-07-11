@@ -6,7 +6,7 @@
  * @details
  *   One source builds for both the host simulation backend and a real XC8
  *   target with no `#ifdef` in the code: the build selects the harness
- *   implementation (core/pic16f87xa_harness.h), which abstracts the only
+ *   implementation (core/pic8_harness.h), which abstracts the only
  *   two execution-model differences, pumping simulated time vs. real
  *   time advancing on its own, and a terminating pass/fail test vs.
  *   firmware that runs forever.
@@ -26,9 +26,9 @@
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_gpio.h"
 #include "peripherals/pic16f87xa_timer0.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 #include "core/pic16f87xa_wdt_sleep.h"
-#include "core/pic16f87xa_harness.h"
+#include "core/pic8_harness.h"
 
 /** Simulated run length (host only). 256 × 256 = 65536 cycles per Timer0
  *  overflow at 1:256, so 600k cycles give ~9 toggles. */
@@ -47,7 +47,7 @@ static void on_t0_overflow(void)
 
 int main(void)
 {
-    pic16f87xa_harness_init(SIM_CYCLES);
+    pic8_harness_init(SIM_CYCLES);
 
     /* 1. RB0 as output, start low. */
     HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
@@ -66,20 +66,20 @@ int main(void)
 
     /* 3. Arm the Timer0 interrupt (HAL_TIMER0_Init set TMR0IE; now set GIE).
      *    On the sim the IRQ fires regardless, so this is harmless there. */
-    PIC16F87XA_IRQ_Restore(1);
+    HAL_IRQ_Restore(1);
 
     /* 4. Let time pass. On the target this busy-spins forever, refreshing
      *    the WDT while the Timer0 ISR toggles RB0; on the host the harness
      *    bounds the loop to SIM_CYCLES and pumps the sim each iteration.
-     *    pic16f87xa_harness_tick pumps the simulator on the host and is a
+     *    pic8_harness_tick pumps the simulator on the host and is a
      *    no-op on the target, where real time advances on its own.
      *    HAL_WDT_Refresh is a no-op on the host, so it is called
      *    unconditionally. */
-    for (uint32_t i = 0; pic16f87xa_harness_running(i); i++) {
-        pic16f87xa_harness_tick();
+    for (uint32_t i = 0; pic8_harness_running(i); i++) {
+        pic8_harness_tick();
         HAL_WDT_Refresh();
     }
 
-    pic16f87xa_harness_log("RB0 toggled %u times.\n", (unsigned)g_toggle_count);
-    return pic16f87xa_harness_report(g_toggle_count >= 2U);
+    pic8_harness_log("RB0 toggled %u times.\n", (unsigned)g_toggle_count);
+    return pic8_harness_report(g_toggle_count >= 2U);
 }

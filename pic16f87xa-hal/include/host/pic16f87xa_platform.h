@@ -29,15 +29,15 @@ extern uint8_t pic16f87xa_sim_sfr[0x200];
 
 /* GCC/Clang weak attribute, lets user code override a peripheral's
  * IRQHandler if it ever needs to. */
-#define PIC16F87XA_WEAK   __attribute__((weak))
+#define PIC8_WEAK   __attribute__((weak))
 
 /* SFR access resolves to an index into the simulated register file. */
-#define PIC16F87XA_SFR_PTR(addr)       (&pic16f87xa_sim_sfr[(uint16_t)(addr)])
-#define pic16f87xa_sfr_read8(addr)     (pic16f87xa_sim_sfr[(uint16_t)(addr)])
-#define pic16f87xa_sfr_write8(addr, v) \
+#define PIC8_SFR_PTR(addr)       (&pic16f87xa_sim_sfr[(uint16_t)(addr)])
+#define pic8_sfr_read8(addr)     (pic16f87xa_sim_sfr[(uint16_t)(addr)])
+#define pic8_sfr_write8(addr, v) \
     do { pic16f87xa_sim_sfr[(uint16_t)(addr)] = (uint8_t)(v); } while (0)
 
 /* Address of a register as a uint8_t lvalue (read/write/RMW). */
-#define PIC16F87XA_REG8(addr)          (pic16f87xa_sim_sfr[(uint16_t)(addr)])
+#define PIC8_REG8(addr)          (pic16f87xa_sim_sfr[(uint16_t)(addr)])
 
 #endif /* PIC16F87XA_PLATFORM_H */

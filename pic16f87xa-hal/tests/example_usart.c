@@ -16,7 +16,7 @@
 #include "pic16f87xa_sim.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_usart.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 #include <stdio.h>
 
 /* Helper: report a failed assert and exit. */
@@ -63,10 +63,10 @@ int main(void)
     HAL_USART_Init(&h);
 
     /* TXSTA is at 0x98 (Bank 1); SPBRG is at 0x99 (Bank 1). */
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    uint8_t txsta_b1 = PIC16F87XA_REG8(0x98U);
-    uint8_t spbrg    = PIC16F87XA_REG8(0x99U);
+    uint8_t txsta_b1 = PIC8_REG8(0x98U);
+    uint8_t spbrg    = PIC8_REG8(0x99U);
     pic_select_bank(prev);
 
     CHECK(spbrg == 103U, "SPBRG not 103 after Init");
@@ -76,16 +76,16 @@ int main(void)
 
     /* 3. Transmit a byte. Verify TXREG holds it. */
     HAL_USART_Transmit(0xA5U);
-    CHECK(PIC16F87XA_REG8(PIC_REG_TXREG) == 0xA5U, "TXREG did not capture 0xA5");
+    CHECK(PIC8_REG8(PIC_REG_TXREG) == 0xA5U, "TXREG did not capture 0xA5");
     /* TXIF should be 0 right after the write. */
-    CHECK((PIC16F87XA_REG8(0x0CU) & 0x10U) == 0U, "TXIF should be 0 after Transmit");
+    CHECK((PIC8_REG8(0x0CU) & 0x10U) == 0U, "TXIF should be 0 after Transmit");
 
     /* 4. RX path: drive a byte, then Receive. */
     pic16f87xa_sim_drive_usart_rx(0xC3U);
-    CHECK((PIC16F87XA_REG8(0x0CU) & 0x20U) != 0U, "RCIF not set after drive_usart_rx");
+    CHECK((PIC8_REG8(0x0CU) & 0x20U) != 0U, "RCIF not set after drive_usart_rx");
     uint8_t got = HAL_USART_Receive();
     CHECK(got == 0xC3U, "Receive did not return 0xC3");
-    CHECK((PIC16F87XA_REG8(0x0CU) & 0x20U) == 0U, "RCIF not cleared after Receive");
+    CHECK((PIC8_REG8(0x0CU) & 0x20U) == 0U, "RCIF not cleared after Receive");
 
     printf("OK: USART driver, SPBRG math, init, transmit, receive all pass.\n");
     return 0;

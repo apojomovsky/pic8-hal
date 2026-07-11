@@ -9,7 +9,7 @@
  */
 
 #include "peripherals/pic16f87xa_usart.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 /* ───────────────────────── SPBRG computation ────────────────────── */
 
@@ -33,15 +33,15 @@ static const USART_HandleTypeDef *g_usart = NULL;
 
 /* ───────────────────────── public API ───────────────────────────── */
 
-PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
     g_usart = h;
 
     /* Program SPBRG (Bank 1, address 0x99, DS39582B §10.1). */
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    PIC16F87XA_REG8(PIC_REG_SPBRG) = h->SPBRG;
+    PIC8_REG8(PIC_REG_SPBRG) = h->SPBRG;
     pic_select_bank(prev);
 
     /* Build TXSTA (Bank 1, address 0x98).
@@ -59,7 +59,7 @@ PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
     if (h->BaudHigh == USART_BRGH_HIGH) txsta |= PIC_TXSTA_BRGH;
     if (h->DataWidth == USART_DATA_9BITS) txsta |= PIC_TXSTA_TX9;
     if (h->TxCpltCallback) txsta |= PIC_TXSTA_TXEN;  /* TXEN implied if user has a callback. */
-    PIC16F87XA_REG8(PIC_REG_TXSTA) = txsta;
+    PIC8_REG8(PIC_REG_TXSTA) = txsta;
 
     /* Build RCSTA (Bank 0, address 0x18).
      *   SPEN bit 7, enable serial port
@@ -70,36 +70,36 @@ PIC16F87XA_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h)
     uint8_t rcsta = PIC_RCSTA_SPEN;
     if (h->DataWidth == USART_DATA_9BITS) rcsta |= PIC_RCSTA_RX9;
     if (h->RxCpltCallback) rcsta |= PIC_RCSTA_CREN;
-    PIC16F87XA_REG8(PIC_REG_RCSTA) = rcsta;
+    PIC8_REG8(PIC_REG_RCSTA) = rcsta;
 
     /* TXIF is initially 1 (TXREG empty after reset, §10.2.1).
      * RCIF is initially 0 (RCREG empty after reset). */
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_RX);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_RX);
 
-    if (h->TxCpltCallback) PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_USART_TX);
-    else                   PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_USART_TX);
-    if (h->RxCpltCallback) PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_USART_RX);
-    else                   PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_USART_RX);
+    if (h->TxCpltCallback) HAL_IRQ_Enable(PIC16_IRQ_USART_TX);
+    else                   HAL_IRQ_DisableSrc(PIC16_IRQ_USART_TX);
+    if (h->RxCpltCallback) HAL_IRQ_Enable(PIC16_IRQ_USART_RX);
+    else                   HAL_IRQ_DisableSrc(PIC16_IRQ_USART_RX);
 
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_USART_DeInit(void)
+HAL_StatusTypeDef HAL_USART_DeInit(void)
 {
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_USART_TX);
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_USART_RX);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_TX);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_RX);
-    PIC16F87XA_REG8(PIC_REG_RCSTA) = 0x00U;
-    PIC16F87XA_REG8(PIC_REG_TXSTA) = 0x02U;     /* keep TRMT=1 reset state. */
+    HAL_IRQ_DisableSrc(PIC16_IRQ_USART_TX);
+    HAL_IRQ_DisableSrc(PIC16_IRQ_USART_RX);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_TX);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_RX);
+    PIC8_REG8(PIC_REG_RCSTA) = 0x00U;
+    PIC8_REG8(PIC_REG_TXSTA) = 0x02U;     /* keep TRMT=1 reset state. */
     {
-        uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+        uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
         pic_select_bank(1);
-        PIC16F87XA_REG8(PIC_REG_SPBRG) = 0x00U;
+        PIC8_REG8(PIC_REG_SPBRG) = 0x00U;
         pic_select_bank(prev);
     }
     g_usart = NULL;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
 void HAL_USART_Transmit(uint8_t data)
@@ -107,44 +107,44 @@ void HAL_USART_Transmit(uint8_t data)
     /* Writing TXREG clears TXIF (DS39582B §10.2.1). The hardware
      * simultaneously starts the TSR→line shift; the sim backend
      * re-asserts TXIF on the next pic16f87xa_sim_step() call. */
-    PIC16F87XA_REG8(PIC_REG_TXREG) = data;
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_TX);
+    PIC8_REG8(PIC_REG_TXREG) = data;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_TX);
 }
 
 uint8_t HAL_USART_GetTX9D(void)
 {
-    return (PIC16F87XA_REG8(PIC_REG_TXSTA) & PIC_TXSTA_TX9D) ? 1U : 0U;
+    return (PIC8_REG8(PIC_REG_TXSTA) & PIC_TXSTA_TX9D) ? 1U : 0U;
 }
 
 void HAL_USART_SetTX9D(uint8_t bit9)
 {
-    if (bit9) PIC16F87XA_BIT_SET(PIC16F87XA_REG8(PIC_REG_TXSTA), PIC_TXSTA_TX9D);
-    else      PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_TXSTA), PIC_TXSTA_TX9D);
+    if (bit9) PIC8_BIT_SET(PIC8_REG8(PIC_REG_TXSTA), PIC_TXSTA_TX9D);
+    else      PIC8_BIT_CLR(PIC8_REG8(PIC_REG_TXSTA), PIC_TXSTA_TX9D);
 }
 
 uint8_t HAL_USART_IsTxShiftRegisterEmpty(void)
 {
-    return (PIC16F87XA_REG8(PIC_REG_TXSTA) & PIC_TXSTA_TRMT) ? 1U : 0U;
+    return (PIC8_REG8(PIC_REG_TXSTA) & PIC_TXSTA_TRMT) ? 1U : 0U;
 }
 
 uint8_t HAL_USART_Receive(void)
 {
     /* Reading RCREG clears RCIF (DS39582B §10.2.2). */
-    uint8_t data = PIC16F87XA_REG8(PIC_REG_RCREG);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_RX);
+    uint8_t data = PIC8_REG8(PIC_REG_RCREG);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_RX);
     return data;
 }
 
 uint8_t HAL_USART_GetRX9D(void)
 {
-    return (PIC16F87XA_REG8(PIC_REG_RCSTA) & PIC_RCSTA_RX9D) ? 1U : 0U;
+    return (PIC8_REG8(PIC_REG_RCSTA) & PIC_RCSTA_RX9D) ? 1U : 0U;
 }
 
 /* ───────────────────────── ISRs ─────────────────────────────────── */
 
 void USART_TX_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_USART_TX)) return;
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_USART_TX)) return;
     /* TXIF is read-only and cleared by writing TXREG; there is nothing
      * to clear here, just call the user callback. */
     if (g_usart && g_usart->TxCpltCallback) g_usart->TxCpltCallback();
@@ -152,8 +152,8 @@ void USART_TX_IRQHandler(void)
 
 void USART_RX_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_USART_RX)) return;
-    uint8_t data = PIC16F87XA_REG8(PIC_REG_RCREG);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_USART_RX);
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_USART_RX)) return;
+    uint8_t data = PIC8_REG8(PIC_REG_RCREG);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_USART_RX);
     if (g_usart && g_usart->RxCpltCallback) g_usart->RxCpltCallback(data);
 }

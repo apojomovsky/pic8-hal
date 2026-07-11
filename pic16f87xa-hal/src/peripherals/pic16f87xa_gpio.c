@@ -64,7 +64,7 @@ void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode)
     uint8_t ta = tris_addr(port);
     uint8_t mask   = (uint8_t)pins & (uint8_t)((1U << port_width(port)) - 1U);
 
-    uint8_t tris = PIC16F87XA_REG8(ta);
+    uint8_t tris = PIC8_REG8(ta);
 
     switch (mode) {
         case GPIO_MODE_INPUT:
@@ -80,14 +80,14 @@ void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode)
         default:
             return;
     }
-    PIC16F87XA_REG8(ta) = tris;
+    PIC8_REG8(ta) = tris;
 }
 
 void HAL_GPIO_DeInit(GPIO_TypeDef port)
 {
     uint8_t ta = tris_addr(port);
     /* Reset all implemented bits of TRISx to 1 = input. */
-    PIC16F87XA_REG8(ta) = (uint8_t)((1U << port_width(port)) - 1U);
+    PIC8_REG8(ta) = (uint8_t)((1U << port_width(port)) - 1U);
 }
 
 /* ───────────────────────── read / write / toggle ────────────────── */
@@ -96,17 +96,17 @@ void HAL_GPIO_WritePin(GPIO_TypeDef port, uint16_t pins, GPIO_PinState state)
 {
     uint8_t mask = (uint8_t)pins & (uint8_t)((1U << port_width(port)) - 1U);
     uint8_t pa = port_addr(port);
-    uint8_t cur = PIC16F87XA_REG8(pa);
+    uint8_t cur = PIC8_REG8(pa);
     if (state == GPIO_PIN_SET) cur |= mask;
     else                       cur &= (uint8_t)~mask;
-    PIC16F87XA_REG8(pa) = cur;
+    PIC8_REG8(pa) = cur;
 }
 
 void HAL_GPIO_TogglePin(GPIO_TypeDef port, uint16_t pins)
 {
     uint8_t mask = (uint8_t)pins & (uint8_t)((1U << port_width(port)) - 1U);
     uint8_t pa = port_addr(port);
-    PIC16F87XA_REG8(pa) = PIC16F87XA_REG8(pa) ^ mask;
+    PIC8_REG8(pa) = PIC8_REG8(pa) ^ mask;
 }
 
 GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef port, uint16_t pins)
@@ -118,29 +118,29 @@ GPIO_PinState HAL_GPIO_ReadPin(GPIO_TypeDef port, uint16_t pins)
      * target the compiler lowers this to a single MOVF. */
     uint8_t mask = (uint8_t)pins & (uint8_t)((1U << port_width(port)) - 1U);
     uint8_t pa = port_addr(port);
-    return (PIC16F87XA_REG8(pa) & mask) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+    return (PIC8_REG8(pa) & mask) ? GPIO_PIN_SET : GPIO_PIN_RESET;
 }
 
 void HAL_GPIO_WritePort(GPIO_TypeDef port, uint8_t value)
 {
     uint8_t mask = (uint8_t)((1U << port_width(port)) - 1U);
-    PIC16F87XA_REG8(port_addr(port)) = (uint8_t)(value & mask);
+    PIC8_REG8(port_addr(port)) = (uint8_t)(value & mask);
 }
 
 uint8_t HAL_GPIO_ReadPort(GPIO_TypeDef port)
 {
-    return PIC16F87XA_REG8(port_addr(port));
+    return PIC8_REG8(port_addr(port));
 }
 
 /* ───────────────────────── PORTB pull-ups ───────────────────────── */
 
 void HAL_GPIO_SetPullups(GPIO_PullTypeDef pull)
 {
-    uint8_t opt = PIC16F87XA_REG8(PIC_REG_OPTION);
+    uint8_t opt = PIC8_REG8(PIC_REG_OPTION);
     if (pull == GPIO_PULLUP) {
-        PIC16F87XA_BIT_CLR(opt, (uint8_t)0x80);    /* RBPU = 0 → enabled */
+        PIC8_BIT_CLR(opt, (uint8_t)0x80);    /* RBPU = 0 → enabled */
     } else {
-        PIC16F87XA_BIT_SET(opt, (uint8_t)0x80);    /* RBPU = 1 → disabled */
+        PIC8_BIT_SET(opt, (uint8_t)0x80);    /* RBPU = 1 → disabled */
     }
-    PIC16F87XA_REG8(PIC_REG_OPTION) = opt;
+    PIC8_REG8(PIC_REG_OPTION) = opt;
 }

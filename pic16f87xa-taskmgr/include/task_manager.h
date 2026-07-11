@@ -14,9 +14,9 @@
  *
  *   Two execution models are supported from the same source, with no
  *   `#ifdef`, reusing the HAL's host/target harness seam
- *   (core/pic16f87xa_harness.h):
+ *   (core/pic8_harness.h):
  *
- *     - Host simulator: `task_manager_run()` calls `pic16f87xa_harness_tick()`
+ *     - Host simulator: `task_manager_run()` calls `pic8_harness_tick()`
  *       each iteration, which pumps the simulated Timer0; its overflow ISR
  *       calls `task_manager_tick()` synchronously, marking due tasks ready;
  *       `task_manager_run_once()` then runs them. The loop is bounded by the
@@ -192,7 +192,7 @@ uint8_t task_manager_run_once(void);
  * @brief  The canonical scheduler loop. Equivalent to:
  *
  *             for (;;) {
- *                 pic16f87xa_harness_tick();   // pump sim / no-op on target
+ *                 pic8_harness_tick();   // pump sim / no-op on target
  *                 task_manager_run_once();
  *                 HAL_WDT_Refresh();
  *             }
@@ -214,7 +214,7 @@ uint8_t task_manager_count(void);
  *         Configures Timer0 for internal Fosc/4, the given prescaler assigned
  *         to Timer0, the given reload, and `task_manager_tick` as the
  *         overflow callback. The TMR0 interrupt enable is set; arm it for
- *         real by calling `PIC16F87XA_IRQ_Restore(1)` afterwards.
+ *         real by calling `HAL_IRQ_Restore(1)` afterwards.
  *
  * @param  reload      TMR0 reload value (0..255). On a 20 MHz target,
  *                     prescaler 1:256, reload 61 → ~10 ms per tick.

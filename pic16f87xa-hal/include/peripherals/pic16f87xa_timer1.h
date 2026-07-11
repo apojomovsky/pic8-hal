@@ -92,10 +92,10 @@ typedef struct {
     .OverflowCallback = NULL,                                           \
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Init(const TIMER1_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_TIMER1_DeInit(void);
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Start(const TIMER1_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Stop(void);
+HAL_StatusTypeDef HAL_TIMER1_Init(const TIMER1_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_TIMER1_DeInit(void);
+HAL_StatusTypeDef HAL_TIMER1_Start(const TIMER1_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_TIMER1_Stop(void);
 
 /** Atomically read the 16-bit counter value. */
 uint16_t HAL_TIMER1_ReadCounter(void);
@@ -107,6 +107,6 @@ void HAL_TIMER1_WriteCounter(uint16_t value);
 uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p);
 
 /** Weak Timer1 ISR, override in user code to add application logic. */
-void TIMER1_IRQHandler(void) PIC16F87XA_WEAK;
+void TIMER1_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_TIMER1_H */

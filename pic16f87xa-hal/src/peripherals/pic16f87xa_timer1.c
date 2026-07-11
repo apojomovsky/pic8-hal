@@ -4,7 +4,7 @@
  */
 
 #include "peripherals/pic16f87xa_timer1.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 
 /* T1CON prescaler ratios, DS39582B Register 6-1:
  *   00 → 1:1, 01 → 1:2, 10 → 1:4, 11 → 1:8 */
@@ -22,9 +22,9 @@ uint16_t HAL_TIMER1_ReadCounter(void)
      * refreshed high. Standard PIC16 idiom (DS39582B §6.4.1). */
     uint8_t hi1, lo, hi2;
     do {
-        hi1 = PIC16F87XA_REG8(PIC_REG_TMR1H);
-        lo  = PIC16F87XA_REG8(PIC_REG_TMR1L);
-        hi2 = PIC16F87XA_REG8(PIC_REG_TMR1H);
+        hi1 = PIC8_REG8(PIC_REG_TMR1H);
+        lo  = PIC8_REG8(PIC_REG_TMR1L);
+        hi2 = PIC8_REG8(PIC_REG_TMR1H);
     } while (hi1 != hi2);
 
     return (uint16_t)(((uint16_t)hi2 << 8) | lo);
@@ -34,8 +34,8 @@ void HAL_TIMER1_WriteCounter(uint16_t value)
 {
     /* Per DS39582B §6.8: writing TMR1H or TMR1L clears the prescaler.
      * Write high byte first. */
-    PIC16F87XA_REG8(PIC_REG_TMR1H) = (uint8_t)(value >> 8);
-    PIC16F87XA_REG8(PIC_REG_TMR1L) = (uint8_t)(value & 0xFFU);
+    PIC8_REG8(PIC_REG_TMR1H) = (uint8_t)(value >> 8);
+    PIC8_REG8(PIC_REG_TMR1L) = (uint8_t)(value & 0xFFU);
 }
 
 uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p)
@@ -44,39 +44,39 @@ uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p)
     return ps_ratio[p];
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Init(const TIMER1_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_TIMER1_Init(const TIMER1_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
 
     /* Stop the timer before reconfiguring. */
-    PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_T1CON), PIC_T1CON_TMR1ON);
+    PIC8_BIT_CLR(PIC8_REG8(PIC_REG_T1CON), PIC_T1CON_TMR1ON);
 
     /* Configure the overflow interrupt. */
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR1);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR1);
     if (h->OverflowCallback) {
-        PIC16F87XA_IRQ_Enable(PIC16F87XA_IRQ_TMR1);
+        HAL_IRQ_Enable(PIC16_IRQ_TMR1);
     } else {
-        PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_TMR1);
+        HAL_IRQ_DisableSrc(PIC16_IRQ_TMR1);
     }
 
     g_t1_handle = h;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER1_DeInit(void)
+HAL_StatusTypeDef HAL_TIMER1_DeInit(void)
 {
-    PIC16F87XA_IRQ_DisableSrc(PIC16F87XA_IRQ_TMR1);
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR1);
-    PIC16F87XA_REG8(PIC_REG_T1CON) = PIC_T1CON_POR_VALUE;
-    PIC16F87XA_REG8(PIC_REG_TMR1H) = 0x00U;
-    PIC16F87XA_REG8(PIC_REG_TMR1L) = 0x00U;
+    HAL_IRQ_DisableSrc(PIC16_IRQ_TMR1);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR1);
+    PIC8_REG8(PIC_REG_T1CON) = PIC_T1CON_POR_VALUE;
+    PIC8_REG8(PIC_REG_TMR1H) = 0x00U;
+    PIC8_REG8(PIC_REG_TMR1L) = 0x00U;
     g_t1_handle = NULL;
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Start(const TIMER1_HandleTypeDef *h)
+HAL_StatusTypeDef HAL_TIMER1_Start(const TIMER1_HandleTypeDef *h)
 {
-    if (!h) return PIC16F87XA_INVALID;
+    if (!h) return HAL_INVALID;
 
     HAL_TIMER1_WriteCounter(h->ReloadValue);
 
@@ -92,21 +92,21 @@ PIC16F87XA_StatusTypeDef HAL_TIMER1_Start(const TIMER1_HandleTypeDef *h)
     if (h->ClockSync   == TIMER1_ASYNC_EXTERNAL) v |= PIC_T1CON_T1SYNC;
     if (h->ClockSource == TIMER1_CLOCK_EXTERNAL) v |= PIC_T1CON_TMR1CS;
     v |= PIC_T1CON_TMR1ON;
-    PIC16F87XA_REG8(PIC_REG_T1CON) = v;
+    PIC8_REG8(PIC_REG_T1CON) = v;
 
-    return PIC16F87XA_OK;
+    return HAL_OK;
 }
 
-PIC16F87XA_StatusTypeDef HAL_TIMER1_Stop(void)
+HAL_StatusTypeDef HAL_TIMER1_Stop(void)
 {
-    PIC16F87XA_BIT_CLR(PIC16F87XA_REG8(PIC_REG_T1CON), PIC_T1CON_TMR1ON);
-    return PIC16F87XA_OK;
+    PIC8_BIT_CLR(PIC8_REG8(PIC_REG_T1CON), PIC_T1CON_TMR1ON);
+    return HAL_OK;
 }
 
 void TIMER1_IRQHandler(void)
 {
-    if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_TMR1)) return;
-    PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR1);
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_TMR1)) return;
+    HAL_IRQ_ClearFlag(PIC16_IRQ_TMR1);
     if (g_t1_handle && g_t1_handle->OverflowCallback) {
         g_t1_handle->OverflowCallback();
     }

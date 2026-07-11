@@ -31,9 +31,9 @@ int main(void)
     HAL_PSP_Enable();
 
     /* Read TRISE. */
-    uint8_t prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    uint8_t prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    uint8_t trise = PIC16F87XA_REG8(0x89U);
+    uint8_t trise = PIC8_REG8(0x89U);
     pic_select_bank(prev);
     /* Bit 4 (PSPMODE) should be set. */
     CHECK((trise & 0x10U) != 0U, "PSPMODE not set after HAL_PSP_Enable");
@@ -45,16 +45,16 @@ int main(void)
 
     /* Disable. */
     HAL_PSP_Disable();
-    prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    trise = PIC16F87XA_REG8(0x89U);
+    trise = PIC8_REG8(0x89U);
     pic_select_bank(prev);
     CHECK((trise & 0x10U) == 0U, "PSPMODE not cleared after HAL_PSP_Disable");
 
     HAL_PSP_DeInit();
-    prev = (PIC16F87XA_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
+    prev = (PIC8_REG8(PIC_REG_STATUS) >> 5) & 0x03U;
     pic_select_bank(1);
-    trise = PIC16F87XA_REG8(0x89U);
+    trise = PIC8_REG8(0x89U);
     pic_select_bank(prev);
     /* After DeInit TRISE = 0x07 (POR default). */
     CHECK(trise == 0x07U, "TRISE not 0x07 after DeInit");

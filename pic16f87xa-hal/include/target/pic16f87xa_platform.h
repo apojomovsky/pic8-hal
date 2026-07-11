@@ -15,7 +15,7 @@
  *   the literal address, exactly what the XC8 linker maps to the SFR.
  *   The address is cast through uintptr_t so XC8 does not warn about
  *   converting an integer to a pointer. XC8 has no weak symbols, so
- *   PIC16F87XA_WEAK is empty.
+ *   PIC8_WEAK is empty.
  */
 
 #ifndef PIC16F87XA_PLATFORM_H
@@ -24,15 +24,15 @@
 #include <stdint.h>
 
 /* XC8 has no concept of weak symbols. */
-#define PIC16F87XA_WEAK
+#define PIC8_WEAK
 
 /* SFR access resolves to a direct volatile dereference of the address. */
-#define PIC16F87XA_SFR_PTR(addr)       ((volatile uint8_t *)(uintptr_t)(addr))
-#define pic16f87xa_sfr_read8(addr)     (*(volatile uint8_t *)(uintptr_t)(addr))
-#define pic16f87xa_sfr_write8(addr, v) \
+#define PIC8_SFR_PTR(addr)       ((volatile uint8_t *)(uintptr_t)(addr))
+#define pic8_sfr_read8(addr)     (*(volatile uint8_t *)(uintptr_t)(addr))
+#define pic8_sfr_write8(addr, v) \
     do { *(volatile uint8_t *)(uintptr_t)(addr) = (uint8_t)(v); } while (0)
 
 /* Address of a register as a uint8_t lvalue (read/write/RMW). */
-#define PIC16F87XA_REG8(addr)          (*(volatile uint8_t *)(uintptr_t)(addr))
+#define PIC8_REG8(addr)          (*(volatile uint8_t *)(uintptr_t)(addr))
 
 #endif /* PIC16F87XA_PLATFORM_H */

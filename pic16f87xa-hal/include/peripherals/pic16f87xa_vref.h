@@ -46,8 +46,8 @@ typedef struct {
     .Enabled       = false,                                                \
 }
 
-PIC16F87XA_StatusTypeDef HAL_VREF_Init(const VREF_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_VREF_DeInit(void);
+HAL_StatusTypeDef HAL_VREF_Init(const VREF_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_VREF_DeInit(void);
 
 /**
  * @brief  Compute the nominal output voltage (mV) for a given range +

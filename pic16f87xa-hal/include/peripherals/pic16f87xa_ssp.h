@@ -96,8 +96,8 @@ typedef struct {
 
 /* ───────────────────────── init / deinit ────────────────────────── */
 
-PIC16F87XA_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h);
-PIC16F87XA_StatusTypeDef HAL_SSP_DeInit(void);
+HAL_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h);
+HAL_StatusTypeDef HAL_SSP_DeInit(void);
 
 /* ───────────────────────── SPI transfer ──────────────────────────── */
 
@@ -149,6 +149,6 @@ uint8_t HAL_SSP_AcknowledgeStatus(void);
 
 /* ───────────────────────── interrupts ───────────────────────────── */
 
-void SSP_IRQHandler(void) PIC16F87XA_WEAK;
+void SSP_IRQHandler(void) PIC8_WEAK;
 
 #endif /* PIC16F87XA_SSP_H */

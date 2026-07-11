@@ -10,7 +10,7 @@
  *   cc -std=c99 -DPIC16F877A -Iinclude/host -Iinclude \
  *      tests/example_timer1.c \
  *      src/peripherals/pic16f87xa_timer1.c \
- *      src/core/pic16f87xa_interrupt.c \
+ *      src/core/pic16_irq.c \
  *      src/sim/pic16f87xa_sim.c \
  *      -o example_timer1
  */
@@ -19,7 +19,7 @@
 #include "pic16f87xa_sim.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_timer1.h"
-#include "core/pic16f87xa_interrupt.h"
+#include "core/pic16_irq.h"
 #include <stdio.h>
 
 /** Expected overflow count. */
@@ -47,8 +47,8 @@ int main(void)
     h.ReloadValue      = 0x0000U;
     h.OverflowCallback = on_t1_overflow;
 
-    PIC16F87XA_StatusTypeDef st = HAL_TIMER1_Init(&h);
-    if (st != PIC16F87XA_OK) { printf("FAIL: Init returned %u\n", (unsigned)st); return 1; }
+    HAL_StatusTypeDef st = HAL_TIMER1_Init(&h);
+    if (st != HAL_OK) { printf("FAIL: Init returned %u\n", (unsigned)st); return 1; }
     HAL_TIMER1_Start(&h);
 
     for (uint32_t i = 0; i < SIM_BUDGET; i++) {
