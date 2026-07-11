@@ -98,6 +98,14 @@ void PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IrqTypeDef irq);
  */
 uint8_t PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IrqTypeDef irq);
 
+/**
+ * @brief  Fan out to every peripheral IRQHandler. The real target calls
+ *         this from its `__interrupt()` vector; the host harness
+ *         registers it as the sim IRQ callback. Each handler is a no-op
+ *         unless its own flag is set. Defined in pic16f87xa_irq_dispatch.c.
+ */
+void pic16f87xa_dispatch_all_irqs(void);
+
 #ifdef __cplusplus
 }
 #endif

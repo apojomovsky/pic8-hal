@@ -26,7 +26,8 @@ Done so far:
 - ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
 - ✅ **PSP driver** (40/44-pin only — TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
 - ✅ **WDT / BOR / Sleep helpers** (clrwdt / sleep asm, PCON BOR/POR flags)
-- ✅ **XC8 interrupt-vector dispatcher** (`src/core/pic16f87xa_isr_vector.c`) — single `__interrupt()` handler routes the vector at 0x0004 to every peripheral's IRQHandler on a real target. The host sim uses `pic16f87xa_sim_set_irq_callback()` instead.
+- ✅ **Shared interrupt dispatch** (`pic16f87xa_dispatch_all_irqs`) — fans the single vector at 0x0004 out to every peripheral IRQHandler. On a real target the XC8 `__interrupt()` (`src/core/pic16f87xa_isr_vector.c`) calls it; on the host the harness registers it as the sim IRQ callback. One source of truth.
+- ✅ **Test/firmware harness** (`include/core/pic16f87xa_harness.h`) — lets every example build for the host sim and a real XC8 target with **no `#ifdef` in the example code**. The build links the host harness (`*_harness_sim.c`) or the target harness (`*_harness_target.c`); the harness abstracts the only two execution-model differences (pumping simulated time vs. real time, terminating test vs. firmware that runs forever).
 - ✅ **MPLAB X / XC8 project template** (Makefile + `nbproject/configurations.xml`)
 - ✅ End-to-end tests: `example_blink`, `example_idle_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
 

@@ -50,7 +50,8 @@ set(HAL_SOURCES_CORE
     src/peripherals/pic16f87xa_eeprom.c
     src/core/pic16f87xa_interrupt.c
     src/core/pic16f87xa_wdt_sleep.c
-    src/core/pic16f87xa_isr_vector.c
+    src/core/pic16f87xa_irq_dispatch.c
+    src/core/pic16f87xa_harness_sim.c
     src/sim/pic16f87xa_sim.c
 )
 
