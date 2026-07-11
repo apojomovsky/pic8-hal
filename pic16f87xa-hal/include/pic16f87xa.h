@@ -158,11 +158,14 @@ typedef enum {
   #define pic16f87xa_sfr_write8(addr, v)                                      \
       do { pic16f87xa_sim_sfr[(uint16_t)(addr)] = (uint8_t)(v); } while (0)
 #else
-  /* Real target — direct volatile access. */
-  #define PIC16F87XA_SFR_PTR(addr)     ((volatile uint8_t *)(addr))
-  #define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(addr))
+  /* Real target — direct volatile access.  Cast the SFR address
+   * through `uintptr_t` so XC8 does not warn about converting a
+   * `uint8_t` to a pointer. */
+  #include <stdint.h>
+  #define PIC16F87XA_SFR_PTR(addr)     ((volatile uint8_t *)(uintptr_t)(addr))
+  #define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(uintptr_t)(addr))
   #define pic16f87xa_sfr_write8(addr, v)                                      \
-      do { *(volatile uint8_t *)(addr) = (uint8_t)(v); } while (0)
+      do { *(volatile uint8_t *)(uintptr_t)(addr) = (uint8_t)(v); } while (0)
 #endif
 /** @} */
 
@@ -170,7 +173,7 @@ typedef enum {
 #if defined(PIC16F87XA_USE_SIMULATOR)
   #define PIC16F87XA_REG8(addr)  (pic16f87xa_sim_sfr[(uint16_t)(addr)])
 #else
-  #define PIC16F87XA_REG8(addr)  (*(volatile uint8_t *)(addr))
+  #define PIC16F87XA_REG8(addr)  (*(volatile uint8_t *)(uintptr_t)(addr))
 #endif
 
 #ifdef __cplusplus

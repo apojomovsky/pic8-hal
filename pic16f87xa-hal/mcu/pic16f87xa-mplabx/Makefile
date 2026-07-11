@@ -1,14 +1,21 @@
 # PIC16F87XA HAL — MPLAB XC8 Makefile
 #
-# Builds the HAL on real silicon via MPLAB XC8.
-# Tested with:
+# Builds the HAL on real silicon via MPLAB XC8. Tested with:
 #   - MPLAB X IDE v6.x
-#   - MPLAB XC8 Compiler v2.40
+#   - MPLAB XC8 C Compiler v3.10 (the `xc8-cc` driver)
 #   - PIC16F877A
+#
+# XC8 v3.x notes:
+#   - The `xc8-cc` driver compiles each translation unit to a `.p1`
+#     (p-code) intermediate, NOT a `.o`; the final hex comes from a
+#     single link step over the `.p1` set with `-ginhx32`.
+#   - v3.x moved device support into a Device Family Pack, so the
+#     compiler needs `-mdfp <dir>`. Override DFP_DIR below (or pass
+#     make DFP_DIR=/path/to/dfp) if your install lives elsewhere.
 #
 # From the command line (no IDE):
 #
-#   export PATH=$PATH:/opt/microchip/xc8/v2.40/bin
+#   export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
 #   make MCU=16F877A            # default; also 873A / 874A / 876A
 #   make clean
 #
@@ -38,9 +45,19 @@ HAL_DIR ?= ../..
 BUILD_DIR ?= build
 TARGET := $(BUILD_DIR)/$(MCU)-firmware
 
+# XC8 v3.x device family pack. Empty → the flag is omitted (use when
+# the toolchain resolves devices without an explicit DFP, e.g. older XC8).
+DFP_DIR ?= /opt/microchip/xc8/v3.10/pic/packs/Microchip.PIC16Fxxx_DFP/xc8
+ifneq ($(strip $(DFP_DIR)),)
+  DFP_FLAG := -mdfp=$(DFP_DIR)
+else
+  DFP_FLAG :=
+endif
+
 CC     := xc8-cc
 INC    := -I$(HAL_DIR)/include
-CFLAGS := -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
+CFLAGS := $(DFP_FLAG) \
+          -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
           -O2 -std=c99 -Wall -Wextra \
           $(CFLAGS_DEVICE) \
           $(INC) \
@@ -76,8 +93,16 @@ endif
 # "turn an LED on" smoke test. Replace it with your project's main.c.
 APP_SOURCES := $(HAL_DIR)/tests/example_blink.c
 
-SRCS := $(CONFIG_SRC) $(HAL_SOURCES) $(APP_SOURCES)
-OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(SRCS)))
+# All real .c sources (the config word is generated separately, below).
+SRCS := $(HAL_SOURCES) $(APP_SOURCES)
+# xc8-cc -c emits <name>.p1; link from the .p1 set.
+OBJS := $(patsubst %.c,$(BUILD_DIR)/%.p1,$(notdir $(SRCS)))
+
+# Tell make where to find sources referenced by basename. The pattern
+# rule $(BUILD_DIR)/%.p1: %.c uses basename matching; without VPATH
+# make would not resolve HAL_DIR/.../pic16f87xa_gpio.c from the
+# target name build/pic16f87xa_gpio.p1.
+VPATH := $(sort $(dir $(SRCS)))
 
 # ─────────────────────────── config word ───────────────────────────
 # The PIC16F87XA Configuration Word is a flash-locked register that
@@ -85,6 +110,7 @@ OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(SRCS)))
 # programming time.  This file emits the directives — adjust as
 # needed per your hardware.  See DS39582B §14.1 (Register 14-1).
 CONFIG_SRC := $(BUILD_DIR)/config_$(MCU).c
+CONFIG_OBJ := $(BUILD_DIR)/config_$(MCU).p1
 
 # ─────────────────────────── targets ──────────────────────────────
 .PHONY: all clean
@@ -103,16 +129,21 @@ $(CONFIG_SRC): | $(BUILD_DIR)
 	@printf '#pragma config LVP = OFF\n' >> $@
 	@printf '#pragma config WRT = OFF\n' >> $@
 
-$(BUILD_DIR)/%.o: %.c $(CONFIG_SRC)
+# Compile a HAL/app source to p-code. VPATH resolves the basename to
+# the real path under HAL_DIR. The order-only prereq ensures build/
+# exists — xc8-cc refuses to write into a missing output directory.
+$(BUILD_DIR)/%.p1: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET).elf: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $@
+# The generated config word is its own translation unit.
+$(CONFIG_OBJ): $(CONFIG_SRC) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET).hex: $(TARGET).elf
-	$(CC) $(CFLAGS) $< -ohex:$(TARGET).hex
+# Single link step over all .p1 intermediates → Intel HEX.
+$(TARGET).hex: $(OBJS) $(CONFIG_OBJ)
+	$(CC) $(CFLAGS) $(OBJS) $(CONFIG_OBJ) -o $@ -ginhx32
 	@echo ""
-	@echo "Built $(TARGET).hex — program with MPLAB X or your favorite programmer."
+	@echo "Built $@ — program with MPLAB X or your favorite programmer."
 
 clean:
 	rm -rf $(BUILD_DIR)

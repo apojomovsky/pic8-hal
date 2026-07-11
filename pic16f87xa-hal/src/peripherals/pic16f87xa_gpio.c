@@ -61,8 +61,7 @@ static uint8_t port_width(GPIO_TypeDef port)
 
 void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode)
 {
-    const uint8_t pa = port_addr(port);
-    const uint8_t ta = tris_addr(port);
+    uint8_t ta = tris_addr(port);
     uint8_t mask   = (uint8_t)pins & (uint8_t)((1U << port_width(port)) - 1U);
 
     uint8_t tris = PIC16F87XA_REG8(ta);
@@ -86,7 +85,7 @@ void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode)
 
 void HAL_GPIO_DeInit(GPIO_TypeDef port)
 {
-    const uint8_t ta = tris_addr(port);
+    uint8_t ta = tris_addr(port);
     /* Reset all implemented bits of TRISx to 1 = input. */
     PIC16F87XA_REG8(ta) = (uint8_t)((1U << port_width(port)) - 1U);
 }

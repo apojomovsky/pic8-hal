@@ -21,7 +21,7 @@ The HAL compiles on XC8 because:
 
 ```sh
 # Adjust HAL_DIR if you place the firmware project differently.
-export PATH=$PATH:/opt/microchip/xc8/v2.40/bin
+export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
 
 # Build for PIC16F877A (default).
 make
@@ -43,7 +43,7 @@ as the application entry point.
 
 1. **File → Open Project…** in MPLAB X.
 2. Point at this directory; the IDE will detect the project.
-3. Confirm the device (PIC16F877A) and toolchain (XC8 v2.40).
+3. Confirm the device (PIC16F877A) and toolchain (XC8 v3.10).
 4. Make and Program Device.
 
 If MPLAB X complains about the project not being an MPLAB X project

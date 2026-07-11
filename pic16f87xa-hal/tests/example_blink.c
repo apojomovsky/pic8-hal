@@ -1,13 +1,21 @@
 /**
  * @file    example_blink.c
- * @brief   End-to-end smoke test: blink an LED on RB0, driven by a
- *          simulated Timer0 overflow.
+ * @brief   Blink an LED on RB0, driven by Timer0.
  *
  * @details
  *   Portable across the host simulation backend and a real PIC16F87XA
- *   target compiled with XC8. Uses the new Timer0 driver — no direct
- *   register poking — to demonstrate that the Cube-style API is
- *   sufficient to drive a real application.
+ *   target compiled with XC8 — the same source file builds for both:
+ *
+ *     - Host simulation (CMake, PIC16F87XA_USE_SIMULATOR defined):
+ *       Timer0 overflows are simulated, the LED state is observed via
+ *       pic16f87xa_sim_read_output(), and main() returns 0/1 as a smoke
+ *       test. Driven through the weak TIMER0_IRQHandler.
+ *
+ *     - Real target (XC8, PIC16F87XA_USE_SIMULATOR *not* defined):
+ *       a self-contained firmware. Timer0 is configured and its overflow
+ *       flag polled in the main loop; each overflow toggles RB0. No
+ *       interrupt vector is used, so this example does not depend on
+ *       the HAL's (still host-only) ISR dispatch.
  *
  *   Wiring assumed on a real target:
  *     - LED + resistor between RB0 and GND (active-high).
@@ -18,11 +26,13 @@
  */
 
 #include "pic16f87xa.h"
-#include "pic16f87xa_sim.h"
 #include "pic16f87xa_sfr.h"
 #include "peripherals/pic16f87xa_gpio.h"
 #include "peripherals/pic16f87xa_timer0.h"
 #include "core/pic16f87xa_interrupt.h"
+
+#if defined(PIC16F87XA_USE_SIMULATOR)
+#include "pic16f87xa_sim.h"
 #include <stdio.h>
 
 /** How long the simulated CPU should run, in instruction cycles. */
@@ -86,3 +96,42 @@ int main(void)
     printf("FAIL: RB0 never toggled.\n");
     return 1;
 }
+
+#else  /* Real PIC target — XC8 firmware. */
+
+#include "core/pic16f87xa_wdt_sleep.h"
+
+int main(void)
+{
+    /* 1. RB0 as output, start low. */
+    HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+
+    /* 2. Configure Timer0: internal Fosc/4, 1:256 prescaler assigned to
+     *    TMR0, reload 0. With FOSC = 20 MHz (FCY = 5 MHz) the input tick is
+     *    Fosc/4/256 ≈ 19.5 kHz, so TMR0 overflows every 256 of those ≈
+     *    13.1 ms. RB0 toggles on each overflow → ~38 Hz blink. */
+    TIMER0_HandleTypeDef h = TIMER0_HANDLE_DEFAULT;
+    h.ClockSource       = TIMER0_CLOCK_INTERNAL;
+    h.Prescaler         = TIMER0_PRESCALER_1_256;
+    h.PrescalerAssigned = true;
+    h.ReloadValue       = 0x00U;
+    h.OverflowCallback  = NULL;   /* polled — no ISR. */
+
+    HAL_TIMER0_Init(&h);
+    HAL_TIMER0_Start(&h);
+
+    /* 3. Poll the Timer0 overflow flag and toggle RB0 each time it sets.
+     *    GIE stays clear (reset default), so no interrupt is taken; the
+     *    flag is polled directly through the IRQ helper. WDT is enabled
+     *    in the config word, so refresh it every pass. */
+    for (;;) {
+        if (PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_TMR0)) {
+            PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_TMR0);
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+        }
+        HAL_WDT_Refresh();
+    }
+}
+
+#endif /* PIC16F87XA_USE_SIMULATOR */
