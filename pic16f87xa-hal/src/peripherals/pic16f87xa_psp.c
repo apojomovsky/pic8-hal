@@ -30,7 +30,7 @@ PIC16F87XA_StatusTypeDef HAL_PSP_Init(void (*callback)(void))
     g_psp_cb = callback;
     /* Clear the read-only status flags (IBF, OBF, IBOV) by writing
      * TRISE with them clear. The lower 4 bits of TRISE are
-     * read-only, we leave PSPIE/PSPMODE managed by the user. */
+     * read-only; PSPIE/PSPMODE are left to the user. */
     b1_trise_write(b1_trise() &
                    (uint8_t)~(PIC_TRISE_IBF | PIC_TRISE_OBF | PIC_TRISE_IBOV));
     PIC16F87XA_IRQ_ClearFlag(PIC16F87XA_IRQ_PSP);

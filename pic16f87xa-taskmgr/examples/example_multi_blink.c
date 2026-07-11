@@ -7,30 +7,29 @@
  * @details
  *   The scheduler is wired to a ~10 ms Timer0 tick on a 20 MHz target
  *   (Fosc/4 = 5 MHz, prescaler 1:256, reload 61 → 195 counts × 51.2 µs ≈
- *   9.98 ms per tick). Four cooperative tasks then blink LEDs on PORTB at
- *   clearly different rates, demonstrating:
+ *   9.98 ms per tick). Four cooperative tasks blink LEDs on PORTB at distinct
+ *   rates, showing:
  *
  *     - Periodic tasks at different periods (led_fast / led_med / led_slow).
  *     - Priority ordering: the supervisor (priority 0) runs first each round.
- *     - Runtime task spawning: a periodic supervisor spawns one-shot "blip"
- *       children on the fly, the "spawn tasks, etc." part.
- *     - One-shot tasks (period 0): a blip runs once and auto-disables.
+ *     - Runtime task spawning: the periodic supervisor spawns one-shot blip
+ *       children at runtime.
+ *     - One-shot tasks (period 0): a blip runs once, then its slot is freed.
  *
- *   PORTB is chosen so the example builds unchanged for every device in the
+ *   PORTB is used so the example builds unchanged for every device in the
  *   family (the 28-pin PIC16F873A/876A have no PORTD/PORTE, but all have a
- *   full PORTB). Wiring (real target): an LED + resistor on each of
- *   RB0..RB3 to GND (active-high). 20 MHz HS crystal on OSC1/OSC2.
+ *   full PORTB). Wiring (real target): an LED and resistor on each of
+ *   RB0..RB3 to GND (active-high); a 20 MHz HS crystal on OSC1/OSC2.
  *
- *   On the host the harness bounds the run and the example reports the
- *   per-LED toggle counts to stdout; the test passes when the fast LED
- *   toggled more often than the medium, the medium more than the slow, and
- *   at least one blip was spawned, i.e. the four tasks really ran at four
- *   different rates. On a real target the loop never returns and the LEDs
- *   just blink forever.
+ *   On the host the harness bounds the run and the example reports per-LED
+ *   toggle counts to stdout; the test passes when the fast LED toggled more
+ *   often than the medium, the medium more than the slow, and at least one
+ *   blip was spawned. On a real target the loop never returns and the LEDs
+ *   blink forever.
  *
- *   Same execution-model seam as the HAL's own examples: the build links the
- *   host harness (which pumps the sim) or the target harness (real time), and
- *   `task_manager_run()` hides the bounded-vs-forever difference.
+ *   The build links the host harness (sim) or the target harness (real time)
+ *   via the HAL harness seam; `task_manager_run()` runs bounded on the host
+ *   and forever on the target.
  */
 
 #include "pic16f87xa.h"
@@ -45,19 +44,17 @@
 
 /**
  * @brief  Timer0 reload for a ~10 ms tick on a 20 MHz target.
- *         Fosc/4 = 5 MHz; prescaler 1:256 → 19531.25 Hz count rate → 51.2 µs
- *         per count. 256 - 195 = 61 → 195 counts × 51.2 µs ≈ 9.98 ms.
- *         The sim models the 1:256 prescaler (as 255) so a tick lands every
- *         ~49725 sim cycles; the plumbing is what matters, not the rate.
+ *         Fosc/4 = 5 MHz; prescaler 1:256 → a 51.2 µs count.
+ *         256 - 195 = 61 → 195 counts × 51.2 µs ≈ 9.98 ms per tick.
+ *         The sim reproduces the overflow/IRQ plumbing, not the wall-clock
+ *         rate.
  */
 #define TICK_RELOAD       61U
 #define TICK_PRESCALER    TIMER0_PRESCALER_1_256
 
-/** Bounded host run length. The sim clobbers the Timer0 reload after the
- *  ISR (a sim simplification), so the first tick is ~49725 cycles and later
- *  ticks ~65280; 4 M cycles yields ~61 ticks, enough for the period-40
- *  supervisor to fire and its one-shot blip to land (at tick 41), with the
- *  period-20 slow blink toggling a few times. Override with -DSIM_CYCLES=. */
+/** Host run length: long enough for the period-40 supervisor to fire, its
+ *  one-shot blip to land, and the period-20 slow blink to toggle a few times.
+ *  Override with -DSIM_CYCLES=. */
 #ifndef SIM_CYCLES
 #define SIM_CYCLES        4000000UL
 #endif
@@ -79,10 +76,9 @@
  *         between calls), so it stores it in a struct it owns and reaches
  *         via `arg`.
  *
- *         Deliberately pointer-free so it banks cleanly in the 192 B of RAM
- *         on the 28-pin PIC16F873A/876A: `pin` is a bit index (0..7), and
- *         `count` is a plain uint8_t toggle counter (max 255, far more
- *         than any visible blink rate needs).
+ *         Pointer-free so it banks in the 192 B of the 28-pin
+ *         PIC16F873A/876A: `pin` is a bit index (0..7), and `count` is a
+ *         uint8_t toggle counter.
  */
 typedef struct {
     GPIO_TypeDef      port;   /* Which port the LED lives on. */

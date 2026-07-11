@@ -16,7 +16,7 @@ typedef uint8_t task_id_t;               /* opaque task id */
 
 A task is a plain function that runs to completion and returns. It is called
 with the `arg` passed to `task_spawn`. Persist per-task state in storage reached
-through `arg` (a struct you own), not in locals, locals do not survive between
+through `arg` (a struct you own), not in locals, which do not survive between
 calls.
 
 ### `TASK_MGR_MAX_TASKS`
@@ -75,7 +75,7 @@ Change a task’s period at runtime. Takes effect on the next arming.
 
 Advance the scheduler by one tick. For each enabled task, decrement its
 countdown; when it reaches zero, mark the task ready and (for periodic tasks)
-reload the countdown to `period − 1`. One-shot tasks are marked ready
+reload the countdown to `period - 1`. One-shot tasks are marked ready
 immediately on their first tick.
 
 Call this from a timer interrupt service routine, typically the Timer0

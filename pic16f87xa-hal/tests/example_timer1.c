@@ -22,7 +22,7 @@
 #include "core/pic16f87xa_interrupt.h"
 #include <stdio.h>
 
-/** Total overflows we expect. */
+/** Expected overflow count. */
 #define EXPECTED_OVERFLOWS  3U
 /** Cycles between overflows at 1:1 prescaler = 0x10000 = 65536. */
 #define OVERFLOW_CYCLES     65536UL

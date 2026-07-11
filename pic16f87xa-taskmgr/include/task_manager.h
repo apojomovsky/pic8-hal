@@ -1,22 +1,20 @@
 /**
  * @file    task_manager.h
- * @brief   A tiny cooperative (non-preemptive) task scheduler for the
- *          PIC16F87XA family, "kinda like an RTOS, not an RTOS."
+ * @brief   Cooperative (non-preemptive) task scheduler for the PIC16F87XA
+ *          family: a scheduler, not an RTOS.
  *
  * @details
- *   A real preemptive RTOS is a poor fit for a PIC16F87XA: the core has no
+ *   A preemptive RTOS is a poor fit for a PIC16F87XA: the core has no
  *   software stack and only 192-368 B of RAM, so per-task stacks and context
- *   switching are off the table. This module gives the part of an RTOS that
- *   *does* make sense there: a single shared kernel stack (the ordinary
- *   call stack) and a scheduler that runs a set of registered tasks in a
- *   cooperative, priority-ordered round on each tick. No task is ever
- *   preempted mid-execution, each runs to completion and returns, exactly
- *   like an interrupt handler. That is the textbook "cooperative scheduler"
- *   shape, and it is what makes it *not* an RTOS.
+ *   switching are not feasible. This module provides a cooperative scheduler
+ *   instead: a single shared stack (the ordinary call stack) and a round of
+ *   registered tasks run in priority order on each tick. No task is ever
+ *   preempted; each runs to completion and returns, like an interrupt handler.
+ *   That makes it a scheduler, not an RTOS.
  *
- *   Two execution models are supported with the same source, reusing the
- *   HAL's host/target harness seam (core/pic16f87xa_harness.h), there is no
- *   `#ifdef` in the scheduler or in example code:
+ *   Two execution models are supported from the same source, with no
+ *   `#ifdef`, reusing the HAL's host/target harness seam
+ *   (core/pic16f87xa_harness.h):
  *
  *     - Host simulator: `task_manager_run()` calls `pic16f87xa_harness_tick()`
  *       each iteration, which pumps the simulated Timer0; its overflow ISR
@@ -28,22 +26,21 @@
  *       the main loop's `task_manager_run_once()` runs them. The loop never
  *       exits (firmware runs forever).
  *
- *   Time base: a single periodic "tick" drives the scheduler. The default
- *   helper `task_manager_attach_timer0()` wires a HAL Timer0 overflow to
- *   `task_manager_tick()`. Tick rate is set by the Timer0 reload + prescaler
+ *   Time base: a single periodic tick drives the scheduler. The helper
+ *   `task_manager_attach_timer0()` wires a HAL Timer0 overflow to
+ *   `task_manager_tick()`. Tick rate is set by the Timer0 reload and prescaler
  *   (real Fosc/4 timing on target; the sim reproduces the plumbing, not the
- *   wall-clock rate, same simplification the HAL's example_idle_blink
- *   documents). You may instead call `task_manager_tick()` from any other
- *   timer ISR; the scheduler does not care where the tick comes from.
+ *   wall-clock rate, as in the HAL's example_idle_blink). The tick may instead
+ *   come from any other timer ISR; the scheduler is agnostic to its source.
  *
- *   Concurrency: `task_manager_tick()` is intended to run in interrupt
- *   context while `task_manager_run_once()` runs in main context. The
- *   scheduler disables interrupts only for the brief snapshot of the
- *   ready set, then runs tasks with interrupts re-enabled, so a tick that
- *   arrives during a long task is not lost, it arms the task for the next
- *   round. The mutators (`task_spawn`, `task_stop`, `task_set_period`) take
- *   the same short critical section so they are safe to call from a running
- *   task (e.g. a supervisor task that spawns one-shot children at runtime).
+ *   Concurrency: `task_manager_tick()` runs in interrupt context while
+ *   `task_manager_run_once()` and the mutators run in main context. The
+ *   scheduler disables interrupts only for the brief snapshot of the ready
+ *   set, then runs tasks with interrupts re-enabled, so a tick that arrives
+ *   during a long task is not lost; it arms the task for the next round. The
+ *   mutators (`task_spawn`, `task_stop`, `task_set_period`) take the same
+ *   short critical section, so they are safe to call from a running task
+ *   (e.g. a supervisor that spawns one-shot children at runtime).
  *
  *   See examples/example_multi_blink.c for a complete, build-agnostic use.
  */
@@ -87,13 +84,13 @@ typedef uint8_t task_id_t;
 /**
  * @brief Task entry point. A task is a plain function that runs to
  *        completion and returns; it is called with the `arg` passed to
- *        @ref task_spawn. Keep it short, nothing else runs while it does.
+ *        @ref task_spawn. Keep it short; nothing else runs while it does.
  *
  *        A periodic task is called every `period_ticks` ticks; a one-shot
  *        task (period 0) is called once and then its slot is freed (so a
  *        periodic task that re-spawns one-shots never exhausts the table).
  *        Persist per-task state in storage reached through `arg` (a struct
- *        you own), not in locals, locals do not survive between calls.
+ *        you own), not in locals, which do not survive between calls.
  */
 typedef void (*task_fn_t)(void *arg);
 
@@ -103,7 +100,7 @@ typedef void (*task_fn_t)(void *arg);
  *        All fields are internal; users address tasks by @ref task_id_t.
  *
  *        The state bits (used / enabled / ready) are packed into one
- *        @ref flags byte rather than three bools, this keeps each TCB to
+ *        @ref flags byte rather than three bools, which keeps each TCB to
  *        ~12 B so the whole table banks cleanly into the 192 B parts.
  */
 typedef struct {
@@ -136,7 +133,7 @@ void task_manager_init(void);
  * @param  fn            Entry point (must not be NULL).
  * @param  arg          Opaque pointer passed back to `fn` (may be NULL).
  * @param  period_ticks  Call interval in scheduler ticks. 0 = one-shot
- *                       (called once on the next tick, then disabled).
+ *                       (called once on the next tick, then its slot is freed).
  *                       For periodic tasks the first call happens after
  *                       `period_ticks` ticks.
  * @param  priority      Scheduling priority within a round; lower numbers

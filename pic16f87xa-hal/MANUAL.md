@@ -263,8 +263,8 @@ Variables (all overridable on the command line):
 
 Output: `build/<MCU>-firmware.hex` (Intel HEX, via `-ginhx32`).
 
-The Makefile generates a Configuration Word source on the fly
-(`build/config_<MCU>.c`) with these directives, adjust to your board:
+The Makefile generates a Configuration Word source at build time
+(`build/config_<MCU>.c`) with these directives; adjust to your board:
 
 ```c
 #pragma config FOSC = HS     // high-speed crystal (≤ 20 MHz)
@@ -1069,7 +1069,7 @@ void     ADC_IRQHandler(void) PIC16F87XA_WEAK;
 
 ### 17.3 The acquisition-time step
 
-The driver deliberately splits channel-select and start so the
+The driver splits channel-select and start so the
 acquisition time (§11.1, ~20 µs at VDD = 5 V) can elapse between them:
 
 ```c

@@ -29,12 +29,12 @@ and the same source builds unchanged for a host **simulator** and real
 | | Component | What it is | Docs |
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part, with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
-| 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A tiny cooperative scheduler that builds on the HAL, spawn tasks, periodic + one-shot, priority-ordered, race-free. | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
+| 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
 
 ## Quick start
 
-Build and run the multi-blink example on the host simulator (needs only CMake
-3.16+ and a C99 compiler, it pulls the HAL in automatically):
+Build and run the multi-blink example on the host simulator (CMake 3.16+ and a
+C99 compiler; the HAL is pulled in automatically):
 
 ```sh
 cmake -B build -S pic16f87xa-taskmgr
@@ -58,9 +58,9 @@ You should see the scheduler dispatch tasks tick by tick:
 done: fast=12 med=6 slow=3 blips=1 (ticks=61, tasks=4)
 ```
 
-…four blinks at clearly different rates on RB0-RB3, plus a priority-0
-supervisor task that **spawns a one-shot blip on the fly** at t=40 (it runs
-at t=41, then frees its slot).
+Four blinks at distinct rates on RB0-RB3, plus a priority-0 supervisor that
+**spawns a one-shot blip at runtime** at t=40 (it runs at t=41, then frees its
+slot).
 
 ### Real hardware
 
@@ -80,13 +80,13 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 ## Documentation
 
 - **HAL**
-  - [README](pic16f87xa-hal/README.md), overview, build, the simulation middleware
-  - [MANUAL.md](pic16f87xa-hal/MANUAL.md), the full human-readable manual (architecture, both builds, per-peripheral reference)
+  - [README](pic16f87xa-hal/README.md): overview, build, simulation middleware
+  - [MANUAL.md](pic16f87xa-hal/MANUAL.md): the full manual (architecture, both builds, per-peripheral reference)
 - **Task manager**
-  - [README](pic16f87xa-taskmgr/README.md), overview, quick start, demo
-  - [docs/ARCHITECTURE.md](pic16f87xa-taskmgr/docs/ARCHITECTURE.md), the cooperative model, tick source, concurrency, RAM scaling, constraints
-  - [docs/API.md](pic16f87xa-taskmgr/docs/API.md), full API reference
-- **Datasheet**, [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) (also included locally as `39582b.pdf`)
+  - [README](pic16f87xa-taskmgr/README.md): overview, quick start, demo
+  - [docs/ARCHITECTURE.md](pic16f87xa-taskmgr/docs/ARCHITECTURE.md): cooperative model, tick source, concurrency, RAM scaling, constraints
+  - [docs/API.md](pic16f87xa-taskmgr/docs/API.md): full API reference
+- **Datasheet**: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) (also included locally as `39582b.pdf`)
 
 ## Repository layout
 
@@ -121,9 +121,8 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT; see [LICENSE](LICENSE).
 
 The Microchip datasheet DS39582B (included as `39582b.pdf`) is © 2003 Microchip
-Technology Inc.; register and bit names cited throughout the code follow it
-directly. The datasheet is provided here for convenience, remove it from your
-fork if you prefer not to redistribute vendor documentation.
+Technology Inc.; register and bit names in the code follow it directly. Remove
+the PDF from your fork if you do not want to redistribute vendor documentation.

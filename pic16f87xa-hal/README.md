@@ -140,7 +140,7 @@ with the section of DS39582B it came from. Examples:
 - `pic16f87xa_gpio.c` → `HAL_GPIO_Init()` cites §4.x
 - `core/pic16f87xa_interrupt.h` → every IRQn cites §14.11
 
-If you find a deviation, that's a bug.
+Any deviation from the datasheet is a bug.
 
 ## API conventions
 
@@ -154,5 +154,5 @@ Mirror STM32Cube as closely as makes sense for an 8-bit PIC:
 - Status codes: `PIC16F87XA_OK / ERROR / BUSY / TIMEOUT / INVALID`
 - IRQ enum: `PIC16F87XA_IRQ_TMR0 / _TMR1 / _CCP1 / ...`
 
-Cube users will feel at home. PIC users will see familiar peripheral names
-with the abstraction they always wished for.
+Cube users get a familiar API; PIC users get familiar peripherals with a
+consistent abstraction.

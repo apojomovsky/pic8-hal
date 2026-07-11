@@ -145,8 +145,8 @@ uint8_t HAL_USART_GetRX9D(void)
 void USART_TX_IRQHandler(void)
 {
     if (!PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IRQ_USART_TX)) return;
-    /* TXIF is read-only and cleared by writing TXREG, there is nothing
-     * to clear here. We just call the user callback. */
+    /* TXIF is read-only and cleared by writing TXREG; there is nothing
+     * to clear here, just call the user callback. */
     if (g_usart && g_usart->TxCpltCallback) g_usart->TxCpltCallback();
 }
 

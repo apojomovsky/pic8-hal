@@ -179,11 +179,10 @@ static void sim_step_timer1(void)
     if (!(t1con & 0x01U)) return;     /* TMR1ON = 0 → stopped. */
     /* TMR1CS = 1 (external clock / T1OSC): the sim does not model a real
      * external signal, so it advances the counter at the configured
-     * prescaler rate per instruction cycle, a sim simplification that
-     * lets T1OSC-based firmware (e.g. example_idle_blink) run on the host
-     * with the same Timer1 configuration a real target uses. The 32 kHz
-     * crystal's actual rate is not reproduced; only the overflow/IRQ
-     * plumbing is exercised. */
+     * prescaler rate per instruction cycle. This lets T1OSC-based firmware
+     * (e.g. example_idle_blink) run on the host with the same Timer1
+     * configuration a real target uses. The 32 kHz crystal's actual rate is
+     * not reproduced; only the overflow/IRQ plumbing is exercised. */
 
     static const uint8_t ps_idx[4] = {1, 2, 4, 8};
     uint32_t rate = ps_idx[(t1con >> 4) & 0x3U];

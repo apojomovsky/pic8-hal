@@ -116,8 +116,8 @@ void HAL_GPIO_DeInit(GPIO_TypeDef port);
 /**
  * @brief  Drive a pin high or low. Reads-modify-writes the PORTx latch
  *         directly (DS39582B §4.x "write is read-modify-write of the
- *         port pins", but writes only update the latch; we follow the
- *         recommended BSF/BCF idiom that masks the latch).
+ *         port pins", but writes only update the latch; this driver follows
+ *         the recommended BSF/BCF idiom that masks the latch).
  */
 void HAL_GPIO_WritePin(GPIO_TypeDef port, uint16_t pins, GPIO_PinState state);
 

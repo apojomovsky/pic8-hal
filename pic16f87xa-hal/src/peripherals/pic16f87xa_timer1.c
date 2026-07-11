@@ -17,8 +17,8 @@ static const TIMER1_HandleTypeDef *g_t1_handle = NULL;
  *  (DS39582B §6.4.1). Wrap that risk here so callers don't have to. */
 uint16_t HAL_TIMER1_ReadCounter(void)
 {
-    /* Read high byte, then low byte, then high byte again, if the
-     * second read differs, the low byte rolled over and we use the
+    /* Read high byte, then low byte, then high byte again; if the
+     * second read differs, the low byte rolled over, so use the
      * refreshed high. Standard PIC16 idiom (DS39582B §6.4.1). */
     uint8_t hi1, lo, hi2;
     do {
