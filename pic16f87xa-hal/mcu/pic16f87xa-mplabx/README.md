@@ -7,10 +7,12 @@ PIC16F87XA HAL for a real PIC16F877A target.
 
 The HAL compiles on XC8 because:
 
-- The SFR macros in `include/pic16f87xa.h` resolve to volatile
-  direct-access on real targets (`*(volatile uint8_t *)(addr)`).
-- `pic16f87xa_sim.c` is excluded by the `PIC16F87XA_USE_SIMULATOR`
-  define — XC8 never sees that translation unit.
+- The SFR macros resolve to volatile direct-access on real targets via
+  `include/target/pic16f87xa_platform.h` (the Makefile puts
+  `include/target` ahead of `include` on the include path).
+- `pic16f87xa_sim.c` and the host-side harness / WDT-sleep
+  implementations are simply not in this build's source list — XC8 never
+  links them.
 - The weak ISRs (`TIMER0_IRQHandler`, `ADC_IRQHandler`, …) and the
   `clrwdt` / `sleep` asm helpers compile to native instructions on
   XC8.

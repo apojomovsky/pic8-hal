@@ -7,7 +7,7 @@
  *   cycles; the test counts the number of overflows.
  *
  * Build:
- *   cc -std=c99 -DPIC16F877A -DPIC16F87XA_USE_SIMULATOR -Iinclude \
+ *   cc -std=c99 -DPIC16F877A -Iinclude/host -Iinclude \
  *      tests/example_timer1.c \
  *      src/peripherals/pic16f87xa_timer1.c \
  *      src/core/pic16f87xa_interrupt.c \

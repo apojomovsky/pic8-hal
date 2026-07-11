@@ -1,35 +1,17 @@
 /**
  * @file    pic16f87xa_wdt_sleep.c
- * @brief   WDT refresh, Sleep, BOR/POR status — implementation.
+ * @brief   BOR / POR status helpers — shared by both builds.
  *
- *   On a real XC8 target, HAL_WDT_Refresh and HAL_Sleep_Enter are
- *   inline asm. On the host simulation backend they are no-ops.
- *
- *   We branch on PIC16F87XA_USE_SIMULATOR (set by the sim build) to
- *   pick the implementation; the sim build never emits SLEEP/CLRWDT
- *   asm instructions.
+ * @details
+ *   The build-mode-specific helpers HAL_WDT_Refresh and HAL_Sleep_Enter
+ *   live in pic16f87xa_wdt_sleep_sim.c (host) and
+ *   pic16f87xa_wdt_sleep_target.c (XC8), selected at link time. The BOR/POR
+ *   status helpers below are identical on both builds — they just read and
+ *   clear bits in PCON through the platform SFR macro — so they stay here
+ *   as one shared translation unit.
  */
 
 #include "core/pic16f87xa_wdt_sleep.h"
-
-void HAL_WDT_Refresh(void)
-{
-#if defined(PIC16F87XA_USE_SIMULATOR)
-    /* No-op: the sim does not model a watchdog timer. */
-#else
-    asm("clrwdt");
-#endif
-}
-
-void HAL_Sleep_Enter(void)
-{
-#if defined(PIC16F87XA_USE_SIMULATOR)
-    /* No-op: the sim does not stop execution. Callers should keep
-     * driving pic16f87xa_sim_step() to advance time. */
-#else
-    asm("sleep");
-#endif
-}
 
 /* PCON bits (DS39582B §14.10, Register 14-2). */
 #define PIC_PCON_BOR   PIC16F87XA_BIT(0)

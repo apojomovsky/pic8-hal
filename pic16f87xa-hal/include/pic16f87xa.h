@@ -122,59 +122,23 @@ typedef enum {
 #define PIC16F87XA_BIT_READ(reg, mask)          ((reg) &   (uint8_t)(mask))
 /** @} */
 
-/**
- * @brief   Compiler-agnostic weak attribute. Falls back to GCC/Clang
- *          `__attribute__((weak))` on host builds; on XC8 nothing is
- *          emitted (XC8 has no concept of weak symbols).
- */
-#if defined(__XC8) || defined(_HITECH_)
-  #define PIC16F87XA_WEAK
-#else
-  #define PIC16F87XA_WEAK   __attribute__((weak))
-#endif
-
-/* ───────────────────────── SFR mapping layer ────────────────────── */
-
+/* ───────────── platform: SFR mapping + weak attribute ───────────── */
 /**
  * @defgroup PIC16F87XA_SFR Special Function Register mapping
- * @brief   Pre-processor layer that gives every SFR either a real
- *          volatile backing store (XC8 target) or a host-side memory cell
- *          (simulation backend).
+ * @brief   How every SFR is stored and how the weak attribute is spelled.
  *
  * The same source code reads `pic16f87xa_sfr_read8(0x05)` (or uses the
- * convenience macro `PORTA`) on both targets, but the implementation is
- * chosen at compile time by `PIC16F87XA_USE_SIMULATOR`.
- *
- * On a real PIC, `PORTA` resolves to `*(volatile uint8_t *)&0x05`, which
- * the XC8 linker maps to the actual SFR. On the host, the same address
- * indexes a 256-byte RAM-backed register file that tests can poke.
+ * convenience macro `PIC16F87XA_REG8`) on both builds, but the
+ * implementation is chosen by the build's include path, not by `#ifdef`:
+ * the CMake host build resolves `pic16f87xa_platform.h` to
+ * `include/host/...` (a 512-byte memory-backed register file), and the
+ * XC8 Makefile resolves it to `include/target/...` (direct volatile
+ * dereference of the literal SFR address). See those two headers for the
+ * exact macros; @ref PIC16F87XA_WEAK is likewise defined there.
  * @{
  */
-#if defined(PIC16F87XA_USE_SIMULATOR)
-  /* Host simulation backend — see src/sim/pic16f87xa_sim.c. */
-  extern uint8_t pic16f87xa_sim_sfr[0x200];
-  #define PIC16F87XA_SFR_PTR(addr)     (&pic16f87xa_sim_sfr[(uint16_t)(addr)])
-  #define pic16f87xa_sfr_read8(addr)   (pic16f87xa_sim_sfr[(uint16_t)(addr)])
-  #define pic16f87xa_sfr_write8(addr, v)                                      \
-      do { pic16f87xa_sim_sfr[(uint16_t)(addr)] = (uint8_t)(v); } while (0)
-#else
-  /* Real target — direct volatile access.  Cast the SFR address
-   * through `uintptr_t` so XC8 does not warn about converting a
-   * `uint8_t` to a pointer. */
-  #include <stdint.h>
-  #define PIC16F87XA_SFR_PTR(addr)     ((volatile uint8_t *)(uintptr_t)(addr))
-  #define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(uintptr_t)(addr))
-  #define pic16f87xa_sfr_write8(addr, v)                                      \
-      do { *(volatile uint8_t *)(uintptr_t)(addr) = (uint8_t)(v); } while (0)
-#endif
+#include "pic16f87xa_platform.h"
 /** @} */
-
-/* Convenience: address of a register as a uint8_t lvalue. */
-#if defined(PIC16F87XA_USE_SIMULATOR)
-  #define PIC16F87XA_REG8(addr)  (pic16f87xa_sim_sfr[(uint16_t)(addr)])
-#else
-  #define PIC16F87XA_REG8(addr)  (*(volatile uint8_t *)(uintptr_t)(addr))
-#endif
 
 #ifdef __cplusplus
 }

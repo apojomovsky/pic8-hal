@@ -3,9 +3,10 @@
  * @brief   Public API for the PIC16F87XA host simulation backend.
  *
  * @details
- *   Compiling with `-DPIC16F87XA_USE_SIMULATOR` redirects every SFR access
- *   into a host-side register file (see @ref pic16f87xa_sfr.h). The hooks
- *   declared here let the host application:
+ *   On the host build every SFR access indexes a host-side register file
+ *   (the platform header include/host/pic16f87xa_platform.h, see
+ *   @ref pic16f87xa_sfr.h). The hooks declared here let the host
+ *   application:
  *     - drive external input pins (e.g. simulate a button press on RB0),
  *     - read output-pin levels as an external load would see them,
  *     - advance the simulated timers / A/D / USART by N instruction

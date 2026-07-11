@@ -55,7 +55,9 @@ else
 endif
 
 CC     := xc8-cc
-INC    := -I$(HAL_DIR)/include
+# include/target ahead of include so pic16f87xa_platform.h resolves to the
+# real-target (volatile-dereference) version, not the host memory-backed one.
+INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include
 CFLAGS := $(DFP_FLAG) \
           -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
           -O2 -std=c99 -Wall -Wextra \
@@ -65,9 +67,10 @@ CFLAGS := $(DFP_FLAG) \
 
 # ─────────────────────────── source layout ─────────────────────────
 # The HAL sources in src/ compile for both host (sim) and target.
-# The sim/ subdirectory is NOT compiled on real targets — its
-# PIC16F87XA_USE_SIMULATOR define is never set, so pic16f87xa_sim.c
-# will resolve to the real-target direct-access path.
+# The sim/ subdirectory is NOT compiled on real targets — XC8 never
+# links pic16f87xa_sim.c. The host/target SFR mapping is chosen by the
+# include path (include/target first), and the host-only harness /
+# wdt_sleep-sim implementations are simply absent from this source list.
 
 HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_gpio.c     \
@@ -83,6 +86,7 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_eeprom.c   \
   $(HAL_DIR)/src/core/pic16f87xa_interrupt.c       \
   $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep.c       \
+  $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep_target.c \
   $(HAL_DIR)/src/core/pic16f87xa_isr_vector.c       \
   $(HAL_DIR)/src/core/pic16f87xa_irq_dispatch.c    \
   $(HAL_DIR)/src/core/pic16f87xa_harness_target.c

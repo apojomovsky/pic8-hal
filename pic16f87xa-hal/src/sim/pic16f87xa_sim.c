@@ -4,8 +4,8 @@
  *
  * @details
  *   Provides `pic16f87xa_sim_sfr[]`, the 512-byte memory-backed
- *   register file that the pre-processor SFR macros dereference when
- *   PIC16F87XA_USE_SIMULATOR is defined.  The peripheral models
+ *   register file that the host SFR macros (in
+ *   include/host/pic16f87xa_platform.h) dereference.  The peripheral models
  *   (Timer0/1/2, ADC, USART, MSSP, EEPROM, etc.) are listed in the
  *   functions below; the sim never bit-bangs external pins — the test
  *   rig drives and observes them through the public helpers in

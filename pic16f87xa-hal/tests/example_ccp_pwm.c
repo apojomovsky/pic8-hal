@@ -15,7 +15,7 @@
  *   and counts TMR2 overflows to confirm the period.
  *
  * Build:
- *   cc -std=c99 -DPIC16F877A -DPIC16F87XA_USE_SIMULATOR -Iinclude \
+ *   cc -std=c99 -DPIC16F877A -Iinclude/host -Iinclude \
  *      tests/example_ccp_pwm.c \
  *      src/peripherals/pic16f87xa_ccp.c \
  *      src/peripherals/pic16f87xa_timer2.c \

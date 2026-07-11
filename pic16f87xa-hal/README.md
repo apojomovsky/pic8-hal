@@ -67,27 +67,46 @@ cmake --build build
 
 ## Build (real target)
 
-The HAL compiles against XC8 via the same sources — `PIC16F87XA_USE_SIMULATOR`
-is **not** set on a real target, and the SFR macros resolve to direct
-volatile pointer access. The MPLAB X project lives under
-`mcu/pic16f87xa-mplabx/`; its Makefile produces `<MCU>-firmware.hex`
+The HAL compiles against XC8 via the same sources. The host/target split
+is done at **build time, not with `#ifdef`**: the XC8 Makefile puts
+`include/target` ahead of `include` on the include path, so
+`pic16f87xa_platform.h` resolves to the real-target version (SFR macros
+= direct volatile dereference) and the target-side harness / WDT-sleep /
+interrupt-vector implementations are linked. The MPLAB X project lives
+under `mcu/pic16f87xa-mplabx/`; its Makefile produces `<MCU>-firmware.hex`
 via `xc8-cc`.
 
 ## The simulation middleware
 
-The same source file works on host and on-target thanks to a single
-pre-processor switch in `include/pic16f87xa.h`:
+The same source file works on host and on-target with **no `#ifdef` around
+code**: the build selects the platform by include path, and the
+execution-model differences by which harness implementation it links.
+
+`include/pic16f87xa.h` pulls in `pic16f87xa_platform.h`, which exists in
+two same-named copies:
 
 ```c
-#if defined(PIC16F87XA_USE_SIMULATOR)
-  extern uint8_t pic16f87xa_sim_sfr[0x200];
-  #define pic16f87xa_sfr_read8(addr)   (pic16f87xa_sim_sfr[(uint16_t)(addr)])
-  #define pic16f87xa_sfr_write8(addr, v) pic16f87xa_sim_sfr[(uint16_t)(addr)] = (v)
-#else
-  #define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(addr))
-  #define pic16f87xa_sfr_write8(addr, v) (*(volatile uint8_t *)(addr)) = (v)
-#endif
+/* include/host/pic16f87xa_platform.h  (CMake build) */
+extern uint8_t pic16f87xa_sim_sfr[0x200];
+#define pic16f87xa_sfr_read8(addr)   (pic16f87xa_sim_sfr[(uint16_t)(addr)])
+#define pic16f87xa_sfr_write8(addr, v) pic16f87xa_sim_sfr[(uint16_t)(addr)] = (v)
+
+/* include/target/pic16f87xa_platform.h  (XC8 build) */
+#define pic16f87xa_sfr_read8(addr)   (*(volatile uint8_t *)(uintptr_t)(addr))
+#define pic16f87xa_sfr_write8(addr, v) (*(volatile uint8_t *)(uintptr_t)(addr)) = (v)
 ```
+
+CMake puts `include/host` first on the include path; the XC8 Makefile puts
+`include/target` first — so the one `#include "pic16f87xa_platform.h"` in
+`pic16f87xa.h` resolves to the right copy per build, with no preprocessor
+branching.
+
+Likewise the test/firmware harness (`core/pic16f87xa_harness.h`) and the
+WDT/Sleep helpers are each provided by two implementation files —
+`*_sim.c` linked by CMake, `*_target.c` linked by the XC8 Makefile — so
+examples call `pic16f87xa_harness_init/tick/running/log`,
+`HAL_WDT_Refresh`, `HAL_Sleep_Enter` unconditionally and the build picks
+the behaviour. See `core/pic16f87xa_harness.h` for the rationale.
 
 On host, every SFR read/write is a memory access into a 512-byte array
 (`pic16f87xa_sim_sfr`). On a real PIC, the same macro dereferences the
@@ -102,8 +121,8 @@ The simulation backend additionally:
 - Lets the host application drive external pin levels
   (`pic16f87xa_sim_drive_input`) and observe what the chip is
   driving (`pic16f87xa_sim_read_output`).
-- Forwards simulated interrupts to a user callback
-  (`pic16f87xa_sim_set_irq_callback`).
+- Forwards simulated interrupts to the shared dispatcher
+  (`pic16f87xa_dispatch_all_irqs`, registered by the host harness).
 
 This means **the same `tests/example_blink.c` compiles unchanged for
 host simulation or for an XC8-built firmware targeting a real PIC**.
