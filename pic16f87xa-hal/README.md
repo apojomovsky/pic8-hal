@@ -4,6 +4,10 @@ Hardware abstraction layer for the **PIC16F873A / 874A / 876A / 877A** family,
 inspired by the STM32Cube HAL API. Every constant, register address and
 behaviour is taken 1-to-1 from the datasheet [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf).
 
+➜ **[MANUAL.md](MANUAL.md)** is the full, human-readable manual —
+architecture, both builds, the simulator, the harness, and a per-peripheral
+reference. Start there if you are new to the HAL.
+
 ## Status
 
 Done so far:
