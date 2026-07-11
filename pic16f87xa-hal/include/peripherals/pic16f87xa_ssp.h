@@ -30,10 +30,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief SSP mode select (SSPCON<3:0>, Registers 9-2 / 9-4).
  */
@@ -154,9 +150,5 @@ uint8_t HAL_SSP_AcknowledgeStatus(void);
 /* ───────────────────────── interrupts ───────────────────────────── */
 
 void SSP_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_SSP_H */

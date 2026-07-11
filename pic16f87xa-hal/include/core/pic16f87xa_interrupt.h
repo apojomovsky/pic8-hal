@@ -33,10 +33,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Logical identity of every interrupt source on the part.
  *        Used as the parameter for enable / disable / clear / status calls.
@@ -105,9 +101,5 @@ uint8_t PIC16F87XA_IRQ_GetFlag(PIC16F87XA_IrqTypeDef irq);
  *         unless its own flag is set. Defined in pic16f87xa_irq_dispatch.c.
  */
 void pic16f87xa_dispatch_all_irqs(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_INTERRUPT_H */

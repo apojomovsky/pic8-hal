@@ -25,10 +25,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Prescaler ratio (T2CON<T2CKPS1:T2CKPS0>, DS39582B §7.0, Reg 7-1).
  */
@@ -94,9 +90,5 @@ uint16_t HAL_TIMER2_PostscalerToRatio(TIMER2_PostscalerTypeDef p);
 
 /** Weak Timer2 ISR — override in user code to add application logic. */
 void TIMER2_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_TIMER2_H */

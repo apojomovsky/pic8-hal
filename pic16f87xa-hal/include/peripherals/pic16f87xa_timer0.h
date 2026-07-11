@@ -28,10 +28,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Timer0 clock source (OPTION_REG<T0CS>, DS39582B §5.0, Reg 5-1).
  */
@@ -135,9 +131,5 @@ void HAL_TIMER0_WriteCounter(uint8_t value);
  *         Used by callers that need the ratio to compute overflow periods.
  */
 uint16_t HAL_TIMER0_PrescalerToRatio(TIMER0_PrescalerTypeDef p);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_TIMER0_H */

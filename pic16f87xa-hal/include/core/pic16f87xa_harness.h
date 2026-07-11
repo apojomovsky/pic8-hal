@@ -49,10 +49,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief  Harness start-up. On the host this resets the simulated CPU and
  *         wires the sim IRQ callback to the shared dispatcher; `cycles`
@@ -92,9 +88,5 @@ static inline int pic16f87xa_harness_report(int ok)
 {
     return ok ? 0 : 1;
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_HARNESS_H */

@@ -25,10 +25,6 @@
 #include <stdbool.h>
 #include "pic16f87xa.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Initialize the simulation backend and reset every SFR to its
  *        power-on-reset value. Must be called before any HAL call.
@@ -99,9 +95,5 @@ void pic16f87xa_sim_drive_eeprom_byte(uint8_t addr, uint8_t data);
  *        set PIR2<EEIF>.
  */
 void pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_SIM_H */

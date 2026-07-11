@@ -27,10 +27,6 @@
 #ifndef PIC16F87XA_H
 #define PIC16F87XA_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* ───────────────────────── standard types ───────────────────────── */
 
 #include <stdint.h>
@@ -139,9 +135,5 @@ typedef enum {
  */
 #include "pic16f87xa_platform.h"
 /** @} */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_H */

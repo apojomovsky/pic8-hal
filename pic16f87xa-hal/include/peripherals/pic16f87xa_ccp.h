@@ -30,10 +30,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Which CCP module a handle refers to.
  */
@@ -129,9 +125,5 @@ void HAL_CCP_SetPWMDuty(CCP_InstanceTypeDef inst, uint16_t duty);
 void CCP1_IRQHandler(void) PIC16F87XA_WEAK;
 /** Weak CCP2 ISR — override in user code. */
 void CCP2_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_CCP_H */

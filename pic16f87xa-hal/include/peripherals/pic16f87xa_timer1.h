@@ -32,10 +32,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Timer1 clock source (T1CON<TMR1CS>, DS39582B Register 6-1).
  */
@@ -112,9 +108,5 @@ uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p);
 
 /** Weak Timer1 ISR — override in user code to add application logic. */
 void TIMER1_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_TIMER1_H */

@@ -34,10 +34,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #if !PIC16F87XA_FAMILY_HAS_PSP
 #error "pic16f87xa_psp.h is for 40/44-pin PIC16F87XA parts only"
 #endif
@@ -64,9 +60,5 @@ uint8_t HAL_PSP_HasInputOverflow(void);
 void HAL_PSP_ClearInputOverflow(void);
 
 void PSP_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_PSP_H */

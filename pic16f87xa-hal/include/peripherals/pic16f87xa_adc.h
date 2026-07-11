@@ -30,10 +30,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief A/D channel (ADCON0<CHS2:CHS0>, Register 11-1).
  *        AN0..AN4 valid on all parts; AN5..AN7 only on 40/44-pin.
@@ -163,9 +159,5 @@ uint16_t HAL_ADC_Read(void);
 /* ───────────────────────── interrupts ───────────────────────────── */
 
 void ADC_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_ADC_H */

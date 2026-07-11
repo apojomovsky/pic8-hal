@@ -20,10 +20,6 @@
 
 #include "pic16f87xa.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* ───────────────────────── Bank 0 — core SFRs ───────────────────── */
 
 /** Indirect address pointer.                    DS39582B §2.2, addr 00h. */
@@ -365,9 +361,5 @@ static inline void pic_select_bank(uint8_t bank)
     status |= (uint8_t)((bank & 0x03U) << 5);
     PIC16F87XA_REG8(PIC_REG_STATUS) = status;
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_SFR_H */

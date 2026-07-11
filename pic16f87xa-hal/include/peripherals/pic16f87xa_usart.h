@@ -27,10 +27,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief USART mode (TXSTA<SYNC>, DS39582B Register 10-1).
  */
@@ -147,9 +143,5 @@ uint8_t HAL_USART_GetRX9D(void);
 void USART_RX_IRQHandler(void) PIC16F87XA_WEAK;
 /** Weak USART TX ISR — override in user code. */
 void USART_TX_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_USART_H */

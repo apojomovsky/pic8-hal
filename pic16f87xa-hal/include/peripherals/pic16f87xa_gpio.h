@@ -24,10 +24,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief GPIO port identifier. Matches the Cube convention where
  *        `GPIOx` selects the port (x = A..E).
@@ -150,9 +146,5 @@ uint8_t HAL_GPIO_ReadPort(GPIO_TypeDef port);
  * @note   OPTION_REG<7> is inverted: RBPU = 1 disables pull-ups.
  */
 void HAL_GPIO_SetPullups(GPIO_PullTypeDef pull);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_GPIO_H */

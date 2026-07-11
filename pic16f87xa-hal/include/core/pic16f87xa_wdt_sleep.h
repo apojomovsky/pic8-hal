@@ -31,10 +31,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief  Refresh the Watchdog Timer by executing the `clrwdt` asm
  *         instruction (or the equivalent macro in the simulator).
@@ -72,9 +68,5 @@ uint8_t HAL_POR_GetStatus(void);
 
 /** Clear PCON<POR>. */
 void HAL_POR_ClearFlag(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_WDT_SLEEP_H */

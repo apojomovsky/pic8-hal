@@ -33,10 +33,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Comparator operating mode (CMCON<CM2:CM0>, Figure 12-1).
  */
@@ -85,9 +81,5 @@ uint8_t HAL_COMP_IsChangeFlag(void);
 void HAL_COMP_ClearChangeFlag(void);
 
 void COMP_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_COMP_H */

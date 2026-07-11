@@ -23,10 +23,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief Voltage-reference range select (CVRCON<CVRR>, Register 13-1).
  */
@@ -60,9 +56,5 @@ PIC16F87XA_StatusTypeDef HAL_VREF_DeInit(void);
 uint32_t HAL_VREF_MilliVolts(uint32_t vdd_mv,
                              VREF_RangeTypeDef range,
                              uint8_t value);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_VREF_H */

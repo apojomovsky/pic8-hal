@@ -30,10 +30,6 @@
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @brief  Initialize the EEPROM driver. Programs PIE2<EEIE> if
  *         `callback` is non-NULL. */
@@ -74,9 +70,5 @@ uint8_t HAL_EEPROM_IsWriteComplete(void);
 void HAL_EEPROM_ClearITFlag(void);
 
 void EEPROM_IRQHandler(void) PIC16F87XA_WEAK;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* PIC16F87XA_EEPROM_H */
