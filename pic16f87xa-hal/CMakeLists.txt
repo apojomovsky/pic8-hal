@@ -50,6 +50,7 @@ set(HAL_SOURCES_CORE
     src/peripherals/pic16f87xa_eeprom.c
     src/core/pic16f87xa_interrupt.c
     src/core/pic16f87xa_wdt_sleep.c
+    src/core/pic16f87xa_isr_vector.c
     src/sim/pic16f87xa_sim.c
 )
 
@@ -69,6 +70,13 @@ target_compile_definitions(example_blink PRIVATE
     -DPIC16F87XA_USE_SIMULATOR
 )
 target_link_libraries(example_blink PRIVATE pic16f87xa_hal)
+
+add_executable(example_idle_blink tests/example_idle_blink.c)
+target_compile_definitions(example_idle_blink PRIVATE
+    -D${PIC16F87XA_DEFAULT_DEVICE}
+    -DPIC16F87XA_USE_SIMULATOR
+)
+target_link_libraries(example_idle_blink PRIVATE pic16f87xa_hal)
 
 add_executable(example_timer1 tests/example_timer1.c)
 target_compile_definitions(example_timer1 PRIVATE

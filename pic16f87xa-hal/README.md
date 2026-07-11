@@ -26,8 +26,9 @@ Done so far:
 - ✅ **EEPROM driver** (read/write/buffer, mandatory 0x55/0xAA unlock, weak ISR)
 - ✅ **PSP driver** (40/44-pin only — TRISE PSPMODE, IBF/OBF/IBOV flag helpers)
 - ✅ **WDT / BOR / Sleep helpers** (clrwdt / sleep asm, PCON BOR/POR flags)
+- ✅ **XC8 interrupt-vector dispatcher** (`src/core/pic16f87xa_isr_vector.c`) — single `__interrupt()` handler routes the vector at 0x0004 to every peripheral's IRQHandler on a real target. The host sim uses `pic16f87xa_sim_set_irq_callback()` instead.
 - ✅ **MPLAB X / XC8 project template** (Makefile + `nbproject/configurations.xml`)
-- ✅ End-to-end tests: `example_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
+- ✅ End-to-end tests: `example_blink`, `example_idle_blink`, `example_timer1`, `example_timer2`, `example_ccp_pwm`, `example_usart`, `example_ssp`, `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`, `example_wdt_sleep`
 
 **All planned peripherals + XC8 build glue done.**
 

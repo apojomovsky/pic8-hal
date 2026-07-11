@@ -82,7 +82,8 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_vref.c     \
   $(HAL_DIR)/src/peripherals/pic16f87xa_eeprom.c   \
   $(HAL_DIR)/src/core/pic16f87xa_interrupt.c       \
-  $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep.c
+  $(HAL_DIR)/src/core/pic16f87xa_wdt_sleep.c       \
+  $(HAL_DIR)/src/core/pic16f87xa_isr_vector.c
 
 # PSP is only on 40/44-pin parts.
 ifeq ($(filter $(MCU),16F874A 16F877A),$(MCU))
