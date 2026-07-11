@@ -97,25 +97,46 @@ static blink_arg_t arg_blip = { GPIOB, 3U, 0U };   /* RB3 (spawned at runtime) *
 
 /* ───────────────────────── tasks ──────────────────────────────────── */
 
-/** Periodic blink task: toggle the LED described by @ref blink_arg_t and
- *  bump its toggle count. Runs to completion each time the scheduler calls
- *  it. The same function serves all four LEDs — each carries its own arg. */
+/** Map a LED's pin index to a short label for the log. The string literals
+ *  live in program space (not RAM), so this costs no data memory — important
+ *  on the 192 B parts. Padded to 4 chars so the log columns line up. */
+static const char *led_name(uint8_t pin)
+{
+    switch (pin) {
+        case 0: return "fast";
+        case 1: return "med ";
+        case 2: return "slow";
+        case 3: return "blip";
+        default: return "?   ";
+    }
+}
+
+/** Periodic blink task: toggle the LED described by @ref blink_arg_t, bump
+ *  its toggle count, and log a line so the run is visible as it happens
+ *  (a stream of dispatches rather than one summary at the end). The log is
+ *  a no-op on a real target (no stdout), so this is free there. The same
+ *  function serves all four LEDs — each carries its own arg. */
 static void task_blink(void *arg)
 {
     blink_arg_t *a = (blink_arg_t *)arg;
     HAL_GPIO_TogglePin(a->port, PIC16F87XA_BIT(a->pin));
     a->count++;
+    pic16f87xa_harness_log("[t=%3u] %s  #%u\n",
+                           (unsigned)task_manager_ticks(),
+                           led_name(a->pin), (unsigned)a->count);
 }
 
 /** Periodic supervisor (priority 0 — runs first each round): every
  *  PERIOD_SUPERVISOR ticks, spawn a fresh one-shot blip on RB3. This is a
  *  task spawning another task at runtime, from inside a running task — the
  *  "etc." The blip fires once on the next tick, toggles RB3, and the
- *  scheduler auto-disables it (period 0). */
+ *  scheduler frees its slot (period 0). */
 static void task_supervisor(void *arg)
 {
     (void)arg;
     task_spawn(task_blink, &arg_blip, 0U, 2U);   /* one-shot (period 0) */
+    pic16f87xa_harness_log("[t=%3u] super  spawned blip\n",
+                           (unsigned)task_manager_ticks());
 }
 
 int main(void)
@@ -149,9 +170,9 @@ int main(void)
      *    SIM_CYCLES; on the target it runs forever. */
     task_manager_run();
 
-    /* 5. Host-only epilogue: report the per-LED toggle counts. On the
+    /* 5. Host-only epilogue: the verdict after the dispatch stream. On the
      *    target these lines are unreachable (the loop never returns). */
-    pic16f87xa_harness_log("multi-blink: fast=%u med=%u slow=%u blips=%u "
+    pic16f87xa_harness_log("done: fast=%u med=%u slow=%u blips=%u "
                            "(ticks=%u, tasks=%u)\n",
                            (unsigned)arg_fast.count, (unsigned)arg_med.count,
                            (unsigned)arg_slow.count, (unsigned)arg_blip.count,
