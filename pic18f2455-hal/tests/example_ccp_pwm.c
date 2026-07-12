@@ -1,0 +1,104 @@
+/**
+ * @file    example_ccp_pwm.c
+ * @brief   End-to-end smoke test: ECCP1 half-bridge PWM with dead-band.
+ *
+ * @details
+ *   Exercises the PIC18 Enhanced CCP path that PIC16's plain CCP lacks:
+ *   half-bridge output mode (P1M), dead-band delay (ECCP1DEL) and
+ *   auto-restart (PRSEN). The host sim does not toggle the PWM pins, so the
+ *   test verifies the driver programmed CCP1CON/CCPR1L/ECCP1DEL correctly
+ *   and counts Timer2 overflows (Timer2 is the PWM time base, one overflow
+ *   per PWM period). DS39632E §16.4.
+ *
+ *   Setup:
+ *     - Timer2 PR2=99, 1:1/1:1 -> PWM period = (99+1) = 100 instruction cycles.
+ *     - ECCP1 PWM, half-bridge output, 50% duty (duty=50 of 100), dead-band
+ *       delay=12, auto-restart enabled.
+ *     - Expected register image:
+ *         CCPR1L  = 50 >> 2             = 0x0C (12)
+ *         CCP1CON = P1M(10)<<6 | duty[1:0]<<4 | PWM(1100)
+ *                 = 0x80 | 0x20 | 0x0C  = 0xAC
+ *         ECCP1DEL= PRSEN | 12          = 0x8C
+ *
+ *   One source builds for host sim and XC8 target with no `#ifdef`.
+ */
+
+#include "pic8_hal.h"
+#include "core/pic8_harness.h"
+#include <stdio.h>
+
+#define EXPECTED_PERIOD_CYCLES  100UL
+#define EXPECTED_OVERFLOWS      5U
+#define SIM_CYCLES              ((EXPECTED_PERIOD_CYCLES * EXPECTED_OVERFLOWS) + 1024UL)
+
+static volatile uint32_t g_overflows   = 0;
+static volatile uint32_t g_first_cycle = 0;
+static uint32_t g_cycle = 0;
+
+static void on_t2_overflow(void)
+{
+    if (g_overflows == 0U) g_first_cycle = g_cycle;
+    g_overflows++;
+}
+
+int main(void)
+{
+    pic8_harness_init(SIM_CYCLES);
+
+    /* 1. Timer2 as the PWM time base (DS39632E §16.4.3 step 4). */
+    TIMER2_HandleTypeDef th = TIMER2_HANDLE_DEFAULT;
+    th.Prescaler       = TIMER2_PRESCALER_1_1;
+    th.Postscaler      = TIMER2_POSTSCALER_1_1;
+    th.Period          = 99U;            /* PR2 = 99 -> 100 ticks/period. */
+    th.OverflowCallback = on_t2_overflow;
+    HAL_TIMER2_Init(&th);
+
+    /* 2. ECCP1 in half-bridge PWM, 50% duty, dead-band=12, auto-restart. */
+    CCP_HandleTypeDef ch = { 0 };
+    ch.Instance        = CCP_INSTANCE_1;
+    ch.Mode            = CCP_MODE_PWM;
+    ch.PWM.Period      = 99U;
+    ch.PWM.Duty        = 50U;            /* 50 of 100 -> 50%. */
+    ch.PWMOutputMode   = CCP_PWM_OUTPUT_HALF_BRIDGE;
+    ch.DeadBand.Delay  = 12U;
+    ch.DeadBand.AutoRestart = true;
+    ch.AutoShutdown.Source  = CCP_AUTOSHUTDOWN_DISABLED;
+    ch.EventCallback   = NULL;
+    HAL_CCP_Init(&ch);
+
+    /* 3. Start Timer2 (writes PR2 + T2CON); PWM begins on the next period. */
+    HAL_TIMER2_Start(&th);
+    HAL_IRQ_Restore(1);
+
+    /* 4. Verify the register image. */
+    uint8_t cprl = pic8_sfr_read8(PIC_REG_CCPR1L);
+    uint8_t con  = pic8_sfr_read8(PIC_REG_CCP1CON);
+    uint8_t del  = pic8_sfr_read8(PIC_REG_ECCP1DEL);
+    if (cprl != 12U) {
+        pic8_harness_log("FAIL: CCPR1L=0x%02X, expected 0x0C\n", (unsigned)cprl);
+        return pic8_harness_report(0);
+    }
+    if (con != 0xACU) {
+        pic8_harness_log("FAIL: CCP1CON=0x%02X, expected 0xAC\n", (unsigned)con);
+        return pic8_harness_report(0);
+    }
+    if (del != 0x8CU) {
+        pic8_harness_log("FAIL: ECCP1DEL=0x%02X, expected 0x8C\n", (unsigned)del);
+        return pic8_harness_report(0);
+    }
+
+    /* 5. Run the sim and count TMR2 overflows (one per PWM period). */
+    for (uint32_t i = 0; pic8_harness_running(i); i++) {
+        g_cycle = i + 1;
+        pic8_harness_tick();
+        if (g_overflows >= EXPECTED_OVERFLOWS) break;
+    }
+
+    int32_t delta = (int32_t)g_first_cycle - (int32_t)EXPECTED_PERIOD_CYCLES;
+    if (delta < 0) delta = -delta;
+
+    pic8_harness_log("ECCP1 half-bridge PWM: %u periods, first at cycle %u "
+                     "(expected ~%u)\n", (unsigned)g_overflows,
+                     (unsigned)g_first_cycle, (unsigned)EXPECTED_PERIOD_CYCLES);
+    return pic8_harness_report(g_overflows >= EXPECTED_OVERFLOWS && delta <= 4);
+}

@@ -111,6 +111,17 @@
 #define PIC_REG_TMR3L         0xFB2U   /**< Timer3 low byte.                          */
 #define PIC_REG_TMR3H         0xFB3U   /**< Timer3 high byte.                         */
 
+/* ECCP1 / CCP2, DS39632E §16.0. CCP1 is the Enhanced CCP (dead-band +
+ * auto-shutdown, multi-output PWM); CCP2 is the plain CCP. */
+#define PIC_REG_ECCP1AS       0xFB6U   /**< ECCP1 auto-shutdown control.              */
+#define PIC_REG_ECCP1DEL      0xFB7U   /**< ECCP1 dead-band delay + restart enable.   */
+#define PIC_REG_CCP2CON       0xFBAU   /**< CCP2 control (plain).                     */
+#define PIC_REG_CCPR2L        0xFBBU   /**< CCP2 compare/capture/PWM duty low.        */
+#define PIC_REG_CCPR2H        0xFBCU   /**< CCP2 compare/capture/PWM duty high.       */
+#define PIC_REG_CCP1CON       0xFBDU   /**< ECCP1 control (P1M/DC1B/CCP1M).           */
+#define PIC_REG_CCPR1L        0xFBEU   /**< ECCP1 compare/capture/PWM duty low.       */
+#define PIC_REG_CCPR1H        0xFBFU   /**< ECCP1 compare/capture/PWM duty high.      */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -240,6 +251,27 @@
 #define PIC_IPR2_TMR3IP       PIC8_BIT(1)
 #define PIC_IPR2_CCP2IP       PIC8_BIT(0)
 
+/* ───────────────────────── CCP1CON / CCP2CON bits (Register 16-1) ── */
+/* CCP1 (ECCP1) has the P1M output-mode bits in <7:6>; CCP2 (plain) leaves
+ * them unimplemented. DC1B/DC2B are the PWM duty LSBs (or capture/compare
+ * 2 LSBs in 16-bit mode). CCP1M/CCP2M are the mode select (capture/
+ * compare/PWM). DS39632E Register 16-1. */
+#define PIC_CCP1_P1M_MASK     0xC0U    /**< P1M1:P1M0 at bits 7:6 (output mode). */
+#define PIC_CCP1_DC1B_MASK    0x30U    /**< DC1B1:DC1B0 at bits 5:4 (duty LSBs). */
+#define PIC_CCP1_M_MASK       0x0FU    /**< CCP1M3:CCP1M0 at bits 3:0 (mode).    */
+#define PIC_CCP2_DC2B_MASK    0x30U    /**< DC2B1:DC2B0 at bits 5:4.            */
+#define PIC_CCP2_M_MASK       0x0FU    /**< CCP2M3:CCP2M0 at bits 3:0.          */
+
+/* ───────────────────────── ECCP1DEL bits (Register 16-2) ─────────── */
+#define PIC_ECCP1DEL_PRSEN    PIC8_BIT(7)  /**< PWM restart enable (auto-restart). */
+#define PIC_ECCP1DEL_PDC_MASK 0x7FU        /**< PDC6:PDC0, dead-band delay (6:0). */
+
+/* ───────────────────────── ECCP1AS bits (Register 16-3) ─────────── */
+#define PIC_ECCP1AS_ECCPASE   PIC8_BIT(7)  /**< Auto-shutdown event status (RO once active). */
+#define PIC_ECCP1AS_SRC_MASK  0x70U        /**< ECCPAS2:ECCPAS0 at bits 6:4 (source). */
+#define PIC_ECCP1AS_PSSAC_MASK 0x0CU       /**< PSSAC1:PSSAC0 at bits 3:2 (P1A/P1C state). */
+#define PIC_ECCP1AS_PSSBD_MASK 0x03U       /**< PSSBD1:PSSBD0 at bits 1:0 (P1B/P1D state). */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -262,6 +294,10 @@
 #define PIC_PIR2_POR_VALUE       0x00U
 #define PIC_PIE2_POR_VALUE       0x00U
 #define PIC_IPR2_POR_VALUE       0xFFU
+#define PIC_CCP1CON_POR_VALUE    0x00U
+#define PIC_CCP2CON_POR_VALUE    0x00U
+#define PIC_ECCP1DEL_POR_VALUE   0x00U
+#define PIC_ECCP1AS_POR_VALUE    0x00U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

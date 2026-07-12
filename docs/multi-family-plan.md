@@ -388,12 +388,23 @@ growth at the established one-peripheral-at-a-time pace.
   PIC18_IRQ_TMR3 source). Host-sim stepping + `example_timer3` (3
   overflows at 1:8, 524288 cycles each) + XC8 all four devices. The
   PIC18F2455 family's full timer set (Timer0-3) is now covered.
+- **ECCP1 + CCP2** (commit pending): the first genuinely PIC18-richer
+  peripheral. Mirrors PIC16's `HAL_CCP_*` API (capture/compare/PWM, weak
+  CCP1/CCP2 ISRs) and adds the Enhanced CCP features PIC16's plain CCP
+  lacks: multi-output PWM (single / half-bridge / full-bridge
+  forward/reverse via P1M), programmable dead-band delay + auto-restart
+  (ECCP1DEL), and auto-shutdown with source select (FLT0 / comparators)
+  + per-pair pin states (ECCP1AS). PIC18 also adds a Compare "toggle on
+  match" mode. CCP2 is the plain CCP. Added PIC18_IRQ_CCP2 (PIR2<CCP2IF>).
+  SFRs: CCP1CON/CCPR1L/H, CCP2CON/CCPR2L/H, ECCP1DEL, ECCP1AS. The host
+  sim models the SFR image (the example verifies CCP1CON/CCPR1L/ECCP1DEL
+  + counts Timer2 PWM periods); no CCP pin-toggle sim. `example_ccp_pwm`
+  exercises the half-bridge + dead-band path. XC8 all four devices.
 
-**Remaining:** ECCP (including dead-band/shutdown, PIC18-only vs. PIC16's
-plain CCP), MSSP, ADC, comparator, EEPROM, EUSART, SPP (replaces PIC16's
-PSP, USB-streaming). USB and the extended instruction set are large enough
-to scope as separate future efforts, not part of "general 8-bit PIC
-support."
+**Remaining:** MSSP (SPI + I2C), ADC, comparator, EEPROM, EUSART, SPP
+(replaces PIC16's PSP, USB-streaming). USB and the extended instruction
+set are large enough to scope as separate future efforts, not part of
+"general 8-bit PIC support."
 
 **Validation per peripheral** (repeat of the existing HAL's established
 pattern, nothing new to invent): datasheet-cited driver, host-sim example,

@@ -116,6 +116,7 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic18f2455_timer1.c          \
   $(HAL_DIR)/src/peripherals/pic18f2455_timer2.c          \
   $(HAL_DIR)/src/peripherals/pic18f2455_timer3.c          \
+  $(HAL_DIR)/src/peripherals/pic18f2455_ccp.c             \
   $(HAL_DIR)/src/core/pic18_irq.c                         \
   $(HAL_DIR)/src/core/pic18_irq_dispatch.c                \
   $(HAL_DIR)/src/core/pic18_isr_vector.c                  \

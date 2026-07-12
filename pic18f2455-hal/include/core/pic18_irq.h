@@ -63,8 +63,9 @@ typedef enum {
     PIC18_IRQ_USART_TX  = 10, /**< USART TX shift done (PIR1<TXIF>).       */
     PIC18_IRQ_USART_RX  = 11, /**< USART RX byte ready (PIR1<RCIF>).       */
     PIC18_IRQ_ADC       = 12, /**< A/D conversion done (PIR1<ADIF>).       */
+    PIC18_IRQ_CCP2      = 13, /**< CCP2 event (PIR2<CCP2IF>).              */
 #if PIC18F2455_FAMILY_HAS_SPP
-    PIC18_IRQ_SPP       = 13, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
+    PIC18_IRQ_SPP       = 14, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
 #endif
 } PIC18_IRQn;
 

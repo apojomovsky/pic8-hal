@@ -15,12 +15,13 @@ drivers) live here.
 
 ## Status
 
-**Phase 2 MVP + Phase 4 (Timers) done.** GPIO, Timer0, Timer1, Timer2,
-Timer3, the dual-priority interrupt core, and WDT/Sleep are implemented and
-cited against DS39632E; `example_blink` / `example_timer1` / `example_timer2`
-/ `example_timer3` run on the host sim and the HAL builds to a `.hex`
-(vectors at 0008h/0018h) for all four devices on XC8. The broader peripheral
-coverage (ECCP, MSSP, ADC, EUSART, EEPROM, SPP) is the rest of Phase 4.
+**Phase 2 MVP + Phase 4 (Timers + ECCP) done.** GPIO, Timer0-3, the
+dual-priority interrupt core, WDT/Sleep, and the Enhanced CCP (ECCP1) + plain
+CCP2 are implemented and cited against DS39632E; `example_blink` /
+`example_timer1`/`2`/`3` / `example_ccp_pwm` run on the host sim and the HAL
+builds to a `.hex` (vectors at 0008h/0018h) for all four devices on XC8. The
+broader peripheral coverage (MSSP, ADC, EUSART, EEPROM, SPP) is the rest of
+Phase 4.
 
 - ✅ Family header (`pic18f2455.h`): device select for all four parts,
   family capability macros (flash / RAM / EEPROM / I/O / ADC channels /
@@ -51,6 +52,15 @@ coverage (ECCP, MSSP, ADC, EUSART, EEPROM, SPP) is the rest of Phase 4.
   Timer1's API; shares Timer1's T1OSC (no T3OSCEN), `RD16` set, leaves
   `T3CCP2:T3CCP1` at reset (CCP timer-select, managed by the CCP/ECCP
   driver). Overflow → PIR2<TMR3IF>.
+- ✅ ECCP1 + CCP2 driver (`peripherals/pic18f2455_ccp.h`): mirrors PIC16's
+  `HAL_CCP_*` API (capture/compare/PWM, weak ISRs) and adds the PIC18
+  Enhanced CCP features PIC16 lacks — multi-output PWM (single /
+  half-bridge / full-bridge forward/reverse via `P1M`), programmable
+  dead-band + auto-restart (`ECCP1DEL`), and auto-shutdown with source
+  select + pin states (`ECCP1AS`). PIC18 also adds a Compare "toggle on
+  match" mode. CCP2 is the plain CCP (no enhanced features). The
+  `T3CCP2:T3CCP1` Timer1/Timer3 capture/compare time-base select is left
+  at reset (Timer1) for the driver; configurable via Timer3.
 - ✅ Interrupt core (`core/pic18_irq.h`): `PIC18_IRQn` enum, `HAL_IRQ_*`
   against INTCON / INTCON2 / INTCON3 / PIE1 / PIR1 / IPR1, priority mode
   (IPEN) enabled by `HAL_IRQ_Restore`. `HAL_IRQ_SetPriority` is the
@@ -65,12 +75,13 @@ coverage (ECCP, MSSP, ADC, EUSART, EEPROM, SPP) is the rest of Phase 4.
   (8/16-bit, prescalers, overflow → TMR0IF/PIR1/PIR2 flags) + GPIO
   drive/read, mirroring `pic16f87xa_sim.c`'s API shape.
 - ✅ `example_blink` (Timer0 + GPIO + interrupt), `example_timer1`,
-  `example_timer2`, `example_timer3`, + `example_smoke` (harness seam),
-  all buildable on host sim and XC8.
+  `example_timer2`, `example_timer3`, `example_ccp_pwm` (ECCP1 half-bridge
+  PWM + dead-band), + `example_smoke` (harness seam), all buildable on
+  host sim and XC8.
 
 **Deferred:** real-silicon blink confirmation (no PIC18 board on hand;
-flagged in the plan, not silently skipped). **Rest of Phase 4:** ECCP,
-MSSP, ADC, EUSART, EEPROM, SPP.
+flagged in the plan, not silently skipped). **Rest of Phase 4:** MSSP,
+ADC, EUSART, EEPROM, SPP.
 
 ## Layout
 

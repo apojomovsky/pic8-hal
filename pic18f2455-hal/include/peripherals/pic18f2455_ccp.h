@@ -1,0 +1,223 @@
+/**
+ * @file    peripherals/pic18f2455_ccp.h
+ * @brief   ECCP1 (Enhanced CCP) + CCP2 driver: Capture / Compare / PWM.
+ *
+ * @details
+ *   Source: DS39632E §16.0 (Enhanced Capture/Compare/PWM), Register 16-1
+ *   (CCP1CON), Register 16-2 (ECCP1DEL), Register 16-3 (ECCP1AS).
+ *
+ *   The PIC18F2455 family has two CCP modules. CCP1 is the *Enhanced* CCP
+ *   (ECCP1): in addition to the plain capture/compare/PWM modes, it adds
+ *   multi-output PWM (single / half-bridge / full-bridge forward/reverse),
+ *   programmable dead-band delay (ECCP1DEL), and auto-shutdown with optional
+ *   auto-restart (ECCP1AS) — features PIC16's plain CCP does not have.
+ *   CCP2 is the plain CCP (single-output PWM, capture/compare, no dead-band
+ *   or auto-shutdown).
+ *
+ *   The API mirrors pic16f87xa_ccp.h (same `CCP_InstanceTypeDef`,
+ *   `CCP_ModeTypeDef`, `CCP_PWMConfigTypeDef`, `HAL_CCP_*` functions, weak
+ *   `CCP1_IRQHandler`/`CCP2_IRQHandler`) so consumer code is portable; the
+ *   handle adds the three ECCP-only fields (PWMOutputMode, DeadBand,
+ *   AutoShutdown), which CCP2 ignores.
+ *
+ *   PIC18 also adds a Compare "toggle output on match" mode (CCP1M3:CCP1M0
+ *   = 0010) that PIC16 lacks; see @ref CCP_ModeTypeDef.
+ *
+ *   Timer resources (DS39632E Table 16-1):
+ *     - Capture  -> Timer1 or Timer3 (selected by T3CON<T3CCP2:T3CCP1>;
+ *       default Timer1)
+ *     - Compare  -> Timer1 or Timer3 (same select)
+ *     - PWM      -> Timer2 (always)
+ *
+ *   The driver leaves T3CCP2:T3CCP1 at reset (Timer1 for CCP1 and CCP2
+ *   capture/compare); to use Timer3 as the time base, configure T3CON
+ *   directly via the Timer3 driver's notes. PWM always uses Timer2.
+ *
+ *   Reset (DS39632E Table 5-1): CCP1CON = 0x00, CCP2CON = 0x00,
+ *   ECCP1DEL = 0x00, ECCP1AS = 0x00, CCPRxH/L unknown at POR.
+ */
+
+#ifndef PIC18F2455_CCP_H
+#define PIC18F2455_CCP_H
+
+#include "pic18f2455.h"
+#include "pic18f2455_sfr.h"
+
+/**
+ * @brief Which CCP module a handle refers to.
+ */
+typedef enum {
+    CCP_INSTANCE_1 = 1,    /**< CCP1 / ECCP1, pins P1A (RC2 on 40/44-pin). */
+    CCP_INSTANCE_2 = 2,    /**< CCP2, pin RC1/CCP2. */
+} CCP_InstanceTypeDef;
+
+/**
+ * @brief CCP/ECCP operating mode (CCPxCON<3:0>, DS39632E Register 16-1).
+ *        PIC18 adds CCP_MODE_COMPARE_TOGGLE (0010) vs. PIC16.
+ */
+typedef enum {
+    CCP_MODE_OFF              = 0x0U,   /**< 0000, module disabled. */
+    CCP_MODE_CAPTURE_FALLING  = 0x4U,   /**< 0100, every falling edge.  */
+    CCP_MODE_CAPTURE_RISING   = 0x5U,   /**< 0101, every rising edge.   */
+    CCP_MODE_CAPTURE_4TH      = 0x6U,   /**< 0110, every 4th rising.    */
+    CCP_MODE_CAPTURE_16TH     = 0x7U,   /**< 0111, every 16th rising.   */
+    CCP_MODE_COMPARE_TOGGLE   = 0x2U,   /**< 0010, toggle output on match (PIC18). */
+    CCP_MODE_COMPARE_SET      = 0x8U,   /**< 1000, set output on match. */
+    CCP_MODE_COMPARE_CLEAR    = 0x9U,   /**< 1001, clear output on match. */
+    CCP_MODE_COMPARE_SOFT_IF  = 0xAU,   /**< 1010, software interrupt only. */
+    CCP_MODE_COMPARE_TRIGGER  = 0xBU,   /**< 1011, special event trigger. */
+    CCP_MODE_PWM              = 0xCU,   /**< 11xx, PWM (any 11xx). */
+} CCP_ModeTypeDef;
+
+/**
+ * @brief Enhanced PWM output configuration (CCP1CON<P1M1:P1M0>, ECCP1 only,
+ *        DS39632E Register 16-1). Ignored for CCP2 (plain, single output).
+ */
+typedef enum {
+    CCP_PWM_OUTPUT_SINGLE       = 0x0U,  /**< 00: P1A modulated; P1B/C/D port pins. */
+    CCP_PWM_OUTPUT_FULL_FORWARD = 0x1U,  /**< 01: full-bridge forward.            */
+    CCP_PWM_OUTPUT_HALF_BRIDGE  = 0x2U,  /**< 10: P1A,P1B modulated w/ dead-band.  */
+    CCP_PWM_OUTPUT_FULL_REVERSE = 0x3U,  /**< 11: full-bridge reverse.            */
+} CCP_PWMOutputTypeDef;
+
+/**
+ * @brief Configuration for PWM mode. Duty is 10-bit, encoded as
+ *        `duty_full = (CCPRxL:CCPxCON<5:4>)`. `Period` is the Timer2 PR2
+ *        value (informational; program PR2 via the Timer2 driver).
+ */
+typedef struct {
+    uint16_t Period;   /**< Timer2 PR2 value, 0..255. */
+    uint16_t Duty;     /**< 10-bit PWM duty, 0..1023. */
+} CCP_PWMConfigTypeDef;
+
+/**
+ * @brief Dead-band delay + auto-restart (ECCP1DEL, ECCP1 only).
+ *        Relevant in half-bridge and full-bridge PWM modes. `Delay` is the
+ *        7-bit PDC6:PDC0 count (dead-band time in instruction-cycle units
+ *        per DS39632E §16.4.6). `AutoRestart` maps to PRSEN: when true, the
+ *        PWM auto-restarts after an auto-shutdown clears; when false,
+ *        firmware must clear ECCPASE to restart.
+ */
+typedef struct {
+    uint8_t Delay;        /**< PDC6:PDC0, 0..127. */
+    bool    AutoRestart;  /**< PRSEN. */
+} CCP_DeadBandConfigTypeDef;
+
+/**
+ * @brief Auto-shutdown pin state on a shutdown event (PSSAC/PSSBD,
+ *        DS39632E Register 16-3). 1x = tri-state.
+ */
+typedef enum {
+    CCP_SHUTDOWN_DRIVE_0  = 0x0U,  /**< 00: drive the pin pair to 0. */
+    CCP_SHUTDOWN_DRIVE_1  = 0x1U,  /**< 01: drive the pin pair to 1. */
+    CCP_SHUTDOWN_TRISTATE = 0x2U,  /**< 1x: tri-state the pin pair. */
+} CCP_PinStateTypeDef;
+
+/**
+ * @brief Auto-shutdown source (ECCPAS2:ECCPAS0, DS39632E Register 16-3).
+ *        FLT0 is the external fault pin; the comparators are the analog
+ *        comparators. `CCP_AUTOSHUTDOWN_DISABLED` turns auto-shutdown off.
+ */
+typedef enum {
+    CCP_AUTOSHUTDOWN_DISABLED            = 0x0U,  /**< 000. */
+    CCP_AUTOSHUTDOWN_COMP1               = 0x1U,  /**< 001: Comparator 1 output. */
+    CCP_AUTOSHUTDOWN_COMP2               = 0x2U,  /**< 010: Comparator 2 output. */
+    CCP_AUTOSHUTDOWN_COMP1_OR_COMP2      = 0x3U,  /**< 011. */
+    CCP_AUTOSHUTDOWN_FLT0                = 0x4U,  /**< 100: FLT0 pin. */
+    CCP_AUTOSHUTDOWN_FLT0_OR_COMP1       = 0x5U,  /**< 101. */
+    CCP_AUTOSHUTDOWN_FLT0_OR_COMP2       = 0x6U,  /**< 110. */
+    CCP_AUTOSHUTDOWN_FLT0_OR_COMP1_OR_COMP2 = 0x7U, /**< 111. */
+} CCP_AutoShutdownSourceTypeDef;
+
+/**
+ * @brief Auto-shutdown configuration (ECCP1AS, ECCP1 only).
+ */
+typedef struct {
+    CCP_AutoShutdownSourceTypeDef Source;  /**< ECCPAS2:ECCPAS0. */
+    CCP_PinStateTypeDef           PinsAC;  /**< P1A/P1C shutdown state. */
+    CCP_PinStateTypeDef           PinsBD;  /**< P1B/P1D shutdown state (40/44-pin). */
+} CCP_AutoShutdownConfigTypeDef;
+
+/**
+ * @brief Driver handle (Cube-style). ECCP-only fields (PWMOutputMode,
+ *        DeadBand, AutoShutdown) apply to CCP1; CCP2 ignores them.
+ */
+typedef struct {
+    CCP_InstanceTypeDef            Instance;
+    CCP_ModeTypeDef                Mode;
+    uint16_t                       CompareValue;  /**< 16-bit compare/capture value. */
+    CCP_PWMConfigTypeDef           PWM;           /**< PWM period + duty (PWM mode). */
+    CCP_PWMOutputTypeDef           PWMOutputMode; /**< P1M (ECCP1 only). */
+    CCP_DeadBandConfigTypeDef      DeadBand;      /**< ECCP1DEL (ECCP1 only). */
+    CCP_AutoShutdownConfigTypeDef  AutoShutdown;  /**< ECCP1AS (ECCP1 only). */
+    void (*EventCallback)(void);                  /**< Fires on CCP1IF / CCP2IF. */
+} CCP_HandleTypeDef;
+
+/* ───────────────────────── init / deinit ────────────────────────── */
+
+/**
+ * @brief  Configure the CCP/ECCP module. Programs CCPxCON (mode + P1M for
+ *         ECCP1 + duty LSBs), CCPRxL/H, ECCP1DEL (dead-band) and ECCP1AS
+ *         (auto-shutdown) for ECCP1, and enables the matching interrupt if
+ *         `EventCallback != NULL`.
+ *
+ * @note   For PWM, also call `HAL_TIMER2_Init` + `HAL_TIMER2_Start` with a
+ *         period matching `h->PWM.Period` before/after this call (Timer2 is
+ *         the PWM time base). For capture/compare, start Timer1 (or Timer3).
+ */
+HAL_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h);
+
+/** Reset CCPxCON (and ECCP1DEL/ECCP1AS for ECCP1) to 0x00; clear the PIR flag. */
+HAL_StatusTypeDef HAL_CCP_DeInit(CCP_InstanceTypeDef inst);
+
+/* ───────────────────────── compare / capture / pwm ──────────────── */
+
+/** Set the 16-bit CCPRx value (high byte first, DS39632E §16.x idiom). */
+void HAL_CCP_SetCompare(CCP_InstanceTypeDef inst, uint16_t value);
+
+/** Atomically read the 16-bit CCPRx value (high-low-high idiom). */
+uint16_t HAL_CCP_GetCapture(CCP_InstanceTypeDef inst);
+
+/**
+ * @brief  Set PWM duty in 10-bit units (0..1023). Writes the LSBs into
+ *         CCPxCON<5:4> then CCPRxL (bits 9:2), preserving the mode bits.
+ */
+void HAL_CCP_SetPWMDuty(CCP_InstanceTypeDef inst, uint16_t duty);
+
+/* ───────────────────────── ECCP1-only controls ──────────────────── */
+
+/**
+ * @brief  Configure the ECCP1 dead-band delay + auto-restart (ECCP1DEL).
+ *         No-op for CCP2. Relevant in half-bridge / full-bridge PWM modes.
+ */
+void HAL_CCP_ConfigDeadBand(CCP_InstanceTypeDef inst,
+                            uint8_t delay, bool auto_restart);
+
+/**
+ * @brief  Configure the ECCP1 auto-shutdown source + pin states (ECCP1AS).
+ *         No-op for CCP2. Pass `CCP_AUTOSHUTDOWN_DISABLED` to turn it off.
+ */
+void HAL_CCP_ConfigAutoShutdown(CCP_InstanceTypeDef inst,
+                                CCP_AutoShutdownSourceTypeDef source,
+                                CCP_PinStateTypeDef pins_ac,
+                                CCP_PinStateTypeDef pins_bd);
+
+/** Returns 1 if an ECCP1 auto-shutdown event is active (ECCP1AS<ECCPASE>). */
+uint8_t HAL_CCP_IsShutdown(CCP_InstanceTypeDef inst);
+
+/**
+ * @brief  Clear the ECCP1 auto-shutdown status (ECCPASE) to restart the PWM.
+ *         Only effective when PRSEN = 0 (manual restart); with PRSEN = 1 the
+ *         hardware auto-clears when the shutdown source deasserts. No-op for
+ *         CCP2.
+ */
+void HAL_CCP_Restart(CCP_InstanceTypeDef inst);
+
+/* ───────────────────────── IRQ entries ──────────────────────────── */
+
+/** Weak CCP1 (ECCP1) ISR, override in user code. */
+void CCP1_IRQHandler(void) PIC8_WEAK;
+/** Weak CCP2 ISR, override in user code. */
+void CCP2_IRQHandler(void) PIC8_WEAK;
+
+#endif /* PIC18F2455_CCP_H */
