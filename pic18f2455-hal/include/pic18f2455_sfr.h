@@ -87,6 +87,9 @@
 #define PIC_REG_PIR1          0xF9EU   /**< Peripheral Interrupt Flag Register 1. */
 #define PIC_REG_PIE1          0xF9DU   /**< Peripheral Interrupt Enable Reg 1.    */
 #define PIC_REG_IPR1          0xF9FU   /**< Peripheral Interrupt Priority Reg 1.  */
+#define PIC_REG_PIR2          0xFA1U   /**< Peripheral Interrupt Flag Register 2 (TMR3IF, CCP2IF, ...). */
+#define PIC_REG_PIE2          0xFA0U   /**< Peripheral Interrupt Enable Reg 2.    */
+#define PIC_REG_IPR2          0xFA2U   /**< Peripheral Interrupt Priority Reg 2 (reset 0xFF, all high). */
 
 /* Timer0, DS39632E §11.0, Register 11-1. */
 #define PIC_REG_T0CON         0xFD5U   /**< Timer0 control (on/8-16bit/src/edge/PSA/PS). */
@@ -102,6 +105,11 @@
 #define PIC_REG_T2CON         0xFCAU   /**< Timer2 control (postscaler/on/prescaler). */
 #define PIC_REG_PR2           0xFCBU   /**< Timer2 period register (Access Bank).    */
 #define PIC_REG_TMR2          0xFCCU   /**< Timer2 counter.                          */
+
+/* Timer3, DS39632E §14.0, Register 14-1. 16-bit timer/counter (shares T1OSC). */
+#define PIC_REG_T3CON         0xFB1U   /**< Timer3 control (RD16/CCP-sel/prescale/sync/cs/on). */
+#define PIC_REG_TMR3L         0xFB2U   /**< Timer3 low byte.                          */
+#define PIC_REG_TMR3H         0xFB3U   /**< Timer3 high byte.                         */
 
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
@@ -196,6 +204,42 @@
 #define PIC_T2CON_TMR2ON      PIC8_BIT(2)   /**< Timer2 on/off.                   */
 #define PIC_T2CON_T2CKPS_MASK 0x03U         /**< T2CKPS1:T2CKPS0 at bits 1:0.     */
 
+/* ───────────────────────── T3CON bits (Register 14-1) ───────────── */
+#define PIC_T3CON_RD16        PIC8_BIT(7)   /**< 16-bit read/write mode enable.   */
+#define PIC_T3CON_T3CCP2      PIC8_BIT(6)   /**< CCP timer-select bit (with T3CCP1). */
+#define PIC_T3CON_T3CKPS_MASK 0x30U         /**< T3CKPS1:T3CKPS0 at bits 5:4.     */
+#define PIC_T3CON_T3CCP1      PIC8_BIT(3)   /**< CCP timer-select bit (with T3CCP2). */
+#define PIC_T3CON_T3SYNC      PIC8_BIT(2)   /**< External clock sync (1=async).   */
+#define PIC_T3CON_TMR3CS      PIC8_BIT(1)   /**< 0=Fosc/4, 1=external/T1OSC.      */
+#define PIC_T3CON_TMR3ON      PIC8_BIT(0)   /**< Timer3 on/off.                    */
+
+/* ───────────────────────── PIR2 / PIE2 / IPR2 bits (Reg 9-5/9-7/9-9) ── */
+/* Same bit layout across the three registers: flag / enable / priority. */
+#define PIC_PIR2_OSCFIF       PIC8_BIT(7)   /**< Oscillator fail flag.            */
+#define PIC_PIR2_CMIF         PIC8_BIT(6)   /**< Comparator flag.                 */
+#define PIC_PIR2_USBIF        PIC8_BIT(5)   /**< USB flag.                        */
+#define PIC_PIR2_EEIF         PIC8_BIT(4)   /**< EEPROM write done flag.          */
+#define PIC_PIR2_BCLIF        PIC8_BIT(3)   /**< MSSP bus collision flag.         */
+#define PIC_PIR2_HLVDIF       PIC8_BIT(2)   /**< High/Low-voltage detect flag.    */
+#define PIC_PIR2_TMR3IF       PIC8_BIT(1)   /**< Timer3 overflow flag.            */
+#define PIC_PIR2_CCP2IF       PIC8_BIT(0)   /**< CCP2 flag.                       */
+#define PIC_PIE2_OSCFIE       PIC8_BIT(7)
+#define PIC_PIE2_CMIE         PIC8_BIT(6)
+#define PIC_PIE2_USBIE        PIC8_BIT(5)
+#define PIC_PIE2_EEIE         PIC8_BIT(4)
+#define PIC_PIE2_BCLIE        PIC8_BIT(3)
+#define PIC_PIE2_HLVDIE       PIC8_BIT(2)
+#define PIC_PIE2_TMR3IE       PIC8_BIT(1)
+#define PIC_PIE2_CCP2IE       PIC8_BIT(0)
+#define PIC_IPR2_OSCFIP       PIC8_BIT(7)
+#define PIC_IPR2_CMIP         PIC8_BIT(6)
+#define PIC_IPR2_USBIP        PIC8_BIT(5)
+#define PIC_IPR2_EEIP         PIC8_BIT(4)
+#define PIC_IPR2_BCLIP        PIC8_BIT(3)
+#define PIC_IPR2_HLVDIP       PIC8_BIT(2)
+#define PIC_IPR2_TMR3IP       PIC8_BIT(1)
+#define PIC_IPR2_CCP2IP       PIC8_BIT(0)
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -213,7 +257,11 @@
 #define PIC_T0CON_POR_VALUE      0xFFU
 #define PIC_T1CON_POR_VALUE      0x00U
 #define PIC_T2CON_POR_VALUE      0x00U
+#define PIC_T3CON_POR_VALUE      0x00U
 #define PIC_PR2_POR_VALUE        0xFFU
+#define PIC_PIR2_POR_VALUE       0x00U
+#define PIC_PIE2_POR_VALUE       0x00U
+#define PIC_IPR2_POR_VALUE       0xFFU
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

@@ -38,6 +38,7 @@ static pic18_sim_irq_cb_t sim_irq_cb = 0;
 static void sim_step_timer0(void);
 static void sim_step_timer1(void);
 static void sim_step_timer2(void);
+static void sim_step_timer3(void);
 
 /* ───────────────────────── helpers ──────────────────────────────── */
 
@@ -106,7 +107,11 @@ void pic18_sim_reset(void)
     pic18_sim_sfr[PIC_REG_T0CON]    = PIC_T0CON_POR_VALUE;    /* 0xFF */
     pic18_sim_sfr[PIC_REG_T1CON]    = PIC_T1CON_POR_VALUE;    /* 0x00 */
     pic18_sim_sfr[PIC_REG_T2CON]    = PIC_T2CON_POR_VALUE;    /* 0x00 */
+    pic18_sim_sfr[PIC_REG_T3CON]    = PIC_T3CON_POR_VALUE;    /* 0x00 */
     pic18_sim_sfr[PIC_REG_PR2]     = PIC_PR2_POR_VALUE;       /* 0xFF */
+    pic18_sim_sfr[PIC_REG_PIR2]    = PIC_PIR2_POR_VALUE;      /* 0x00 */
+    pic18_sim_sfr[PIC_REG_PIE2]    = PIC_PIE2_POR_VALUE;      /* 0x00 */
+    pic18_sim_sfr[PIC_REG_IPR2]    = PIC_IPR2_POR_VALUE;      /* 0xFF */
 
     /* TRIS defaults: 1 = input. PORTA is 6-bit, PORTE 3-bit. */
     pic18_sim_sfr[PIC_REG_TRISA] = 0x3FU;
@@ -140,6 +145,7 @@ void pic18_sim_step(uint32_t ticks)
         sim_step_timer0();
         sim_step_timer1();
         sim_step_timer2();
+        sim_step_timer3();
     }
 }
 
@@ -275,6 +281,41 @@ static void sim_step_timer2(void)
         }
     }
     pic18_sim_sfr[PIC_REG_TMR2] = t2;
+}
+
+/* ───────────────────────── Timer3 step ──────────────────────────── */
+
+static void sim_step_timer3(void)
+{
+    /* T3CON layout (DS39632E Register 14-1):
+     *   bit 7  RD16
+     *   bit 6  T3CCP2
+     *   bit 5..4 T3CKPS1:T3CKPS0
+     *   bit 3  T3CCP1
+     *   bit 2  T3SYNC
+     *   bit 1  TMR3CS
+     *   bit 0  TMR3ON
+     */
+    uint8_t t3con = pic18_sim_sfr[PIC_REG_T3CON];
+    if (!(t3con & PIC_T3CON_TMR3ON)) return;     /* stopped */
+
+    static const uint8_t ps_idx[4] = {1, 2, 4, 8};
+    uint32_t rate = ps_idx[(t3con >> 4) & 0x3U];
+
+    static uint8_t t3_prescaler = 0U;
+    t3_prescaler++;
+    if (t3_prescaler < rate) return;
+    t3_prescaler = 0U;
+
+    uint16_t full = (uint16_t)(((uint16_t)pic18_sim_sfr[PIC_REG_TMR3H] << 8) |
+                               pic18_sim_sfr[PIC_REG_TMR3L]);
+    full++;
+    pic18_sim_sfr[PIC_REG_TMR3L] = (uint8_t)(full & 0xFFU);
+    pic18_sim_sfr[PIC_REG_TMR3H] = (uint8_t)(full >> 8);
+    if (full == 0U) {
+        pic18_sim_sfr[PIC_REG_PIR2] |= PIC_PIR2_TMR3IF;
+        if (sim_irq_cb) sim_irq_cb();
+    }
 }
 
 /* ───────────────────────── GPIO drive / read ────────────────────── */

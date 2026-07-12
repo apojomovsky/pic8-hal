@@ -57,13 +57,14 @@ typedef enum {
     PIC18_IRQ_TMR0      = 4,  /**< Timer0 overflow.                        */
     PIC18_IRQ_TMR1      = 5,  /**< Timer1 overflow (PIR1<TMR1IF>).         */
     PIC18_IRQ_TMR2      = 6,  /**< Timer2 == PR2 match (PIR1<TMR2IF>).     */
-    PIC18_IRQ_CCP1      = 7,  /**< CCP1 event (PIR1<CCP1IF>).              */
-    PIC18_IRQ_SSP       = 8,  /**< MSSP event (PIR1<SSPIF>).               */
-    PIC18_IRQ_USART_TX  = 9,  /**< USART TX shift done (PIR1<TXIF>).       */
-    PIC18_IRQ_USART_RX  = 10, /**< USART RX byte ready (PIR1<RCIF>).       */
-    PIC18_IRQ_ADC       = 11, /**< A/D conversion done (PIR1<ADIF>).       */
+    PIC18_IRQ_TMR3      = 7,  /**< Timer3 overflow (PIR2<TMR3IF>).         */
+    PIC18_IRQ_CCP1      = 8,  /**< CCP1 event (PIR1<CCP1IF>).              */
+    PIC18_IRQ_SSP       = 9,  /**< MSSP event (PIR1<SSPIF>).               */
+    PIC18_IRQ_USART_TX  = 10, /**< USART TX shift done (PIR1<TXIF>).       */
+    PIC18_IRQ_USART_RX  = 11, /**< USART RX byte ready (PIR1<RCIF>).       */
+    PIC18_IRQ_ADC       = 12, /**< A/D conversion done (PIR1<ADIF>).       */
 #if PIC18F2455_FAMILY_HAS_SPP
-    PIC18_IRQ_SPP       = 12, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
+    PIC18_IRQ_SPP       = 13, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
 #endif
 } PIC18_IRQn;
 

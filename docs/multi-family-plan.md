@@ -381,12 +381,19 @@ growth at the established one-peripheral-at-a-time pace.
   as PIC16; simpler because PIC18's PR2 is in the Access Bank (no bank
   switching). Host-sim stepping + `example_timer2` (5 overflows, period
   250 cycles with PR2=249) + XC8 all four devices.
+- **Timer3** (commit pending): 16-bit timer/counter, mirrors Timer1's API;
+  shares Timer1's T1OSC (no T3OSCEN), RD16 set, leaves T3CCP2:T3CCP1 at
+  reset (CCP timer-select bits, managed by the future CCP/ECCP driver).
+  Overflow -> PIR2<TMR3IF> (added PIR2/PIE2/IPR2 to the SFR map + the
+  PIC18_IRQ_TMR3 source). Host-sim stepping + `example_timer3` (3
+  overflows at 1:8, 524288 cycles each) + XC8 all four devices. The
+  PIC18F2455 family's full timer set (Timer0-3) is now covered.
 
-**Remaining:** Timer3, ECCP (including dead-band/shutdown, PIC18-only vs.
-PIC16's plain CCP), MSSP, ADC, comparator, EEPROM, EUSART, SPP (replaces
-PIC16's PSP, USB-streaming). USB and the extended instruction set are
-large enough to scope as separate future efforts, not part of "general
-8-bit PIC support."
+**Remaining:** ECCP (including dead-band/shutdown, PIC18-only vs. PIC16's
+plain CCP), MSSP, ADC, comparator, EEPROM, EUSART, SPP (replaces PIC16's
+PSP, USB-streaming). USB and the extended instruction set are large enough
+to scope as separate future efforts, not part of "general 8-bit PIC
+support."
 
 **Validation per peripheral** (repeat of the existing HAL's established
 pattern, nothing new to invent): datasheet-cited driver, host-sim example,
