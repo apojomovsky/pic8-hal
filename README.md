@@ -30,6 +30,9 @@ and the same source builds unchanged for a host **simulator** and real
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part, with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
 | 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
+| 🆕 | **[pic18f2455-hal](pic18f2455-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **Phase 1 scaffold** (build seam + harness proven, drivers land in Phase 2). | [README](pic18f2455-hal/README.md) |
+| 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) |
+| 📐 | **[docs/multi-family-plan](docs/multi-family-plan.md)** | The refactor plan: extract `pic8-common`, add families behind a fixed contract. Phase 0–1 done, Phase 2 next. | — |
 
 ## Quick start
 
@@ -86,7 +89,10 @@ crystal, then program with MPLAB X or any programmer. See the task manager
   - [README](pic16f87xa-taskmgr/README.md): overview, quick start, demo
   - [docs/ARCHITECTURE.md](pic16f87xa-taskmgr/docs/ARCHITECTURE.md): cooperative model, tick source, concurrency, RAM scaling, constraints
   - [docs/API.md](pic16f87xa-taskmgr/docs/API.md): full API reference
-- **Datasheet**: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) (also included locally as `39582b.pdf`)
+- **Multi-family**
+  - [docs/multi-family-plan.md](docs/multi-family-plan.md): the refactor plan that extracted `pic8-common/` and is adding the PIC18F2455 family behind a fixed contract (Phase 0–1 done)
+  - [pic18f2455-hal/README.md](pic18f2455-hal/README.md): the second family (Phase 1 scaffold)
+- **Datasheets**: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) PIC16F87XA (also locally as `39582b.pdf`), [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf) PIC18F2455 family (also locally as `39632e.pdf`)
 
 ## Repository layout
 
@@ -115,7 +121,15 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   ├── README.md
 │   └── CMakeLists.txt              # host simulation build (reuses the HAL)
 │
-├── 39582b.pdf                      # Microchip datasheet (DS39582B)
+├── pic18f2455-hal/                 # second family (PIC18F2455/2550/4455/4550)
+│   ├── include/  src/  tests/      # Phase 1 scaffold; drivers land in Phase 2
+│   ├── mcu/pic18f2455-mplabx/      # XC8 Makefile (needs PIC18Fxxxx DFP, see README)
+│   ├── README.md
+│   └── CMakeLists.txt              # host simulation build (reuses pic8-common)
+│
+├── docs/multi-family-plan.md       # the refactor plan (Phase 0–1 done)
+├── 39582b.pdf                      # Microchip datasheet (DS39582B, PIC16F87XA)
+├── 39632e.pdf                      # Microchip datasheet (DS39632E, PIC18F2455 family)
 ├── LICENSE                          # MIT
 └── README.md                       # this file
 ```

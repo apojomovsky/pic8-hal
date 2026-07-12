@@ -1,9 +1,10 @@
 # Multi-family PIC HAL: refactor plan
 
-Status: **approved, not started**. This document is the plan agreed for
-generalizing the PIC16F87XA HAL so it can support additional 8-bit PIC
-families (starting with PIC18F2455/2550/4455/4550, DS39632E) without
-rewriting the whole tree per chip. Phase 0 is the next work to start.
+Status: **approved; Phase 0 done, Phase 1 done**. This document is the
+plan agreed for generalizing the PIC16F87XA HAL so it can support
+additional 8-bit PIC families (starting with PIC18F2455/2550/4455/4550,
+DS39632E) without rewriting the whole tree per chip. Phase 2 (port the MVP
+vertical slice from DS39632E) is the next work to start.
 
 ## Motivation
 
@@ -98,7 +99,7 @@ validation passes; don't start the next phase on a red validation.
 ### Phase 0 — Extract the shared layer, rename in place (PIC16 only)
 
 No new hardware support in this phase. Pure, behavior-preserving refactor
-of the existing PIC16F87XA HAL.
+of the existing PIC16F87XA HAL. **Done** (commit `3f33d48`).
 
 **Tasks**
 1. Create `pic8-common/` with `hal_status.h` (`HAL_StatusTypeDef`,
@@ -132,25 +133,25 @@ for a second family, no behavior change of any kind. If a test's *output*
 changes, that's a bug in the refactor, not an intended improvement.
 
 **Validation**
-- [ ] `pic16f87xa-hal` host-sim build (`cmake --build`) succeeds with zero
+- [x] `pic16f87xa-hal` host-sim build (`cmake --build`) succeeds with zero
       warnings introduced.
-- [ ] Every existing HAL example (`example_blink`, `example_idle_blink`,
+- [x] Every existing HAL example (`example_blink`, `example_idle_blink`,
       `example_timer1/2`, `example_ccp_pwm`, `example_usart`, `example_ssp`,
       `example_adc`, `example_comp_vref`, `example_eeprom`, `example_psp`,
       `example_wdt_sleep`) passes with **identical** stdout/exit-code to
       before the refactor. Diff the captured output pre- and post-refactor,
       don't just check exit codes.
-- [ ] `pic16f87xa-taskmgr` host-sim build succeeds; `example_multi_blink`
+- [x] `pic16f87xa-taskmgr` host-sim build succeeds; `example_multi_blink`
       produces identical output to the pre-refactor baseline (`fast=12
       med=6 slow=3 blips=1 (ticks=61, tasks=4)`).
-- [ ] XC8 real-target build succeeds for all four devices (873A/874A/876A/
+- [x] XC8 real-target build succeeds for all four devices (873A/874A/876A/
       877A) with no new warnings; `.hex` output size is unchanged (a size
       change would indicate the rename affected codegen, which it must
       not).
-- [ ] `grep -r PIC16F87XA_BIT\|PIC16F87XA_StatusTypeDef\|PIC16F87XA_IRQ_`
+- [x] `grep -r PIC16F87XA_BIT\|PIC16F87XA_StatusTypeDef\|PIC16F87XA_IRQ_`
       the tree, expect zero hits outside of comments/docs explaining the
       old name for migration context (if any are kept).
-- [ ] Root README and both component READMEs build/link-check clean (no
+- [x] Root README and both component READMEs build/link-check clean (no
       broken relative links after any file moves).
 
 **Exit criterion**: all boxes checked, changes committed. This is the
@@ -162,7 +163,7 @@ partially-done rename.
 ### Phase 1 — Scaffold `pic18f2455-hal/` (empty backend)
 
 Stand up the skeleton so the family-selection seam can be exercised before
-any real PIC18 register code exists.
+any real PIC18 register code exists. **Done.**
 
 **Tasks**
 1. Create `pic18f2455-hal/` mirroring `pic16f87xa-hal/`'s directory shape:
@@ -187,19 +188,25 @@ any real PIC18 register code exists.
 Timer0 yet. This phase proves the *build* seam, not the *hardware*.
 
 **Validation**
-- [ ] `cmake -B build -S pic18f2455-hal && cmake --build build` succeeds
-      and produces `example_smoke`.
-- [ ] `./build/example_smoke` runs and reports pass via the shared harness
+- [x] `cmake -B build -S pic18f2455-hal && cmake --build build` succeeds
+      and produces `example_smoke`. (Built into `pic18f2455-hal/build` to
+      avoid colliding with the taskmgr build at the repo-root `build/`;
+      `-Wall -Wextra -Werror` clean.)
+- [x] `./build/example_smoke` runs and reports pass via the shared harness
       (proves `pic8_harness_*` really is family-blind, since PIC18's
       backend links against the exact same header/contract PIC16 uses).
-- [ ] XC8 build of the skeleton (empty peripheral set) produces a `.hex`
+      Passes on all four devices, each printing its own part name.
+- [x] XC8 build of the skeleton (empty peripheral set) produces a `.hex`
       for at least one device (e.g. PIC18F4550) with no link errors, proving
       the Makefile fragment + config-word generation plumbing works end to
-      end even before real drivers exist.
-- [ ] Confirm the XC8 v3.10 PIC18 interrupt syntax to use in Phase 2
+      end even before real drivers exist. (Built a `.hex` for all four
+      devices: 18F2455/2550/4455/4550.) Required installing the PIC18Fxxxx
+      DFP, which is not bundled with XC8; see the Phase 1 note below.
+- [x] Confirm the XC8 v3.10 PIC18 interrupt syntax to use in Phase 2
       (`#pragma interrupt` vs `__interrupt(high_priority)` vs something
       else) against the actual XC8 compiler documentation, not assumption.
-      Record the answer in this document before Phase 2 starts.
+      Record the answer in this document before Phase 2 starts. **Answer
+      recorded below** (§"XC8 v3.10 PIC18 interrupt syntax — resolved").
 
 **Exit criterion**: an empty but buildable-on-both-targets PIC18 tree
 exists, and the interrupt-syntax open question is resolved and recorded.
@@ -349,10 +356,26 @@ matching the rigor already applied to every PIC16 peripheral driver.
 ## Open questions (resolve during the phase noted)
 
 - **XC8 v3.10 PIC18 interrupt pragma/attribute syntax** — resolve in
-  Phase 1, record the answer in this document.
+  Phase 1, record the answer in this document. **RESOLVED (Phase 1):**
+  PIC18F2455/2550/4455/4550 are classic dual-priority-vector PIC18
+  devices (vectors at 0008h high, 0018h low; DS39632E §9.0), not the
+  vectored-interrupt-controller (VIC) variants. Per the XC8 C Compiler
+  User Guide for PIC (DS50002737K) §5.9.1.2 "Writing Dual-priority or
+  Legacy Mode ISRs", Phase 2's `pic18_isr_vector.c` uses:
+
+  ```c
+  void __interrupt(high_priority) PIC18_IRQ_HandlerHigh(void) { ... }
+  void __interrupt(low_priority)  PIC18_IRQ_HandlerLow(void)  { ... }
+  ```
+
+  (No priority argument ⇒ defaults to high priority; Microchip
+  recommends always specifying it. The legacy `#pragma interrupt` /
+  `#pragma interruptlow` form is obsolete in XC8 v2+.)
 - **How much of PIC18's BSR/Access-Bank addressing to model in the host
   sim** (full 16-bank fidelity vs. a simpler flat array sized to what's
-  actually implemented) — resolve during Phase 2 task 2.
+  actually implemented) — resolve during Phase 2 task 2. (Phase 1
+  provisionally uses a flat 4096-byte array indexed by the 12-bit
+  address; the macros stay the same regardless of the Phase 2 decision.)
 - **Shape of the `HAL_IRQ_*` priority contract extension** (optional
   parameter vs. separate setter) — resolve during Phase 2 task 5, before
   writing the interrupt core.
@@ -360,3 +383,12 @@ matching the rigor already applied to every PIC16 peripheral driver.
   hardware isn't on hand when Phase 2/3 validation is reached, flag it
   explicitly in the validation checklist as deferred rather than silently
   skipping the check.
+- **PIC18Fxxxx DFP toolchain component** (resolved during Phase 1): XC8
+  v3.x ships the PIC16Fxxx DFP but not the PIC18Fxxxx DFP, so the Phase 1
+  XC8 `.hex` build initially failed with `error: (2104) no device-support
+  files found`. Resolved by installing
+  `Microchip.PIC18Fxxxx_DFP.1.7.171.atpack` into
+  `/opt/microchip/xc8/v3.10/pic/packs/Microchip.PIC18Fxxxx_DFP/`. This is
+  an environment setup step, documented in
+  `pic18f2455-hal/mcu/pic18f2455-mplabx/README.md`; it is not part of the
+  repo. Family #3 onward will need its own DFP installed the same way.
