@@ -47,15 +47,21 @@ set(PIC8_FAMILY_DEVICES        PIC18F2455 PIC18F2550 PIC18F4455 PIC18F4550)
 set(PIC8_HAL_SOURCES
     src/sim/pic18_sim.c
     src/core/pic18_harness_sim.c
+    src/core/pic18_irq.c
     src/core/pic18_irq_dispatch.c
+    src/core/pic18f2455_wdt_sleep.c
+    src/core/pic18f2455_wdt_sleep_sim.c
+    src/peripherals/pic18f2455_gpio.c
+    src/peripherals/pic18f2455_timer0.c
 )
 
 pic8_add_hal_library(${PIC8_HAL_LIB})
 
-# Phase 1 smoke test: prove the shared harness links against the empty
-# PIC18 backend. Phase 2 adds example_blink etc.
+# Phase 2 MVP examples. example_blink is the canonical Timer0 + GPIO +
+# interrupt smoke test; example_smoke remains the bare harness-seam test.
+pic8_add_example(example_blink  tests/example_blink.c)
 pic8_add_example(example_smoke tests/example_smoke.c)
 
-# Optional: smoke test for every device in the family, proving every part
-# compiles and links against the shared contract.
-pic8_add_example_per_device(example_smoke tests/example_smoke.c)
+# Optional: the blink example for every device in the family, proving every
+# part compiles and links against the shared contract.
+pic8_add_example_per_device(example_blink tests/example_blink.c)

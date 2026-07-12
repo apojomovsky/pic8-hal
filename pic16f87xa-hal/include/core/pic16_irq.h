@@ -37,6 +37,7 @@
 
 #include "pic16f87xa.h"
 #include "pic16f87xa_sfr.h"
+#include "core/pic8_irq.h"   /* shared HAL_IRQ_Priority enum (family-blind) */
 
 /**
  * @brief Logical identity of every interrupt source on the part.
@@ -98,5 +99,15 @@ void HAL_IRQ_ClearFlag(PIC16_IRQn irq);
  * @brief Returns the current pending state of `irq` (1 = pending).
  */
 uint8_t HAL_IRQ_GetFlag(PIC16_IRQn irq);
+
+/**
+ * @brief Set the priority of `irq`. **No-op on PIC16**: the PIC16F87XA
+ *        family has a single interrupt vector and no priority scheme
+ *        (DS39582B §14.11), so the priority is ignored. Declared with the
+ *        shared @ref HAL_IRQ_Priority enum so consumer code is portable to
+ *        PIC18, where this writes the matching IPR bit. Part of the shared
+ *        `HAL_IRQ_*` contract extended in Phase 2 of the multi-family plan.
+ */
+void HAL_IRQ_SetPriority(PIC16_IRQn irq, HAL_IRQ_Priority prio);
 
 #endif /* PIC16_IRQ_H */

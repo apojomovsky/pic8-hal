@@ -219,7 +219,7 @@ The smallest slice that lets the task manager run: GPIO, Timer0, interrupts
 (two vectors + priority), WDT/sleep. Chosen because it's exactly the task
 manager's entire HAL dependency surface (confirmed by grepping
 `pic16f87xa-taskmgr/src/task_manager.c` and the example), so finishing it
-is both useful on its own and sets up Phase 3 directly.
+is both useful on its own and sets up Phase 3 directly. **Done.**
 
 **Tasks**, each cited against DS39632E the way the PIC16 drivers cite
 DS39582B:
@@ -262,23 +262,36 @@ DS39582B:
    interrupts, buildable on host sim and XC8.
 
 **Validation**
-- [ ] Host-sim `example_blink` (PIC18) toggles the target pin and reports
+- [x] Host-sim `example_blink` (PIC18) toggles the target pin and reports
       pass, mirroring the PIC16 example's structure and pass criteria.
-- [ ] XC8 build produces a `.hex` for at least PIC18F4550 (40-pin, matches
+      (`RB0 toggled 9 times`, exit 0, on all four devices; 600k cycles /
+      256×256 ≈ 9 overflows as expected. `-Wall -Wextra -Werror` clean.)
+- [x] XC8 build produces a `.hex` for at least PIC18F4550 (40-pin, matches
       the family's most-featured part) with the interrupt vectors correctly
       placed at 0008h/0018h (verify via the `.hex`/`.lst`/map output, not
-      just "it compiled").
-- [ ] On real PIC18 hardware (or, if hardware isn't available yet, flag
-      this explicitly as deferred rather than skipped silently): LED blinks
-      at the expected rate, confirming the Timer0 + interrupt + GPIO chain
-      actually works end to end, not just that it links.
-- [ ] `HAL_WDT_Refresh` / `HAL_Sleep_Enter` compile and, on host sim, behave
-      as documented no-ops exactly like the PIC16 versions.
-- [ ] Re-run all of Phase 0's PIC16 validation checks, this phase must not
+      just "it compiled"). (Built a `.hex` for all four devices; the
+      symbol map places `_PIC18_IRQ_HandlerHigh` at 0x0008 and
+      `_PIC18_IRQ_HandlerLow` at 0x0018, both calling
+      `pic8_dispatch_all_irqs`.)
+- [ ] On real PIC18 hardware: **deferred — no PIC18 board on hand.** The
+      Timer0 + interrupt + GPIO chain is verified on the host sim and the
+      XC8 build places the vectors correctly; real-silicon blink
+      confirmation is flagged as deferred per the open-questions rule, not
+      silently skipped.
+- [x] `HAL_WDT_Refresh` / `HAL_Sleep_Enter` compile and, on host sim, behave
+      as documented no-ops exactly like the PIC16 versions. (Host impls are
+      empty no-ops; `example_blink` calls `HAL_WDT_Refresh` every loop
+      iteration without crashing; both compile on XC8 as `clrwdt`/`sleep`.)
+- [x] Re-run all of Phase 0's PIC16 validation checks, this phase must not
       have touched anything under `pic16f87xa-hal/` or `pic8-common/` in a
-      way that regresses PIC16. If it did, that's a sign the contract
-      extension (priority, etc.) leaked family-specific assumptions into
-      the shared layer, fix before continuing.
+      way that regresses PIC16. (Touched `pic8-common/` to add
+      `core/pic8_irq.h`, and `pic16f87xa-hal` to add the no-op
+      `HAL_IRQ_SetPriority` — both additive. PIC16 taskmgr host baseline
+      unchanged `fast=12 med=6 slow=3 blips=1 ticks=61 tasks=4`; PIC16 XC8
+      `.hex` program space unchanged at 1783 words, the uncalled no-op
+      dropped by the linker. One additional `(520) function never called`
+      warning for the no-op, same class as the existing unused-HAL-function
+      warnings, not a behavioral regression.)
 
 **Exit criterion**: a working PIC18 blink example on host sim, with the
 XC8 build producing correct vector placement, and zero PIC16 regression.
@@ -376,9 +389,27 @@ matching the rigor already applied to every PIC16 peripheral driver.
   actually implemented) — resolve during Phase 2 task 2. (Phase 1
   provisionally uses a flat 4096-byte array indexed by the 12-bit
   address; the macros stay the same regardless of the Phase 2 decision.)
+  **RESOLVED (Phase 2):** flat array. The sim keeps the 4096-byte array
+  indexed by the physical 12-bit address; the BSR is a stored SFR but
+  the sim does no address translation. C drivers that need a banked GPR
+  compute the physical address themselves, exactly as the PIC16 sim
+  already works with its 512-byte flat array and per-bank driver
+  addresses. This is sufficient for a C-level HAL where XC8 banks GPR
+  automatically, and it keeps the two families' sim approaches
+  symmetric. The MVP slice's SFRs (STATUS, BSR, PORTB/LATB/TRISB,
+  INTCON/2/3, PIR1/PIE1/IPR1, TMR0L/H/T0CON, RCON) are all in the
+  Access Bank (0xF60-0xFFF), so no banking is needed for them at all.
 - **Shape of the `HAL_IRQ_*` priority contract extension** (optional
   parameter vs. separate setter) — resolve during Phase 2 task 5, before
-  writing the interrupt core.
+  writing the interrupt core. **RESOLVED (Phase 2):** separate setter.
+  Add `HAL_IRQ_SetPriority(irq, prio)` to the shared `pic8-common`
+  contract with a shared `HAL_IRQ_PRIORITY_HIGH` / `HAL_IRQ_PRIORITY_LOW`
+  enum. PIC16's implementation is a no-op (single vector, no priority);
+  PIC18's writes the matching IPR bit. `HAL_IRQ_Enable` keeps its
+  current signature, so `task_manager.c` and every existing PIC16
+  example need zero changes — which is exactly what the Phase 3 litmus
+  test demands. (An optional-parameter approach was rejected because it
+  changes a shared signature and forces edits to every PIC16 caller.)
 - **Hardware availability for real-silicon validation** — if PIC18
   hardware isn't on hand when Phase 2/3 validation is reached, flag it
   explicitly in the validation checklist as deferred rather than silently

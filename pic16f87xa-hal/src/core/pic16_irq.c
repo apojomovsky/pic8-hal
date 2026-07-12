@@ -128,3 +128,13 @@ uint8_t HAL_IRQ_GetFlag(PIC16_IRQn irq)
                 : PIC8_REG8(pir_reg_addr(d));
     return (reg & d->flag_mask) ? 1U : 0U;
 }
+
+void HAL_IRQ_SetPriority(PIC16_IRQn irq, HAL_IRQ_Priority prio)
+{
+    /* PIC16F87XA has a single interrupt vector, no priority scheme
+     * (DS39582B §14.11). This is the no-op half of the shared
+     * HAL_IRQ_SetPriority contract; PIC18's implementation writes the
+     * matching IPR bit. Both arguments are intentionally unused. */
+    (void)irq;
+    (void)prio;
+}

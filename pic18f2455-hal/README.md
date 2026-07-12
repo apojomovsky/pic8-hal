@@ -15,33 +15,50 @@ drivers) live here.
 
 ## Status
 
-**Phase 1: scaffold.** The build seam is proven, no real drivers exist yet.
+**Phase 2: MVP vertical slice done.** GPIO, Timer0, the dual-priority
+interrupt core, and WDT/Sleep are implemented and cited against DS39632E;
+`example_blink` runs on the host sim and builds to a `.hex` (vectors at
+0008h/0018h) for all four devices on XC8. The broader peripheral coverage
+(Timer1/2/3, ECCP, MSSP, ADC, USART, EEPROM) is Phase 4.
 
 - ✅ Family header (`pic18f2455.h`): device select for all four parts,
   family capability macros (flash / RAM / EEPROM / I/O / ADC channels /
   PORTD / PORTE / SPP / USB), pulls in the shared status codes and the
   platform layer.
+- ✅ SFR map (`pic18f2455_sfr.h`): the MVP subset (STATUS, BSR, RCON,
+  PORTA-E / LATA-E / TRISA-E, INTCON / INTCON2 / INTCON3, PIR1 / PIE1 /
+  IPR1, TMR0L / TMR0H / T0CON), addresses cross-checked against the
+  PIC18Fxxxx DFP, every bit and reset value cited to DS39632E.
 - ✅ Platform layer (`include/host` + `include/target` `pic18_platform.h`):
-  the same `pic8_sfr_read8` / `PIC8_REG8` / `PIC8_WEAK` contract as PIC16,
-  host version backed by a memory array, target version a volatile
-  dereference. The BSR / Access-Bank model is provisional here and is
-  finalized in Phase 2.
-- ✅ Host simulation backend (`pic18_sim.c`, minimal): reset + step + IRQ
-  callback. Phase 2 grows Timer0 stepping and GPIO drive/read.
-- ✅ Shared interrupt dispatch (`pic18_irq_dispatch.c`): `pic8_dispatch_all_irqs`,
-  empty body in Phase 1 (no handlers yet). Phase 2 fills in the per-source
-  fan-out and the two-vector `pic18_isr_vector.c`.
-- ✅ Test/firmware harness wired up via the shared `pic8_harness.h`; the
-  host implementation is `pic18_harness_sim.c`, the target implementation
-  is the family-blind `pic8_harness_target.c` in `pic8-common/`.
-- ✅ CMake host build + XC8 Makefile, both thin callers of the shared
-  `pic8-common/cmake/pic8_family.cmake` and `pic8-common/mk/pic8_family.mk`.
-- ✅ `example_smoke`: proves the shared harness contract links and runs
-  against the empty PIC18 backend (the central Phase 1 claim).
+  the same `pic8_sfr_read8` / `PIC8_REG8` / `PIC8_WEAK` contract as PIC16.
+  Per the plan's Phase 2 decision, the host sim is a flat 4096-byte array
+  indexed by the physical 12-bit address (no BSR translation; every MVP
+  SFR is in the Access Bank 0xF60-0xFFF).
+- ✅ GPIO driver (`peripherals/pic18f2455_gpio.h`): same API as PIC16,
+  writes through LATx (DS39632E §10.0), reads PORTx, PORTB pull-ups via
+  INTCON2<RBPU>.
+- ✅ Timer0 driver (`peripherals/pic18f2455_timer0.h`): same API as PIC16
+  plus a `Mode` field for the T0CON 8/16-bit select (default 8-bit, the
+  PIC16-compatible mode the task manager uses).
+- ✅ Interrupt core (`core/pic18_irq.h`): `PIC18_IRQn` enum, `HAL_IRQ_*`
+  against INTCON / INTCON2 / INTCON3 / PIE1 / PIR1 / IPR1, priority mode
+  (IPEN) enabled by `HAL_IRQ_Restore`. `HAL_IRQ_SetPriority` is the
+  shared-contract extension (no-op on PIC16).
+- ✅ ISR vectors (`src/core/pic18_isr_vector.c`, XC8 only):
+  `__interrupt(high_priority)` at 0008h and `__interrupt(low_priority)` at
+  0018h, both delegating to `pic8_dispatch_all_irqs`.
+- ✅ WDT / Sleep (`core/pic18f2455_wdt_sleep.h`): `HAL_WDT_Refresh` /
+  `HAL_Sleep_Enter` (asm on target, no-op on host) + BOR/POR status from
+  RCON (PIC18 folds TO/PD/POR/BOR into RCON, not a separate PCON).
+- ✅ Host simulation backend (`src/sim/pic18_sim.c`): Timer0 stepping
+  (8/16-bit, prescaler, overflow → TMR0IF) + GPIO drive/read, mirroring
+  `pic16f87xa_sim.c`'s API shape.
+- ✅ `example_blink` (Timer0 + GPIO + interrupt) + `example_smoke`
+  (harness seam), both buildable on host sim and XC8.
 
-**Not yet (Phase 2+):** SFR map, GPIO (write-through-LATx), Timer0,
-dual-priority interrupt core, WDT/Sleep, host-sim peripheral stepping,
-`example_blink`. See the plan's Phase 2 task list.
+**Deferred:** real-silicon blink confirmation (no PIC18 board on hand;
+flagged in the plan, not silently skipped). **Phase 4+:** Timer1/2/3,
+ECCP, MSSP, ADC, USART, EEPROM.
 
 ## Layout
 
@@ -71,16 +88,19 @@ pic18f2455-hal/
 cmake -B build -S .
 cmake --build build
 
-./build/example_smoke
-./build/example_smoke_PIC18F2455
-./build/example_smoke_PIC18F2550
-./build/example_smoke_PIC18F4455
-./build/example_smoke_PIC18F4550
+./build/example_blink          # Timer0 + GPIO + interrupt: RB0 toggled 9 times
+./build/example_smoke          # harness seam: smoke: 10 ticks, device <PART>
+./build/example_blink_PIC18F2455
+./build/example_blink_PIC18F2550
+./build/example_blink_PIC18F4455
+./build/example_blink_PIC18F4550
 ```
 
-Each prints `smoke: 10 ticks, device <PART>` and exits 0. This is the proof
-that `pic8_harness_*` is family-blind: PIC18's empty backend links against
-the exact same header and contract PIC16 uses.
+`example_blink` exits 0 with `RB0 toggled 9 times` (600k sim cycles /
+256×256 ≈ 9 Timer0 overflows). `example_smoke` exits 0 with
+`smoke: 10 ticks, device <PART>`. Both prove the shared `pic8_harness_*`
+contract is family-blind: PIC18 links against the exact same header and
+contract PIC16 uses.
 
 ## Build (real target)
 

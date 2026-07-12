@@ -6,30 +6,30 @@
  * @details
  *   The PIC18F2455 family has two interrupt vectors: 0008h high-priority
  *   and 0018h low-priority (DS39632E §9.0). On a real target the XC8
- *   `__interrupt(high_priority)` / `__interrupt(low_priority)` handlers
- *   (added in Phase 2, pic18_isr_vector.c) call this; on the host the
- *   harness registers this as the sim IRQ callback. Both reach the same
- *   dispatch, so there is one source of truth and no duplication.
+ *   `__interrupt(high_priority)` / `__interrupt(low_priority)` handlers in
+ *   pic18_isr_vector.c both call this; on the host the harness registers
+ *   this as the sim IRQ callback. Both reach the same dispatch, so there is
+ *   one source of truth and no duplication.
  *
- *   Phase 1: there are no peripheral IRQHandlers yet (no drivers), so this
- *   is an empty body. It exists so the harness's reference to
- *   @ref pic8_dispatch_all_irqs links against the empty family backend,
- *   proving the contract is family-blind. Phase 2 adds the per-source
- *   handler calls (and decides, per the plan's Phase 2 task 6, whether
- *   both vectors delegate here or each priority level dispatches
- *   separately).
+ *   Each peripheral IRQHandler checks its own flag and returns immediately
+ *   when its source is not pending (see @ref TIMER0_IRQHandler), so calling
+ *   them all in turn is correct and costs only a few cycles per interrupt.
  *
- *   The handler prototypes are not pulled in here yet; Phase 2 declares
- *   them as strong externs (matching pic16_irq_dispatch.c) so the linker
- *   resolves every weak handler.
+ *   Phase 2 MVP: only Timer0 has a handler (the task manager's tick source
+ *   and the blink example). Phase 4 adds the per-source handlers for the
+ *   remaining peripherals (Timer1/2/3, CCP, MSSP, ADC, USART, ...) the same
+ *   way PIC16's pic16_irq_dispatch.c does.
+ *
+ *   The handler prototypes are declared here as strong externs (not via the
+ *   peripheral headers, whose `PIC8_WEAK` declaration would make the
+ *   reference weak and let the linker drop the handler's object from the
+ *   static library). On the XC8 target there is no weak attribute, so this
+ *   is a no-op there; it only matters for the host link.
  */
 
-/**
- * @brief  Fan out to every peripheral IRQHandler for the linked family.
- *         Phase 1: empty. The strong extern prototype is declared in
- *         core/pic8_harness.h (shared), so this file needs no include.
- */
+extern void TIMER0_IRQHandler(void);
+
 void pic8_dispatch_all_irqs(void)
 {
-    /* No peripheral handlers in Phase 1. */
+    TIMER0_IRQHandler();
 }

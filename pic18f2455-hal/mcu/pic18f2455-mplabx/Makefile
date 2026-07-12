@@ -105,15 +105,25 @@ CFLAGS := $(DFP_FLAG) \
 # (include/target first), and the host-only harness implementation is
 # simply absent from this source list. The family-blind harness target
 # impl lives in pic8-common and is linked here alongside the PIC18 core.
-# Phase 1: no peripheral sources and no ISR vector yet (Phase 2).
+# Phase 2 MVP: GPIO, Timer0, interrupt core + ISR vector, WDT/Sleep. The
+# host-only files (pic18_sim.c, pic18_harness_sim.c,
+# pic18f2455_wdt_sleep_sim.c) are absent from this list; the host/target
+# SFR mapping is chosen by the include path (include/target first).
 
 HAL_SOURCES := \
-  $(HAL_DIR)/src/core/pic18_irq_dispatch.c               \
+  $(HAL_DIR)/src/peripherals/pic18f2455_gpio.c            \
+  $(HAL_DIR)/src/peripherals/pic18f2455_timer0.c          \
+  $(HAL_DIR)/src/core/pic18_irq.c                         \
+  $(HAL_DIR)/src/core/pic18_irq_dispatch.c                \
+  $(HAL_DIR)/src/core/pic18_isr_vector.c                  \
+  $(HAL_DIR)/src/core/pic18f2455_wdt_sleep.c              \
+  $(HAL_DIR)/src/core/pic18f2455_wdt_sleep_target.c       \
   $(COMMON_DIR)/src/core/pic8_harness_target.c
 
-# Add your application sources here. example_smoke is the Phase 1 build-
-# seam test; Phase 2 replaces it with example_blink.
-APP_SOURCES := $(HAL_DIR)/tests/example_smoke.c
+# Add your application sources here. example_blink is the canonical
+# "turn an LED on" smoke test (Timer0 + GPIO + interrupt). Replace it with
+# your project's main.c.
+APP_SOURCES := $(HAL_DIR)/tests/example_blink.c
 
 # All real .c sources (the config word is generated separately, below).
 SRCS := $(HAL_SOURCES) $(APP_SOURCES)
