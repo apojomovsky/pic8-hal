@@ -28,8 +28,12 @@
  */
 
 extern void TIMER0_IRQHandler(void);
+extern void TIMER1_IRQHandler(void);
+extern void TIMER2_IRQHandler(void);
 
 void pic8_dispatch_all_irqs(void)
 {
     TIMER0_IRQHandler();
+    TIMER1_IRQHandler();
+    TIMER2_IRQHandler();
 }

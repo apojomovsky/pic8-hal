@@ -93,6 +93,16 @@
 #define PIC_REG_TMR0L         0xFD6U   /**< Timer0 low byte (also 8-bit mode value). */
 #define PIC_REG_TMR0H         0xFD7U   /**< Timer0 high byte (16-bit mode only).    */
 
+/* Timer1, DS39632E §12.0, Register 12-1. 16-bit timer/counter. */
+#define PIC_REG_T1CON         0xFCDU   /**< Timer1 control (RD16/run/prescale/osc/sync/cs/on). */
+#define PIC_REG_TMR1L         0xFCEU   /**< Timer1 low byte.                          */
+#define PIC_REG_TMR1H         0xFCFU   /**< Timer1 high byte.                         */
+
+/* Timer2, DS39632E §12.0, Register 12-2. 8-bit timer with PR2 + postscaler. */
+#define PIC_REG_T2CON         0xFCAU   /**< Timer2 control (postscaler/on/prescaler). */
+#define PIC_REG_PR2           0xFCBU   /**< Timer2 period register (Access Bank).    */
+#define PIC_REG_TMR2          0xFCCU   /**< Timer2 counter.                          */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -172,6 +182,20 @@
 #define PIC_T0CON_PSA         PIC8_BIT(3)   /**< 0=prescaler assigned, 1=not.    */
 #define PIC_T0CON_T0PS_MASK   0x07U         /**< T0PS2:T0PS0, prescaler ratio.   */
 
+/* ───────────────────────── T1CON bits (Register 12-1) ───────────── */
+#define PIC_T1CON_RD16        PIC8_BIT(7)   /**< 16-bit read/write mode enable.   */
+#define PIC_T1CON_T1RUN       PIC8_BIT(6)   /**< Timer1 system clock status (RO). */
+#define PIC_T1CON_T1CKPS_MASK 0x30U         /**< T1CKPS1:T1CKPS0 at bits 5:4.     */
+#define PIC_T1CON_T1OSCEN     PIC8_BIT(3)   /**< Timer1 oscillator enable.       */
+#define PIC_T1CON_T1SYNC      PIC8_BIT(2)   /**< External clock sync (1=async).  */
+#define PIC_T1CON_TMR1CS      PIC8_BIT(1)   /**< 0=Fosc/4, 1=external/T1OSC.     */
+#define PIC_T1CON_TMR1ON      PIC8_BIT(0)   /**< Timer1 on/off.                   */
+
+/* ───────────────────────── T2CON bits (Register 12-2) ───────────── */
+#define PIC_T2CON_TOUTPS_MASK 0x78U         /**< T2OUTPS3:T2OUTPS0 at bits 6:3 (1:(N+1)). */
+#define PIC_T2CON_TMR2ON      PIC8_BIT(2)   /**< Timer2 on/off.                   */
+#define PIC_T2CON_T2CKPS_MASK 0x03U         /**< T2CKPS1:T2CKPS0 at bits 1:0.     */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -187,6 +211,9 @@
 #define PIC_PIE1_POR_VALUE       0x00U
 #define PIC_IPR1_POR_VALUE       0xFFU
 #define PIC_T0CON_POR_VALUE      0xFFU
+#define PIC_T1CON_POR_VALUE      0x00U
+#define PIC_T2CON_POR_VALUE      0x00U
+#define PIC_PR2_POR_VALUE        0xFFU
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

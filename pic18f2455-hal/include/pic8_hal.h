@@ -25,8 +25,10 @@
 #include "core/pic18_irq.h"
 #include "core/pic18f2455_wdt_sleep.h"
 
-/* Peripherals (Phase 2 MVP set). */
+/* Peripherals (Phase 2 MVP + Phase 4 Timer1/Timer2). */
 #include "peripherals/pic18f2455_gpio.h"
 #include "peripherals/pic18f2455_timer0.h"
+#include "peripherals/pic18f2455_timer1.h"
+#include "peripherals/pic18f2455_timer2.h"
 
 #endif /* PIC8_HAL_H */

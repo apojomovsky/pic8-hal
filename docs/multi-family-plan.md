@@ -369,9 +369,22 @@ include neutralization the contract fix required.
 ### Phase 4+ — Broaden PIC18 peripheral coverage
 
 Not blocking for the multi-family architecture claim, this is ordinary HAL
-growth at the established one-peripheral-at-a-time pace: Timer1/2/3, ECCP
-(including dead-band/shutdown, PIC18-only vs. PIC16's plain CCP), MSSP,
-ADC, comparator, EEPROM, USART. USB and the extended instruction set are
+growth at the established one-peripheral-at-a-time pace.
+
+**Done so far:**
+- **Timer1** (commit pending): 16-bit timer/counter, same API as PIC16.
+  PIC18 T1CON adds `RD16` (16-bit read/write mode, set by the driver) and
+  the read-only `T1RUN` status bit; the rest of T1CON matches PIC16.
+  Host-sim stepping + `example_timer1` (3 overflows at 1:1, 65536 cycles
+  each) + XC8 all four devices.
+- **Timer2** (commit pending): 8-bit timer with PR2 + postscaler, same API
+  as PIC16; simpler because PIC18's PR2 is in the Access Bank (no bank
+  switching). Host-sim stepping + `example_timer2` (5 overflows, period
+  250 cycles with PR2=249) + XC8 all four devices.
+
+**Remaining:** Timer3, ECCP (including dead-band/shutdown, PIC18-only vs.
+PIC16's plain CCP), MSSP, ADC, comparator, EEPROM, EUSART, SPP (replaces
+PIC16's PSP, USB-streaming). USB and the extended instruction set are
 large enough to scope as separate future efforts, not part of "general
 8-bit PIC support."
 

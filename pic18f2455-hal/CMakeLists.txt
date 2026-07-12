@@ -53,6 +53,8 @@ set(PIC8_HAL_SOURCES
     src/core/pic18f2455_wdt_sleep_sim.c
     src/peripherals/pic18f2455_gpio.c
     src/peripherals/pic18f2455_timer0.c
+    src/peripherals/pic18f2455_timer1.c
+    src/peripherals/pic18f2455_timer2.c
 )
 
 pic8_add_hal_library(${PIC8_HAL_LIB})
@@ -60,6 +62,8 @@ pic8_add_hal_library(${PIC8_HAL_LIB})
 # Phase 2 MVP examples. example_blink is the canonical Timer0 + GPIO +
 # interrupt smoke test; example_smoke remains the bare harness-seam test.
 pic8_add_example(example_blink  tests/example_blink.c)
+pic8_add_example(example_timer1 tests/example_timer1.c)
+pic8_add_example(example_timer2 tests/example_timer2.c)
 pic8_add_example(example_smoke tests/example_smoke.c)
 
 # Optional: the blink example for every device in the family, proving every

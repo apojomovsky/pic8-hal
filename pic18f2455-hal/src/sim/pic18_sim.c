@@ -36,6 +36,8 @@ static uint8_t sim_input_value   [5] = {0};
 static pic18_sim_irq_cb_t sim_irq_cb = 0;
 
 static void sim_step_timer0(void);
+static void sim_step_timer1(void);
+static void sim_step_timer2(void);
 
 /* ───────────────────────── helpers ──────────────────────────────── */
 
@@ -102,6 +104,9 @@ void pic18_sim_reset(void)
     pic18_sim_sfr[PIC_REG_PIE1]     = PIC_PIE1_POR_VALUE;     /* 0x00 */
     pic18_sim_sfr[PIC_REG_IPR1]     = PIC_IPR1_POR_VALUE;     /* 0xFF */
     pic18_sim_sfr[PIC_REG_T0CON]    = PIC_T0CON_POR_VALUE;    /* 0xFF */
+    pic18_sim_sfr[PIC_REG_T1CON]    = PIC_T1CON_POR_VALUE;    /* 0x00 */
+    pic18_sim_sfr[PIC_REG_T2CON]    = PIC_T2CON_POR_VALUE;    /* 0x00 */
+    pic18_sim_sfr[PIC_REG_PR2]     = PIC_PR2_POR_VALUE;       /* 0xFF */
 
     /* TRIS defaults: 1 = input. PORTA is 6-bit, PORTE 3-bit. */
     pic18_sim_sfr[PIC_REG_TRISA] = 0x3FU;
@@ -133,6 +138,8 @@ void pic18_sim_step(uint32_t ticks)
 {
     for (uint32_t i = 0; i < ticks; i++) {
         sim_step_timer0();
+        sim_step_timer1();
+        sim_step_timer2();
     }
 }
 
@@ -184,6 +191,90 @@ static void sim_step_timer0(void)
             if (sim_irq_cb) sim_irq_cb();
         }
     }
+}
+
+/* ───────────────────────── Timer1 step ──────────────────────────── */
+
+static void sim_step_timer1(void)
+{
+    /* T1CON layout (DS39632E Register 12-1):
+     *   bit 7  RD16
+     *   bit 6  T1RUN (status, RO)
+     *   bit 5..4 T1CKPS1:T1CKPS0
+     *   bit 3  T1OSCEN
+     *   bit 2  T1SYNC
+     *   bit 1  TMR1CS
+     *   bit 0  TMR1ON
+     */
+    uint8_t t1con = pic18_sim_sfr[PIC_REG_T1CON];
+    if (!(t1con & PIC_T1CON_TMR1ON)) return;     /* stopped */
+
+    /* Prescaler 1:1/1:2/1:4/1:8 (T1CKPS1:T1CKPS0). TMR1CS = 1 (external/T1OSC):
+     * the sim does not model a real external signal, so it advances at the
+     * configured prescaler rate per instruction cycle (lets T1OSC-based
+     * firmware run on the host with the same Timer1 config a real target
+     * uses; the 32 kHz crystal's actual rate is not reproduced). */
+    static const uint8_t ps_idx[4] = {1, 2, 4, 8};
+    uint32_t rate = ps_idx[(t1con >> 4) & 0x3U];
+
+    static uint8_t t1_prescaler = 0U;
+    t1_prescaler++;
+    if (t1_prescaler < rate) return;
+    t1_prescaler = 0U;
+
+    /* 16-bit increment (the sim ignores RD16 latching; it reads both bytes
+     * atomically). */
+    uint16_t full = (uint16_t)(((uint16_t)pic18_sim_sfr[PIC_REG_TMR1H] << 8) |
+                               pic18_sim_sfr[PIC_REG_TMR1L]);
+    full++;
+    pic18_sim_sfr[PIC_REG_TMR1L] = (uint8_t)(full & 0xFFU);
+    pic18_sim_sfr[PIC_REG_TMR1H] = (uint8_t)(full >> 8);
+    if (full == 0U) {
+        pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_TMR1IF;
+        if (sim_irq_cb) sim_irq_cb();
+    }
+}
+
+/* ───────────────────────── Timer2 step ──────────────────────────── */
+
+static void sim_step_timer2(void)
+{
+    /* T2CON layout (DS39632E Register 12-2):
+     *   bit 6..3 T2OUTPS3:T2OUTPS0
+     *   bit 2  TMR2ON
+     *   bit 1..0 T2CKPS1:T2CKPS0
+     */
+    uint8_t t2con = pic18_sim_sfr[PIC_REG_T2CON];
+    if (!(t2con & PIC_T2CON_TMR2ON)) return;     /* stopped */
+
+    /* T2CKPS1:T2CKPS0 -> 1:1, 1:4, 1:16, 1:16. */
+    static const uint8_t pre_idx[4] = {1, 4, 16, 16};
+    uint32_t pre = pre_idx[t2con & PIC_T2CON_T2CKPS_MASK];
+    /* TOUTPS3:TOUTPS0 -> 1:(N+1). */
+    uint8_t  post = (uint8_t)(((t2con & PIC_T2CON_TOUTPS_MASK) >> 3) + 1U);
+
+    uint8_t pr2 = pic18_sim_sfr[PIC_REG_PR2];
+
+    static uint16_t t2_prescaler = 0U;
+    static uint8_t  t2_post      = 0U;
+
+    t2_prescaler++;
+    if (t2_prescaler < pre) return;
+    t2_prescaler = 0U;
+
+    /* TMR2 increments until it matches PR2, then resets (DS39632E §12.0);
+     * TMR2IF fires after the postscaler, once per (PR2+1) prescaled cycles. */
+    uint8_t t2 = (uint8_t)(pic18_sim_sfr[PIC_REG_TMR2] + 1U);
+    if (t2 > pr2) {
+        t2 = 0U;
+        t2_post++;
+        if (t2_post >= post) {
+            t2_post = 0U;
+            pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_TMR2IF;
+            if (sim_irq_cb) sim_irq_cb();
+        }
+    }
+    pic18_sim_sfr[PIC_REG_TMR2] = t2;
 }
 
 /* ───────────────────────── GPIO drive / read ────────────────────── */

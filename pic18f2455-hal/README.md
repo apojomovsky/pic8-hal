@@ -15,11 +15,12 @@ drivers) live here.
 
 ## Status
 
-**Phase 2: MVP vertical slice done.** GPIO, Timer0, the dual-priority
-interrupt core, and WDT/Sleep are implemented and cited against DS39632E;
-`example_blink` runs on the host sim and builds to a `.hex` (vectors at
-0008h/0018h) for all four devices on XC8. The broader peripheral coverage
-(Timer1/2/3, ECCP, MSSP, ADC, USART, EEPROM) is Phase 4.
+**Phase 2 MVP + Phase 4 (Timers) done.** GPIO, Timer0, Timer1, Timer2,
+the dual-priority interrupt core, and WDT/Sleep are implemented and cited
+against DS39632E; `example_blink` / `example_timer1` / `example_timer2` run
+on the host sim and the HAL builds to a `.hex` (vectors at 0008h/0018h) for
+all four devices on XC8. The broader peripheral coverage (Timer3, ECCP,
+MSSP, ADC, EUSART, EEPROM, SPP) is the rest of Phase 4.
 
 - ✅ Family header (`pic18f2455.h`): device select for all four parts,
   family capability macros (flash / RAM / EEPROM / I/O / ADC channels /
@@ -40,6 +41,12 @@ interrupt core, and WDT/Sleep are implemented and cited against DS39632E;
 - ✅ Timer0 driver (`peripherals/pic18f2455_timer0.h`): same API as PIC16
   plus a `Mode` field for the T0CON 8/16-bit select (default 8-bit, the
   PIC16-compatible mode the task manager uses).
+- ✅ Timer1 driver (`peripherals/pic18f2455_timer1.h`): 16-bit, same API as
+  PIC16; PIC18 T1CON adds `RD16` (16-bit read/write mode, set by the driver)
+  and the read-only `T1RUN` status bit.
+- ✅ Timer2 driver (`peripherals/pic18f2455_timer2.h`): 8-bit with PR2 +
+  postscaler, same API as PIC16; simpler than PIC16 because PIC18's PR2 is
+  in the Access Bank (no bank switching).
 - ✅ Interrupt core (`core/pic18_irq.h`): `PIC18_IRQn` enum, `HAL_IRQ_*`
   against INTCON / INTCON2 / INTCON3 / PIE1 / PIR1 / IPR1, priority mode
   (IPEN) enabled by `HAL_IRQ_Restore`. `HAL_IRQ_SetPriority` is the
@@ -50,15 +57,16 @@ interrupt core, and WDT/Sleep are implemented and cited against DS39632E;
 - ✅ WDT / Sleep (`core/pic18f2455_wdt_sleep.h`): `HAL_WDT_Refresh` /
   `HAL_Sleep_Enter` (asm on target, no-op on host) + BOR/POR status from
   RCON (PIC18 folds TO/PD/POR/BOR into RCON, not a separate PCON).
-- ✅ Host simulation backend (`src/sim/pic18_sim.c`): Timer0 stepping
-  (8/16-bit, prescaler, overflow → TMR0IF) + GPIO drive/read, mirroring
-  `pic16f87xa_sim.c`'s API shape.
-- ✅ `example_blink` (Timer0 + GPIO + interrupt) + `example_smoke`
-  (harness seam), both buildable on host sim and XC8.
+- ✅ Host simulation backend (`src/sim/pic18_sim.c`): Timer0/1/2 stepping
+  (8/16-bit, prescalers, overflow → TMR0IF/PIR1 flags) + GPIO drive/read,
+  mirroring `pic16f87xa_sim.c`'s API shape.
+- ✅ `example_blink` (Timer0 + GPIO + interrupt), `example_timer1`,
+  `example_timer2`, + `example_smoke` (harness seam), all buildable on
+  host sim and XC8.
 
 **Deferred:** real-silicon blink confirmation (no PIC18 board on hand;
-flagged in the plan, not silently skipped). **Phase 4+:** Timer1/2/3,
-ECCP, MSSP, ADC, USART, EEPROM.
+flagged in the plan, not silently skipped). **Rest of Phase 4:** Timer3,
+ECCP, MSSP, ADC, EUSART, EEPROM, SPP.
 
 ## Layout
 
