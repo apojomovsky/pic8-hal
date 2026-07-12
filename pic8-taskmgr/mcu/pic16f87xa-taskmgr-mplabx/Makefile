@@ -1,4 +1,4 @@
-# pic16f87xa-taskmgr, MPLAB XC8 Makefile
+# pic8-taskmgr, MPLAB XC8 Makefile -- PIC16F87XA family variant.
 #
 # Builds the task manager + the multi-blink example on real silicon via
 # MPLAB XC8. Tested with:

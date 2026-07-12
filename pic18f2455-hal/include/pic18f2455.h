@@ -117,6 +117,18 @@
 #endif
 /** @} */
 
+/* ─────────── family-neutral capability aliases (pic8-common contract) ── */
+/**
+ * Each family exposes its capability macros under family-neutral names too,
+ * so family-agnostic consumers (the cooperative task manager) can scale to
+ * the part without referencing a family-specific macro. Defined here to the
+ * PIC18F2455 family's value; `pic16f87xa.h` defines the same names to the
+ * PIC16 value. Only the RAM size is aliased today (the task manager scales
+ * its slot table to it); add more aliases as a family-agnostic consumer
+ * needs them.
+ */
+#define PIC8_FAMILY_RAM_BYTES   PIC18F2455_FAMILY_RAM_BYTES
+
 /* ─────────── shared HAL status codes + bit helpers (pic8-common) ── */
 /**
  * The status enum (`HAL_StatusTypeDef` / `HAL_OK` / ...) and the bit

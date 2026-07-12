@@ -1,11 +1,11 @@
-# pic16f87xa-taskmgr, MPLAB XC8 Makefile -- PIC18F2455 family variant.
+# pic8-taskmgr, MPLAB XC8 Makefile -- PIC18F2455 family variant.
 #
 # Builds the SAME task manager + multi-blink example against the
-# pic18f2455-hal instead of pic16f87xa-hal. This is the Phase 3 litmus
-# test: the task manager source (task_manager.c/.h) is family-agnostic and
-# builds unmodified against either family; only this Makefile's HAL_DIR,
-# device list, DFP, source list, and config word differ from the PIC16
-# variant under mcu/pic16f87xa-taskmgr-mplabx/.
+# pic18f2455-hal instead of pic16f87xa-hal. The task manager source
+# (task_manager.c/.h) is family-agnostic and builds unmodified against either
+# family; only this Makefile's HAL_DIR, device list, DFP, source list, and
+# config word differ from the PIC16 variant under
+# mcu/pic16f87xa-taskmgr-mplabx/.
 #
 # Tested with MPLAB X IDE v6.x, MPLAB XC8 v3.10, PIC18F4550.
 #

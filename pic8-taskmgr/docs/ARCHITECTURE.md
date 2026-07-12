@@ -1,15 +1,16 @@
 # Architecture
 
-The design of the PIC16F87XA task manager: the cooperative model, the tick
+The design of the 8-bit PIC task manager: the cooperative model, the tick
 source, concurrency, RAM scaling, and the constraints of an 8-bit PIC with
 banked RAM and an 8-level hardware stack.
 
 ## Why cooperative, not preemptive
 
-A preemptive RTOS needs a separate stack per task. The PIC16F87XA has no
-software stack, only an 8-level hardware call stack, and 192-368 B of banked
-RAM, so per-task stacks and context switching are not feasible. This module
-provides a cooperative scheduler instead: tasks run to completion in priority
+A preemptive RTOS needs a separate stack per task. These 8-bit PIC cores
+have no software stack, only an 8-level hardware call stack, and modest
+banked RAM (192 B on a PIC16F873A up to 2 KB on a PIC18F4550), so per-task
+stacks and context switching are not feasible. This module provides a
+cooperative scheduler instead: tasks run to completion in priority
 order on each tick, are never preempted, and return like interrupt handlers.
 That makes it a scheduler, not an RTOS.
 

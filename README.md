@@ -19,7 +19,7 @@ and the same source builds unchanged for a host **simulator** and real
 │  (the foundation)      MSSP, ADC, Comparator, Vref, EEPROM, PSP, WDT   │
 │                              │                                        │
 │                              ▼ built on                               │
-│  pic16f87xa-taskmgr    Cooperative (non-preemptive) scheduler: spawn  │
+│  pic8-taskmgr          Cooperative (non-preemptive) scheduler: spawn  │
 │  (the scheduler)       periodic & one-shot tasks, priority-ordered    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -29,7 +29,7 @@ and the same source builds unchanged for a host **simulator** and real
 | | Component | What it is | Docs |
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part, with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
-| 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic** — same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18f2455-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
+| 🗓️ | **[pic8-taskmgr](pic8-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic** — same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18f2455-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic8-taskmgr/README.md) · [Architecture](pic8-taskmgr/docs/ARCHITECTURE.md) · [API](pic8-taskmgr/docs/API.md) |
 | 🆕 | **[pic18f2455-hal](pic18f2455-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **Phase 1 scaffold** (build seam + harness proven, drivers land in Phase 2). | [README](pic18f2455-hal/README.md) |
 | 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) |
 | 📐 | **[docs/multi-family-plan](docs/multi-family-plan.md)** | The refactor plan: extract `pic8-common`, add families behind a fixed contract. Phase 0–1 done, Phase 2 next. | — |
@@ -40,7 +40,7 @@ Build and run the multi-blink example on the host simulator (CMake 3.16+ and a
 C99 compiler; the HAL is pulled in automatically):
 
 ```sh
-cmake -B build -S pic16f87xa-taskmgr
+cmake -B build -S pic8-taskmgr
 cmake --build build
 ./build/example_multi_blink
 ```
@@ -71,13 +71,13 @@ For a real PIC, use the MPLAB XC8 toolchain:
 
 ```sh
 export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
-cd pic16f87xa-taskmgr/mcu/pic16f87xa-taskmgr-mplabx
+cd pic8-taskmgr/mcu/pic16f87xa-taskmgr-mplabx
 make MCU=16F877A        # also 873A / 874A / 876A
 ```
 
 This produces `build/<MCU>-multi-blink.hex`. Wire LEDs on RB0-RB3 and a 20 MHz
 crystal, then program with MPLAB X or any programmer. See the task manager
-[README](pic16f87xa-taskmgr/README.md) for the full wiring and the HAL
+[README](pic8-taskmgr/README.md) for the full wiring and the HAL
 [MANUAL](pic16f87xa-hal/MANUAL.md) for peripheral bring-up.
 
 ## Documentation
@@ -86,9 +86,9 @@ crystal, then program with MPLAB X or any programmer. See the task manager
   - [README](pic16f87xa-hal/README.md): overview, build, simulation middleware
   - [MANUAL.md](pic16f87xa-hal/MANUAL.md): the full manual (architecture, both builds, per-peripheral reference)
 - **Task manager**
-  - [README](pic16f87xa-taskmgr/README.md): overview, quick start, demo
-  - [docs/ARCHITECTURE.md](pic16f87xa-taskmgr/docs/ARCHITECTURE.md): cooperative model, tick source, concurrency, RAM scaling, constraints
-  - [docs/API.md](pic16f87xa-taskmgr/docs/API.md): full API reference
+  - [README](pic8-taskmgr/README.md): overview, quick start, demo
+  - [docs/ARCHITECTURE.md](pic8-taskmgr/docs/ARCHITECTURE.md): cooperative model, tick source, concurrency, RAM scaling, constraints
+  - [docs/API.md](pic8-taskmgr/docs/API.md): full API reference
 - **Multi-family**
   - [docs/multi-family-plan.md](docs/multi-family-plan.md): the refactor plan that extracted `pic8-common/` and is adding the PIC18F2455 family behind a fixed contract (Phase 0–1 done)
   - [pic18f2455-hal/README.md](pic18f2455-hal/README.md): the second family (Phase 1 scaffold)
@@ -114,7 +114,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   ├── README.md  MANUAL.md
 │   └── CMakeLists.txt              # host simulation build
 │
-├── pic16f87xa-taskmgr/             # the cooperative scheduler (family-agnostic)
+├── pic8-taskmgr/             # the cooperative scheduler (family-agnostic)
 │   ├── include/  src/  examples/   # library + multi-blink example
 │   ├── docs/                      # ARCHITECTURE.md, API.md
 │   ├── mcu/pic16f87xa-taskmgr-mplabx/   # XC8 Makefile (PIC16F87XA)

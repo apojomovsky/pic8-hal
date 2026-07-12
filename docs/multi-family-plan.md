@@ -77,7 +77,7 @@ pic18f2455-hal/                      # NEW — same skeleton as pic16f87xa-hal
   src/...
   mcu/pic18f2455-mplabx/Makefile     # includes mk/pic8_family.mk
 
-pic16f87xa-taskmgr/                  # UNCHANGED in scope — must become provably
+pic8-taskmgr/                  # UNCHANGED in scope — must become provably
                                       # family-agnostic (see Phase 3 validation)
 ```
 
@@ -122,11 +122,11 @@ of the existing PIC16F87XA HAL. **Done** (commit `3f33d48`).
 5. Extract shared Makefile pattern rules (the `.c` → `.p1` rule, VPATH
    setup, the `.hex` link step) into `pic8-common/mk/pic8_family.mk`, and
    make `pic16f87xa-hal/mcu/pic16f87xa-mplabx/Makefile` include it.
-6. Update `pic16f87xa-taskmgr` to link against the renamed symbols
+6. Update `pic8-taskmgr` to link against the renamed symbols
    (`HAL_IRQ_Disable/Restore` instead of `PIC16F87XA_IRQ_Disable/Restore`,
    etc.).
 7. Update docs (`pic16f87xa-hal/README.md`, `MANUAL.md`,
-   `pic16f87xa-taskmgr/README.md`, `docs/API.md`, `docs/ARCHITECTURE.md`,
+   `pic8-taskmgr/README.md`, `docs/API.md`, `docs/ARCHITECTURE.md`,
    root `README.md`) for the renamed public API surface.
 
 **Explicitly out of scope for Phase 0**: no PIC18 code, no new directory
@@ -142,7 +142,7 @@ changes, that's a bug in the refactor, not an intended improvement.
       `example_wdt_sleep`) passes with **identical** stdout/exit-code to
       before the refactor. Diff the captured output pre- and post-refactor,
       don't just check exit codes.
-- [x] `pic16f87xa-taskmgr` host-sim build succeeds; `example_multi_blink`
+- [x] `pic8-taskmgr` host-sim build succeeds; `example_multi_blink`
       produces identical output to the pre-refactor baseline (`fast=12
       med=6 slow=3 blips=1 (ticks=61, tasks=4)`).
 - [x] XC8 real-target build succeeds for all four devices (873A/874A/876A/
@@ -219,7 +219,7 @@ exists, and the interrupt-syntax open question is resolved and recorded.
 The smallest slice that lets the task manager run: GPIO, Timer0, interrupts
 (two vectors + priority), WDT/sleep. Chosen because it's exactly the task
 manager's entire HAL dependency surface (confirmed by grepping
-`pic16f87xa-taskmgr/src/task_manager.c` and the example), so finishing it
+`pic8-taskmgr/src/task_manager.c` and the example), so finishing it
 is both useful on its own and sets up Phase 3 directly. **Done.**
 
 **Tasks**, each cited against DS39632E the way the PIC16 drivers cite
@@ -302,7 +302,7 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
 ### Phase 3 — Point the task manager at PIC18 (the litmus test) — **done**
 
 **Tasks**
-1. Add a `pic16f87xa-taskmgr` build variant (or a build-time switch) that
+1. Add a `pic8-taskmgr` build variant (or a build-time switch) that
    links against `pic18f2455-hal` instead of `pic16f87xa-hal`.
 2. Do **not** modify `task_manager.c`/`task_manager.h` to make this work.
    If a modification seems necessary, stop and treat it as a Phase 0-2 gap:
@@ -324,7 +324,7 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
   The build's include path (which family's HAL is added) decides which
   family resolves. `task_manager.c`/`.h` diff vs Phase 2 is exactly those
   3 include lines — zero scheduler-logic change.
-- *Build variant.* `pic16f87xa-taskmgr/CMakeLists.txt` gained a
+- *Build variant.* `pic8-taskmgr/CMakeLists.txt` gained a
   `-DHAL_FAMILY=PIC18` switch (default PIC16) that points `HAL_DIR` at
   `pic18f2455-hal` and swaps the device list. A separate
   `mcu/pic18f2455-taskmgr-mplabx/Makefile` does the same for XC8.

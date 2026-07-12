@@ -1,13 +1,19 @@
-# PIC16F87XA Task Manager
+# 8-bit PIC Task Manager
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 [![Runs on: host & silicon](https://img.shields.io/badge/runs%20on-host%20%26%20silicon-orange.svg)](#quick-start)
 
-A cooperative (non-preemptive) task scheduler for the
-[PIC16F87XA HAL](../pic16f87xa-hal). It is not an RTOS: there is no preemption
-and no per-task stack, which suits a part with no software stack and only
-192-368 B of RAM. Tasks are plain functions that run to completion in priority
-order on each tick, like interrupt handlers.
+A cooperative (non-preemptive) task scheduler for 8-bit PIC
+microcontrollers, built on a [family-agnostic HAL](../pic8-common). It is not
+an RTOS: there is no preemption and no per-task stack, which suits a part
+with no software stack and only modest RAM (192 B on a PIC16F873A up to 2 KB
+on a PIC18F4550). Tasks are plain functions that run to completion in
+priority order on each tick, like interrupt handlers.
+
+The same `task_manager.c`/`task_manager.h` builds against any 8-bit PIC HAL
+family (PIC16F87XA, PIC18F2455, ...) via the neutral `pic8_hal.h` contract;
+select the family at build time with `-DHAL_FAMILY=PIC16` (default) or
+`-DHAL_FAMILY=PIC18`. See [docs/multi-family-plan.md](../docs/multi-family-plan.md).
 
 > 📖 **Documentation**: [Architecture](docs/ARCHITECTURE.md) · [API reference](docs/API.md)
 

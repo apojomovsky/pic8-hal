@@ -1,13 +1,16 @@
 /**
  * @file    task_manager.h
- * @brief   Cooperative (non-preemptive) task scheduler for the PIC16F87XA
- *          family: a scheduler, not an RTOS.
+ * @brief   Cooperative (non-preemptive) task scheduler for 8-bit PIC
+ *          microcontrollers: a scheduler, not an RTOS. Family-agnostic;
+ *          builds against any 8-bit PIC HAL family (PIC16F87XA, PIC18F2455,
+ *          ...) via the neutral `pic8_hal.h` contract.
  *
  * @details
- *   A preemptive RTOS is a poor fit for a PIC16F87XA: the core has no
- *   software stack and only 192-368 B of RAM, so per-task stacks and context
- *   switching are not feasible. This module provides a cooperative scheduler
- *   instead: a single shared stack (the ordinary call stack) and a round of
+ *   A preemptive RTOS is a poor fit for these parts: the cores have no
+ *   software stack and only modest RAM (192 B on a PIC16F873A up to 2 KB on
+ *   a PIC18F4550), so per-task stacks and context switching are not
+ *   feasible. This module provides a cooperative scheduler instead: a
+ *   single shared stack (the ordinary call stack) and a round of
  *   registered tasks run in priority order on each tick. No task is ever
  *   preempted; each runs to completion and returns, like an interrupt handler.
  *   That makes it a scheduler, not an RTOS.
@@ -55,18 +58,20 @@
 
 /**
  * @brief Maximum number of simultaneously registered tasks. Each slot costs
- *        ~12 B of RAM (two 3-byte PIC16 pointers + two uint16 + a flags
- *        byte). The default scales to the part: 6 on the 192 B
- *        PIC16F873A/874A, 8 on the 368 B PIC16F876A/877A, so the scheduler
- *        banks cleanly into every device in the family. Override by defining
- *        TASK_MGR_MAX_TASKS before including this header.
+ *        ~12 B of RAM (two 3-byte pointers + two uint16 + a flags byte).
+ *        The default scales to the part via the family-neutral
+ *        @ref PIC8_FAMILY_RAM_BYTES macro each HAL family defines: 6 slots
+ *        on the 192 B parts (PIC16F873A/874A), 8 on anything larger
+ *        (PIC16F876A/877A, the whole PIC18F2455 family at 2 KB), so the
+ *        scheduler banks cleanly into every device of every family.
+ *        Override by defining TASK_MGR_MAX_TASKS before including this header.
  *
  *        One-shot tasks free their slot after they run (see
  *        @ref task_manager_run_once), so a periodic task that re-spawns
  *        one-shots does not permanently consume a slot per spawn.
  */
 #ifndef TASK_MGR_MAX_TASKS
-#  if PIC16F87XA_FAMILY_RAM_BYTES <= 192
+#  if PIC8_FAMILY_RAM_BYTES <= 192
 #    define TASK_MGR_MAX_TASKS  6
 #  else
 #    define TASK_MGR_MAX_TASKS  8

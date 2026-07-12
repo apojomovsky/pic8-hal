@@ -1,4 +1,4 @@
-# pic16f87xa-taskmgr, cooperative task manager for the 8-bit PIC HAL.
+# pic8-taskmgr, cooperative task manager for the 8-bit PIC HAL.
 #
 #   cmake -B build && cmake --build build
 #   ./build/example_multi_blink
@@ -23,7 +23,7 @@
 # preprocessor branch for either build or either family.
 
 cmake_minimum_required(VERSION 3.16)
-project(pic16f87xa_taskmgr C)
+project(pic8_taskmgr C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
