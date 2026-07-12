@@ -42,6 +42,28 @@ cmake --build build
 ./build/example_multi_blink_PIC16F873A      # 28-pin, 192 B
 ```
 
+The task manager is **family-agnostic**: it includes only the neutral HAL
+contract headers (`pic8_hal.h`, `core/hal_irq.h`,
+`peripherals/hal_timer0.h`, `core/hal_wdt_sleep.h`) plus the shared
+`pic8_harness.h`, so the same `task_manager.c`/`.h` builds against any
+8-bit PIC family. To build against the PIC18F2455 family instead
+(`pic18f2455-hal`), pass `-DHAL_FAMILY=PIC18`:
+
+```sh
+cmake -B build18 -S . -DHAL_FAMILY=PIC18
+cmake --build build18
+
+./build18/example_multi_blink               # default device (PIC18F4550)
+```
+
+This is the multi-family litmus test
+([docs/multi-family-plan.md](../docs/multi-family-plan.md), Phase 3):
+pointing the task manager at `pic18f2455-hal` needs zero changes to
+`task_manager.c`/`task_manager.h` (only the 3 family-neutral include
+lines, which are the same for either family). The PIC18 run produces the
+same output shape (four rates, one spawned blip, slot reuse); exact tick
+counts differ because Timer0 timing differs between families.
+
 The example streams a dispatch log as it runs (host only; the target has no
 stdout and runs forever):
 
@@ -63,14 +85,22 @@ without exhausting the table.
 
 Built with MPLAB XC8 v3.x (`xc8-cc`). The Makefile selects the real-target
 platform header and links the target harness and interrupt vector; the
-host-only simulator backend is not compiled.
+host-only simulator backend is not compiled. There is one Makefile per
+HAL family:
 
 ```sh
 export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
-cd mcu/pic16f87xa-taskmgr-mplabx
 
+# PIC16F87XA family:
+cd mcu/pic16f87xa-taskmgr-mplabx
 make MCU=16F877A          # default; also 873A / 874A / 876A
 make MCU=16F873A          # 192 B part
+make clean
+
+# PIC18F2455 family (needs the PIC18Fxxxx DFP installed; see
+# pic18f2455-hal/mcu/pic18f2455-mplabx/README.md):
+cd ../pic18f2455-taskmgr-mplabx
+make MCU=18F4550          # default; also 2455 / 2550 / 4455
 make clean
 ```
 

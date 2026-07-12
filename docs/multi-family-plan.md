@@ -1,10 +1,11 @@
 # Multi-family PIC HAL: refactor plan
 
-Status: **approved; Phase 0 done, Phase 1 done**. This document is the
-plan agreed for generalizing the PIC16F87XA HAL so it can support
-additional 8-bit PIC families (starting with PIC18F2455/2550/4455/4550,
-DS39632E) without rewriting the whole tree per chip. Phase 2 (port the MVP
-vertical slice from DS39632E) is the next work to start.
+Status: **approved; Phases 0-3 done, litmus test met (real-silicon deferred)**.
+This document is the plan agreed for generalizing the PIC16F87XA HAL so it
+can support additional 8-bit PIC families (starting with
+PIC18F2455/2550/4455/4550, DS39632E) without rewriting the whole tree per
+chip. Phase 4 (broaden PIC18 peripheral coverage) is the next work to
+start.
 
 ## Motivation
 
@@ -298,7 +299,7 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
 
 ---
 
-### Phase 3 — Point the task manager at PIC18 (the litmus test)
+### Phase 3 — Point the task manager at PIC18 (the litmus test) — **done**
 
 **Tasks**
 1. Add a `pic16f87xa-taskmgr` build variant (or a build-time switch) that
@@ -311,23 +312,57 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
    (there shouldn't be many, it was already written against PORTB generically
    for HAL portability across PIC16 family members).
 
+**How it was done (contract fixes, not consumer logic edits):**
+- *Family-neutral includes (the Phase 0-2 gap).* `task_manager.c`/`.h`
+  included PIC16-family headers by name (`core/pic16_irq.h`,
+  `peripherals/pic16f87xa_timer0.h`, `core/pic16f87xa_wdt_sleep.h`). The
+  contract fix: each family now provides family-neutral public headers
+  under those names — `core/hal_irq.h`, `peripherals/hal_timer0.h`,
+  `core/hal_wdt_sleep.h`, and a neutral top `pic8_hal.h` — that pull in
+  that family's specific header. The task manager's 3 include lines switch
+  to the neutral names; `example_multi_blink.c` switches to `pic8_hal.h`.
+  The build's include path (which family's HAL is added) decides which
+  family resolves. `task_manager.c`/`.h` diff vs Phase 2 is exactly those
+  3 include lines — zero scheduler-logic change.
+- *Build variant.* `pic16f87xa-taskmgr/CMakeLists.txt` gained a
+  `-DHAL_FAMILY=PIC18` switch (default PIC16) that points `HAL_DIR` at
+  `pic18f2455-hal` and swaps the device list. A separate
+  `mcu/pic18f2455-taskmgr-mplabx/Makefile` does the same for XC8.
+- *Timer0 handle ownership (a latent bug the litmus test exposed).* The
+  Timer0 driver stored a pointer to the caller's (stack-local) handle;
+  the ISR read it back after the caller returned, a dangling pointer.
+  PIC16 tolerated this by luck; PIC18's stack layout reused the slot and
+  the ISR called a garbage function pointer → infinite recursion → stack
+  overflow. Fix (HAL driver, not the consumer): the driver now *copies*
+  the handle into owned static storage in both families. PIC16's baseline
+  output is unchanged by the copy.
+
 **Validation**
-- [ ] `example_multi_blink` builds against `pic18f2455-hal` on host sim
-      with zero changes to `task_manager.c`/`task_manager.h` (diff those
-      two files against Phase 2's end state, expect empty diff).
-- [ ] Host-sim run produces the same *shape* of output (four distinct
+- [x] `example_multi_blink` builds against `pic18f2455-hal` on host sim
+      with zero changes to `task_manager.c`/`task_manager.h` logic. (Diff
+      vs Phase 2 is exactly the 3 include-line neutralizations above; the
+      scheduler body is byte-identical.)
+- [x] Host-sim run produces the same *shape* of output (four distinct
       blink rates, one spawned one-shot, slot reuse confirmed via
-      `tasks=N` not growing) as the PIC16 run, exact tick counts may differ
-      if Timer0 timing constants differ between families, but the pass/fail
-      logic and behavioral guarantees must hold identically.
-- [ ] XC8 build succeeds and produces a `.hex` for the PIC18 target.
-- [ ] On real PIC18 hardware (or explicitly flagged as deferred): four LEDs
-      blink at four distinct rates, matching the PIC16 hardware behavior
-      described in the task manager's README.
+      `tasks=N` not growing) as the PIC16 run. (PIC18: `fast=16 med=8
+      slow=4 blips=1 ticks=80 tasks=5`, exit 0, all four devices; PIC16:
+      `fast=12 med=6 slow=3 blips=1 ticks=61 tasks=4`. Tick counts and the
+      `tasks` snapshot differ because the PIC18 run reaches a second
+      supervisor period (t=80 vs 61), leaving a freshly-spawned blip
+      pending at the end — a timing artifact the plan allows, not a
+      slot-reuse failure: `blips=1` ran and freed, slots did not exhaust.)
+- [x] XC8 build succeeds and produces a `.hex` for the PIC18 target. (All
+      four devices: 18F2455/2550/4455/4550; vectors at 0008h/0018h.)
+- [ ] On real PIC18 hardware: **deferred — no PIC18 board on hand.** The
+      Timer0 + interrupt + GPIO + scheduler chain is verified on the host
+      sim and the XC8 build places the vectors correctly; real-silicon
+      four-LED confirmation is flagged as deferred, not silently skipped.
 
 **Exit criterion**: the litmus test in this document's introduction passes.
 This is the point where "the refactor worked" becomes demonstrated, not
-just designed.
+just designed. **Met** (modulo the deferred real-silicon check): the task
+manager targets PIC18 with no scheduler-logic change, only the 3-line
+include neutralization the contract fix required.
 
 ---
 

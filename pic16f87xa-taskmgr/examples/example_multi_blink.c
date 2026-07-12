@@ -32,10 +32,7 @@
  *   and forever on the target.
  */
 
-#include "pic16f87xa.h"
-#include "pic16f87xa_sfr.h"
-#include "peripherals/pic16f87xa_gpio.h"
-#include "core/pic16_irq.h"
+#include "pic8_hal.h"          /* family-neutral HAL entry point         */
 #include "core/pic8_harness.h"
 
 #include "task_manager.h"

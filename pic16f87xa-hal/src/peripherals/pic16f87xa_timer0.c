@@ -14,8 +14,11 @@
 static const uint16_t ps_ratio[8] = { 2, 4, 8, 16, 32, 64, 128, 256 };
 
 /** Per-handle storage. The PIC16F87XA has only one Timer0, so a single
- *  static slot is sufficient. `HAL_TIMER0_Init` writes here; the weak
- *  ISR reads from it. */
+ *  static slot is sufficient. `HAL_TIMER0_Init` COPIES the caller's handle
+ *  here (the caller's `TIMER0_HandleTypeDef` is typically a stack-local
+ *  that is out of scope by the time the ISR reads it back, so storing a
+ *  pointer to it would dangle). The weak ISR reads from this owned copy. */
+static TIMER0_HandleTypeDef g_t0_storage;
 static const TIMER0_HandleTypeDef *g_t0_handle = NULL;
 
 /** Read-modify-write helper for OPTION_REG. */
@@ -41,7 +44,8 @@ HAL_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h)
         HAL_IRQ_DisableSrc(PIC16_IRQ_TMR0);
     }
 
-    g_t0_handle = h;
+    g_t0_storage = *h;
+    g_t0_handle = &g_t0_storage;
     return HAL_OK;
 }
 

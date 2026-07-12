@@ -11,7 +11,11 @@
 static const uint16_t ps_ratio[8] = { 2, 4, 8, 16, 32, 64, 128, 256 };
 
 /** Per-handle storage. One Timer0, one static slot. `HAL_TIMER0_Init`
- *  writes here; the weak ISR reads from it. */
+ *  COPIES the caller's handle here (the caller's `TIMER0_HandleTypeDef`
+ *  is typically a stack-local that is out of scope by the time the ISR
+ *  reads it back, so storing a pointer to it would dangle). The weak ISR
+ *  reads from this owned copy. */
+static TIMER0_HandleTypeDef g_t0_storage;
 static const TIMER0_HandleTypeDef *g_t0_handle = NULL;
 
 /** Read-modify-write helper for T0CON. */
@@ -44,7 +48,8 @@ HAL_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h)
         PIC8_BIT_CLR(PIC8_REG8(PIC_REG_T0CON), PIC_T0CON_T08BIT);
     }
 
-    g_t0_handle = h;
+    g_t0_storage = *h;
+    g_t0_handle = &g_t0_storage;
     return HAL_OK;
 }
 

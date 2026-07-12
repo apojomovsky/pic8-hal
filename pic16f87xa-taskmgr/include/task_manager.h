@@ -49,7 +49,7 @@
 #define TASK_MANAGER_H
 
 #include <stdint.h>
-#include "peripherals/pic16f87xa_timer0.h"   /* for the Timer0 tick source */
+#include "peripherals/hal_timer0.h"   /* Timer0 tick source (family-neutral) */
 
 /* ───────────────────────── configuration ────────────────────────── */
 

@@ -27,9 +27,9 @@
  */
 
 #include "task_manager.h"
-#include "core/pic16_irq.h"   /* HAL_IRQ_Disable/Restore */
+#include "core/hal_irq.h"   /* HAL_IRQ_Disable/Restore (family-neutral) */
 #include "core/pic8_harness.h"      /* harness_tick / harness_running */
-#include "core/pic16f87xa_wdt_sleep.h"    /* HAL_WDT_Refresh */
+#include "core/hal_wdt_sleep.h"    /* HAL_WDT_Refresh (family-neutral) */
 
 /* ───────────────────────── state ─────────────────────────────────── */
 

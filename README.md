@@ -29,7 +29,7 @@ and the same source builds unchanged for a host **simulator** and real
 | | Component | What it is | Docs |
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part, with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
-| 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
+| 🗓️ | **[pic16f87xa-taskmgr](pic16f87xa-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic** — same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18f2455-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic16f87xa-taskmgr/README.md) · [Architecture](pic16f87xa-taskmgr/docs/ARCHITECTURE.md) · [API](pic16f87xa-taskmgr/docs/API.md) |
 | 🆕 | **[pic18f2455-hal](pic18f2455-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **Phase 1 scaffold** (build seam + harness proven, drivers land in Phase 2). | [README](pic18f2455-hal/README.md) |
 | 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) |
 | 📐 | **[docs/multi-family-plan](docs/multi-family-plan.md)** | The refactor plan: extract `pic8-common`, add families behind a fixed contract. Phase 0–1 done, Phase 2 next. | — |
@@ -114,12 +114,13 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   ├── README.md  MANUAL.md
 │   └── CMakeLists.txt              # host simulation build
 │
-├── pic16f87xa-taskmgr/             # the cooperative scheduler
+├── pic16f87xa-taskmgr/             # the cooperative scheduler (family-agnostic)
 │   ├── include/  src/  examples/   # library + multi-blink example
 │   ├── docs/                      # ARCHITECTURE.md, API.md
-│   ├── mcu/pic16f87xa-taskmgr-mplabx/  # XC8 Makefile
+│   ├── mcu/pic16f87xa-taskmgr-mplabx/   # XC8 Makefile (PIC16F87XA)
+│   ├── mcu/pic18f2455-taskmgr-mplabx/   # XC8 Makefile (PIC18F2455 family)
 │   ├── README.md
-│   └── CMakeLists.txt              # host simulation build (reuses the HAL)
+│   └── CMakeLists.txt              # host sim build, -DHAL_FAMILY=PIC16|PIC18
 │
 ├── pic18f2455-hal/                 # second family (PIC18F2455/2550/4455/4550)
 │   ├── include/  src/  tests/      # Phase 1 scaffold; drivers land in Phase 2
