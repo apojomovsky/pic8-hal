@@ -400,11 +400,22 @@ growth at the established one-peripheral-at-a-time pace.
   sim models the SFR image (the example verifies CCP1CON/CCPR1L/ECCP1DEL
   + counts Timer2 PWM periods); no CCP pin-toggle sim. `example_ccp_pwm`
   exercises the half-bridge + dead-band path. XC8 all four devices.
+- **SSP / MSSP** (commit pending): the Master Synchronous Serial Port
+  (SPI master/slave + I2C master/slave). Mirrors PIC16's `HAL_SSP_*` API
+  (same `SSP_HandleTypeDef`, `SSP_*TypeDef`, weak `SSP_IRQHandler`);
+  simpler than the PIC16 driver because the PIC18 MSSP registers are all
+  in the Access Bank (no bank switching), and the control register is
+  `SSPCON1` (PIC16's is `SSPCON`). Register-level only; the I2C state
+  machine is left to the user. SFRs: SSPCON1/SSPCON2/SSPSTAT/SSPADD/
+  SSPBUF. `example_ssp` verifies the SSPADD formula (16 MHz / 100 kHz →
+  39, / 400 kHz → 9), SPI master programming, write/read loopback via the
+  new `pic18_sim_drive_ssp_rx` hook, and I2C master Start/Stop (SEN/PEN).
+  XC8 all four devices.
 
-**Remaining:** MSSP (SPI + I2C), ADC, comparator, EEPROM, EUSART, SPP
-(replaces PIC16's PSP, USB-streaming). USB and the extended instruction
-set are large enough to scope as separate future efforts, not part of
-"general 8-bit PIC support."
+**Remaining:** ADC, comparator, EEPROM, EUSART, SPP (replaces PIC16's
+PSP, USB-streaming). USB and the extended instruction set are large
+enough to scope as separate future efforts, not part of "general 8-bit
+PIC support."
 
 **Validation per peripheral** (repeat of the existing HAL's established
 pattern, nothing new to invent): datasheet-cited driver, host-sim example,

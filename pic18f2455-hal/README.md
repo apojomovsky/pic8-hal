@@ -15,12 +15,13 @@ drivers) live here.
 
 ## Status
 
-**Phase 2 MVP + Phase 4 (Timers + ECCP) done.** GPIO, Timer0-3, the
-dual-priority interrupt core, WDT/Sleep, and the Enhanced CCP (ECCP1) + plain
-CCP2 are implemented and cited against DS39632E; `example_blink` /
-`example_timer1`/`2`/`3` / `example_ccp_pwm` run on the host sim and the HAL
-builds to a `.hex` (vectors at 0008h/0018h) for all four devices on XC8. The
-broader peripheral coverage (MSSP, ADC, EUSART, EEPROM, SPP) is the rest of
+**Phase 2 MVP + Phase 4 (Timers + ECCP + SSP) done.** GPIO, Timer0-3, the
+dual-priority interrupt core, WDT/Sleep, the Enhanced CCP (ECCP1) + plain
+CCP2, and the MSSP (SSP) driver are implemented and cited against
+DS39632E; `example_blink` / `example_timer1`/`2`/`3` /
+`example_ccp_pwm` / `example_ssp` run on the host sim and the HAL builds
+to a `.hex` (vectors at 0008h/0018h) for all four devices on XC8. The
+broader peripheral coverage (ADC, EUSART, EEPROM, SPP) is the rest of
 Phase 4.
 
 - ✅ Family header (`pic18f2455.h`): device select for all four parts,

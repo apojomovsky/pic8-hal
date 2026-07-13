@@ -32,5 +32,6 @@
 #include "peripherals/pic18f2455_timer2.h"
 #include "peripherals/pic18f2455_timer3.h"
 #include "peripherals/pic18f2455_ccp.h"
+#include "peripherals/pic18f2455_ssp.h"
 
 #endif /* PIC8_HAL_H */

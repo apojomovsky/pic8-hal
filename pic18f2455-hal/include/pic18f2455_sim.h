@@ -66,4 +66,11 @@ uint8_t pic18_sim_read_output(char port, uint8_t pin);
 typedef void (*pic18_sim_irq_cb_t)(void);
 void pic18_sim_set_irq_callback(pic18_sim_irq_cb_t cb);
 
+/**
+ * @brief Inject a byte into the MSSP receiver (SPI slave or I2C target).
+ *        Stores `data` in SSPBUF, sets SSPSTAT<BF>, and raises SSPIF
+ *        (PIR1<3>). The next HAL_SSP_ReadByte() returns it.
+ */
+void pic18_sim_drive_ssp_rx(uint8_t data);
+
 #endif /* PIC18F2455_SIM_H */

@@ -350,3 +350,13 @@ void pic18_sim_set_irq_callback(pic18_sim_irq_cb_t cb)
 {
     sim_irq_cb = cb;
 }
+
+void pic18_sim_drive_ssp_rx(uint8_t data)
+{
+    /* Place the byte in SSPBUF, set SSPSTAT<BF> + PIR1<SSPIF>. */
+    pic18_sim_sfr[PIC_REG_SSPBUF] = data;
+    uint8_t stat = (uint8_t)(pic18_sim_sfr[PIC_REG_SSPSTAT] | PIC_SSPSTAT_BF);
+    pic18_sim_sfr[PIC_REG_SSPSTAT] = stat;
+    pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_SSPIF;
+    if (sim_irq_cb) sim_irq_cb();
+}

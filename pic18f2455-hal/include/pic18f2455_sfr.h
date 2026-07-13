@@ -122,6 +122,13 @@
 #define PIC_REG_CCPR1L        0xFBEU   /**< ECCP1 compare/capture/PWM duty low.       */
 #define PIC_REG_CCPR1H        0xFBFU   /**< ECCP1 compare/capture/PWM duty high.      */
 
+/* MSSP, DS39632E §19.0 (SPI master/slave + I2C master/slave). */
+#define PIC_REG_SSPCON2       0xFC5U   /**< MSSP control 2 (I2C master: SEN/PEN/etc). */
+#define PIC_REG_SSPCON1       0xFC6U   /**< MSSP control 1 (mode/SSPEN/CKP/WCOL/SSPOV).*/
+#define PIC_REG_SSPSTAT       0xFC7U   /**< MSSP status (SMP/CKE/D-A/P/S/R-W/UA/BF).  */
+#define PIC_REG_SSPADD        0xFC8U   /**< MSSP address (I2C slave) / baud (master). */
+#define PIC_REG_SSPBUF        0xFC9U   /**< MSSP data buffer.                          */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -272,6 +279,31 @@
 #define PIC_ECCP1AS_PSSAC_MASK 0x0CU       /**< PSSAC1:PSSAC0 at bits 3:2 (P1A/P1C state). */
 #define PIC_ECCP1AS_PSSBD_MASK 0x03U       /**< PSSBD1:PSSBD0 at bits 1:0 (P1B/P1D state). */
 
+/* ───────────────────────── MSSP bits (Register 19-1/19-2/19-4/19-5) ── */
+/* SSPCON1 (mode/enable/polarity/flags), SSPSTAT (status), SSPCON2 (I2C
+ * master control). Same bit positions as the PIC16 SSP. DS39632E §19.0. */
+#define PIC_SSPCON1_SSPM_MASK  0x0FU       /**< SSPM3:SSPM0 at bits 3:0 (mode select). */
+#define PIC_SSPCON1_CKP        PIC8_BIT(4)  /**< Clock polarity (SPI).                */
+#define PIC_SSPCON1_SSPEN      PIC8_BIT(5)  /**< MSSP enable.                          */
+#define PIC_SSPCON1_SSPOV      PIC8_BIT(6)  /**< Receive overflow.                    */
+#define PIC_SSPCON1_WCOL       PIC8_BIT(7)  /**< Write collision.                     */
+#define PIC_SSPCON2_SEN        PIC8_BIT(0)  /**< Start condition enable (I2C master). */
+#define PIC_SSPCON2_RSEN       PIC8_BIT(1)  /**< Repeated start enable.               */
+#define PIC_SSPCON2_PEN        PIC8_BIT(2)  /**< Stop condition enable.               */
+#define PIC_SSPCON2_RCEN       PIC8_BIT(3)  /**< Receive enable.                      */
+#define PIC_SSPCON2_ACKEN      PIC8_BIT(4)  /**< Acknowledge sequence enable.         */
+#define PIC_SSPCON2_ACKDT      PIC8_BIT(5)  /**< Acknowledge data (ACK/NACK value).    */
+#define PIC_SSPCON2_ACKSTAT    PIC8_BIT(6)  /**< Acknowledge status (from slave).      */
+#define PIC_SSPCON2_GCEN       PIC8_BIT(7)  /**< General call enable (I2C slave).      */
+#define PIC_SSPSTAT_BF         PIC8_BIT(0)  /**< Buffer full.                          */
+#define PIC_SSPSTAT_UA         PIC8_BIT(1)  /**< Update address (10-bit).              */
+#define PIC_SSPSTAT_RW         PIC8_BIT(2)  /**< Read/write (I2C).                     */
+#define PIC_SSPSTAT_S          PIC8_BIT(3)  /**< Start (I2C).                          */
+#define PIC_SSPSTAT_P          PIC8_BIT(4)  /**< Stop (I2C).                           */
+#define PIC_SSPSTAT_DA         PIC8_BIT(5)  /**< Data/address (I2C).                   */
+#define PIC_SSPSTAT_CKE        PIC8_BIT(6)  /**< Clock edge (SPI).                     */
+#define PIC_SSPSTAT_SMP        PIC8_BIT(7)  /**< Sample phase (SPI master).             */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -298,6 +330,10 @@
 #define PIC_CCP2CON_POR_VALUE    0x00U
 #define PIC_ECCP1DEL_POR_VALUE   0x00U
 #define PIC_ECCP1AS_POR_VALUE    0x00U
+#define PIC_SSPCON1_POR_VALUE    0x00U
+#define PIC_SSPCON2_POR_VALUE    0x00U
+#define PIC_SSPSTAT_POR_VALUE    0x00U
+#define PIC_SSPADD_POR_VALUE     0x00U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U
