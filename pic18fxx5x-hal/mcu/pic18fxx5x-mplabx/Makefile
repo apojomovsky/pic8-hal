@@ -121,6 +121,7 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic18fxx5x_usart.c           \
   $(HAL_DIR)/src/peripherals/pic18fxx5x_comp.c           \
   $(HAL_DIR)/src/peripherals/pic18fxx5x_eeprom.c         \
+  $(HAL_DIR)/src/peripherals/pic18fxx5x_adc.c           \
   $(HAL_DIR)/src/core/pic18_irq.c                         \
   $(HAL_DIR)/src/core/pic18_irq_dispatch.c                \
   $(HAL_DIR)/src/core/pic18_isr_vector.c                  \

@@ -1,0 +1,116 @@
+/**
+ * @file    pic18fxx5x_adc.c
+ * @brief   A/D converter driver, implementation (DS39632E §21.0).
+ *
+ *   Simpler than the PIC16 driver in one way (no bank switching — all ADC
+ *   registers are in the Access Bank) and richer in another: three control
+ *   registers (ADCON0/1/2) and a split VCFG/PCFG. RMW on the SFRs uses split
+ *   read+write (pic8_sfr_read8/write8) per the Phase 2 codegen lesson; the
+ *   handle is copied into owned storage (the Phase 3 lesson). The sim
+ *   backend models conversion completion via pic18_sim_drive_adc_done().
+ */
+
+#include "peripherals/pic18fxx5x_adc.h"
+#include "core/pic18_irq.h"
+
+/* ───────────────────────── handle storage ───────────────────────── */
+
+static ADC_HandleTypeDef        g_adc_storage;
+static const ADC_HandleTypeDef *g_adc = NULL;
+
+/* ───────────────────────── public API ───────────────────────────── */
+
+HAL_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h)
+{
+    if (!h) return HAL_INVALID;
+    g_adc_storage = *h;
+    g_adc = &g_adc_storage;
+
+    /* ADCON0 (Register 21-1): ADON | CHS3:CHS0. GO/DONE cleared. */
+    uint8_t adcon0 = PIC_ADCON0_ADON;
+    adcon0 |= (uint8_t)((h->Channel & 0x0FU) << PIC_ADCON0_CHS_POS);
+    pic8_sfr_write8(PIC_REG_ADCON0, adcon0);
+
+    /* ADCON1 (Register 21-2): VCFG1:VCFG0 | PCFG3:PCFG0. */
+    uint8_t adcon1 = (uint8_t)(h->VReference & (PIC_ADCON1_VCFG0 | PIC_ADCON1_VCFG1));
+    adcon1 |= (uint8_t)(h->PinConfig & PIC_ADCON1_PCFG_MASK);
+    pic8_sfr_write8(PIC_REG_ADCON1, adcon1);
+
+    /* ADCON2 (Register 21-3): ADFM | ACQT2:ACQT0 | ADCS2:ADCS0. */
+    uint8_t adcon2 = 0U;
+    if (h->ResultFormat == ADC_FORMAT_RIGHT) adcon2 |= PIC_ADCON2_ADFM;
+    adcon2 |= (uint8_t)((h->Acquisition & 0x07U) << PIC_ADCON2_ACQT_POS);
+    adcon2 |= (uint8_t)(h->ClockSource & PIC_ADCON2_ADCS_MASK);
+    pic8_sfr_write8(PIC_REG_ADCON2, adcon2);
+
+    /* Interrupt enable. */
+    HAL_IRQ_ClearFlag(PIC18_IRQ_ADC);
+    if (h->ConvCpltCallback) HAL_IRQ_Enable(PIC18_IRQ_ADC);
+    else                     HAL_IRQ_DisableSrc(PIC18_IRQ_ADC);
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef HAL_ADC_DeInit(void)
+{
+    HAL_IRQ_DisableSrc(PIC18_IRQ_ADC);
+    HAL_IRQ_ClearFlag(PIC18_IRQ_ADC);
+    pic8_sfr_write8(PIC_REG_ADCON0, PIC_ADCON0_POR_VALUE);
+    pic8_sfr_write8(PIC_REG_ADCON1, PIC_ADCON1_POR_VALUE);
+    pic8_sfr_write8(PIC_REG_ADCON2, PIC_ADCON2_POR_VALUE);
+    g_adc = NULL;
+    return HAL_OK;
+}
+
+void HAL_ADC_SelectChannel(ADC_ChannelTypeDef ch)
+{
+    uint8_t v = pic8_sfr_read8(PIC_REG_ADCON0);
+    v = (uint8_t)((v & (uint8_t)~PIC_ADCON0_CHS_MASK) |
+                  ((uint8_t)(ch & 0x0FU) << PIC_ADCON0_CHS_POS));
+    pic8_sfr_write8(PIC_REG_ADCON0, v);
+}
+
+uint16_t HAL_ADC_Start(void)
+{
+    uint8_t v = pic8_sfr_read8(PIC_REG_ADCON0);
+    if (v & PIC_ADCON0_GO_DONE) return 0xFFFFU;     /* already in progress */
+    pic8_sfr_write8(PIC_REG_ADCON0, (uint8_t)(v | PIC_ADCON0_GO_DONE));
+    return 0U;
+}
+
+uint8_t HAL_ADC_IsConversionInProgress(void)
+{
+    return (pic8_sfr_read8(PIC_REG_ADCON0) & PIC_ADCON0_GO_DONE) ? 1U : 0U;
+}
+
+uint8_t HAL_ADC_IsConversionDone(void)
+{
+    return (pic8_sfr_read8(PIC_REG_PIR1) & PIC_PIR1_ADIF) ? 1U : 0U;
+}
+
+void HAL_ADC_ClearITFlag(void)
+{
+    HAL_IRQ_ClearFlag(PIC18_IRQ_ADC);
+}
+
+uint16_t HAL_ADC_Read(void)
+{
+    /* Read ADRESL then ADRESH. */
+    uint8_t lo  = pic8_sfr_read8(PIC_REG_ADRESL);
+    uint8_t hi  = pic8_sfr_read8(PIC_REG_ADRESH);
+    uint16_t raw = (uint16_t)(((uint16_t)hi << 8) | lo);
+    /* Right-shift if left-justified (ADFM=0) so the caller always gets a
+     * 0..1023 result (DS39632E Register 21-3 + Figure 21-4). */
+    uint8_t adfm = (uint8_t)(pic8_sfr_read8(PIC_REG_ADCON2) & PIC_ADCON2_ADFM);
+    if (!adfm) raw = (uint16_t)(raw >> 6);
+    return (uint16_t)(raw & 0x03FFU);
+}
+
+/* ───────────────────────── ISR ───────────────────────────────────── */
+
+void ADC_IRQHandler(void)
+{
+    if (!HAL_IRQ_GetFlag(PIC18_IRQ_ADC)) return;
+    HAL_IRQ_ClearFlag(PIC18_IRQ_ADC);
+    if (g_adc && g_adc->ConvCpltCallback) g_adc->ConvCpltCallback(HAL_ADC_Read());
+}

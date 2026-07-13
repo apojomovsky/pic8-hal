@@ -156,6 +156,16 @@
 #define PIC_REG_EEDATA        0xFA8U   /**< EEPROM data register.                      */
 #define PIC_REG_EEADR         0xFA9U   /**< EEPROM address register (8-bit, 0..255).    */
 
+/* A/D Converter, DS39632E §21.0 (10-bit, 10/13 channels). Three control
+ * registers: ADCON0 (channel + GO/DONE + ADON), ADCON1 (pin config PCFG +
+ * Vref config VCFG), ADCON2 (clock ADCS + acquisition ACQT + ADFM). The
+ * 10-bit result is in ADRESH:ADRESL. All in the Access Bank. */
+#define PIC_REG_ADCON2        0xFC0U   /**< A/D control 2 (ADCS/ACQT/ADFM).            */
+#define PIC_REG_ADCON1        0xFC1U   /**< A/D control 1 (PCFG/VCFG).                 */
+#define PIC_REG_ADCON0        0xFC2U   /**< A/D control 0 (CHS/GO-DONE/ADON).          */
+#define PIC_REG_ADRESL        0xFC3U   /**< A/D result low byte.                       */
+#define PIC_REG_ADRESH        0xFC4U   /**< A/D result high byte.                       */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -384,6 +394,27 @@
 #define PIC_EECON1_CFGS        PIC8_BIT(6)  /**< Config access (1) vs code/data (0). */
 #define PIC_EECON1_EEPGD       PIC8_BIT(7)  /**< 0 = data EEPROM, 1 = program flash. */
 
+/* ───────────────────────── ADCON0 bits (Register 21-1) ─────────────── */
+/* ADON bit0, GO/DONE bit1, CHS3:CHS0 bits 5:2 (4-bit channel). */
+#define PIC_ADCON0_ADON        PIC8_BIT(0)  /**< A/D module on.                       */
+#define PIC_ADCON0_GO_DONE     PIC8_BIT(1)  /**< Conversion status (1 = in progress). */
+#define PIC_ADCON0_CHS_MASK    0x3CU        /**< CHS3:CHS0 at bits 5:2.               */
+#define PIC_ADCON0_CHS_POS     2            /**< CHS field shift.                     */
+
+/* ───────────────────────── ADCON1 bits (Register 21-2) ─────────────── */
+/* PCFG3:PCFG0 bits 3:0 (port config, Table 21-3); VCFG0=Vref+ (bit4),
+ * VCFG1=Vref- (bit5). */
+#define PIC_ADCON1_PCFG_MASK   0x0FU        /**< PCFG3:PCFG0 at bits 3:0.             */
+#define PIC_ADCON1_VCFG0       PIC8_BIT(4)  /**< Vref+ source: 1=AN3, 0=VDD.          */
+#define PIC_ADCON1_VCFG1       PIC8_BIT(5)  /**< Vref- source: 1=AN2, 0=VSS.           */
+
+/* ───────────────────────── ADCON2 bits (Register 21-3) ─────────────── */
+/* ADCS2:ADCS0 bits 2:0 (clock), ACQT2:ACQT0 bits 5:3 (acquisition), ADFM bit7. */
+#define PIC_ADCON2_ADCS_MASK   0x07U        /**< ADCS2:ADCS0 at bits 2:0.             */
+#define PIC_ADCON2_ACQT_MASK   0x38U        /**< ACQT2:ACQT0 at bits 5:3.             */
+#define PIC_ADCON2_ACQT_POS    3            /**< ACQT field shift.                     */
+#define PIC_ADCON2_ADFM        PIC8_BIT(7)  /**< 1 = right justified, 0 = left.       */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -427,6 +458,11 @@
 /* EECON1 resets to 0x00 (RD/WR/WREN clear, EEPGD=0 -> data EEPROM).
  * DS39632E Table 5-1. */
 #define PIC_EECON1_POR_VALUE    0x00U
+/* ADC: ADCON0/ADCON1/ADCON2 reset to 0x00 (DS39632E Table 5-1). PCFG
+ * POR technically depends on the PBADEN config bit; the sim uses 0x00. */
+#define PIC_ADCON0_POR_VALUE    0x00U
+#define PIC_ADCON1_POR_VALUE    0x00U
+#define PIC_ADCON2_POR_VALUE    0x00U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

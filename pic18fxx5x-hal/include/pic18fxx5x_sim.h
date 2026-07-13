@@ -110,4 +110,12 @@ void pic18_sim_drive_eeprom_done(uint8_t addr, uint8_t data);
  */
 uint8_t pic18_sim_eeprom_read(uint8_t addr);
 
+/**
+ * @brief Model an A/D conversion completion: clears ADCON0<GO/DONE>, stores
+ *        the 10-bit `result` into ADRESH:ADRESL in the format selected by
+ *        ADCON2<ADFM> (right- or left-justified), and raises ADIF (PIR1<6>).
+ *        The next HAL_ADC_Read() returns the value (un-justified to 0..1023).
+ */
+void pic18_sim_drive_adc_done(uint16_t result);
+
 #endif /* PIC18FXX5X_SIM_H */

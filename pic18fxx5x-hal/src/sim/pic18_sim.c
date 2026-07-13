@@ -130,6 +130,11 @@ void pic18_sim_reset(void)
     /* Comparator: CMCON resets to 0x07 (comparators off, DS39632E Fig 22-1). */
     pic18_sim_sfr[PIC_REG_CMCON]   = PIC_CMCON_POR_VALUE;    /* 0x07 */
 
+    /* A/D: ADCON0/1/2 reset to 0x00 (module off, DS39632E Table 5-1). */
+    pic18_sim_sfr[PIC_REG_ADCON0]  = PIC_ADCON0_POR_VALUE;   /* 0x00 */
+    pic18_sim_sfr[PIC_REG_ADCON1]  = PIC_ADCON1_POR_VALUE;   /* 0x00 */
+    pic18_sim_sfr[PIC_REG_ADCON2]  = PIC_ADCON2_POR_VALUE;   /* 0x00 */
+
     /* PIR1<TXIF> resets to 1 (TXREG empty after POR, §20.2.1). The Table 5-1
      * POR value for PIR1 is 0x00, but TXIF is a level (set when TXREG is
      * empty), not a latched flag — so it reads 1 right after reset, the same
@@ -441,4 +446,30 @@ void pic18_sim_drive_eeprom_done(uint8_t addr, uint8_t data)
 uint8_t pic18_sim_eeprom_read(uint8_t addr)
 {
     return sim_eeprom[addr];
+}
+
+/* ───────────────────────────────── A/D drive ────────────────────────── */
+
+void pic18_sim_drive_adc_done(uint16_t result)
+{
+    /* Clear GO/DONE in ADCON0. */
+    uint8_t adcon0 = (uint8_t)(pic18_sim_sfr[PIC_REG_ADCON0] & (uint8_t)~PIC_ADCON0_GO_DONE);
+    pic18_sim_sfr[PIC_REG_ADCON0] = adcon0;
+
+    /* Store the 10-bit result in ADRESH:ADRESL per ADFM (ADCON2<7>).
+     *   Right (ADFM=1): ADRESH[1:0] = result[9:8], ADRESL = result[7:0].
+     *   Left  (ADFM=0): ADRESH[7:2] = result[9:2], ADRESL[7:6] = result[1:0]. */
+    uint8_t adfm = (uint8_t)(pic18_sim_sfr[PIC_REG_ADCON2] & PIC_ADCON2_ADFM);
+    uint16_t r = (uint16_t)(result & 0x03FFU);
+    if (adfm) {
+        pic18_sim_sfr[PIC_REG_ADRESH] = (uint8_t)((r >> 8) & 0x03U);
+        pic18_sim_sfr[PIC_REG_ADRESL] = (uint8_t)(r & 0xFFU);
+    } else {
+        pic18_sim_sfr[PIC_REG_ADRESH] = (uint8_t)(r >> 2);
+        pic18_sim_sfr[PIC_REG_ADRESL] = (uint8_t)((r & 0x03U) << 6);
+    }
+
+    /* Set PIR1<ADIF> (bit 6). */
+    pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_ADIF;
+    if (sim_irq_cb) sim_irq_cb();
 }
