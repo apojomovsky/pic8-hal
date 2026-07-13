@@ -147,6 +147,15 @@
  * CVRCON (comparator voltage reference) is at 0xFB5, ported separately. */
 #define PIC_REG_CMCON         0xFB4U   /**< Comparator control (mode/inputs/outputs). */
 
+/* Data EEPROM + Flash, DS39632E §7.0. EECON1 controls read/write; EECON2 is
+ * the unlock register (0x55 then 0xAA); EEDATA/EEADR are the data/address
+ * registers. The 2455/4550 family has 256 bytes of data EEPROM, addressed
+ * by EEADR alone (no EEADRH on this family). All in the Access Bank. */
+#define PIC_REG_EECON1        0xFA6U   /**< EEPROM/Flash control (RD/WR/WREN/WRERR/EEPGD). */
+#define PIC_REG_EECON2        0xFA7U   /**< EEPROM unlock (write 0x55 then 0xAA).       */
+#define PIC_REG_EEDATA        0xFA8U   /**< EEPROM data register.                      */
+#define PIC_REG_EEADR         0xFA9U   /**< EEPROM address register (8-bit, 0..255).    */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -363,6 +372,18 @@
 #define PIC_CMCON_C1OUT        PIC8_BIT(6)  /**< C1 output (read-only).              */
 #define PIC_CMCON_C2OUT        PIC8_BIT(7)  /**< C2 output (read-only).              */
 
+/* ───────────────────────── EECON1 bits (Register 7-1) ──────────────── */
+/* RD/WR/WREN/WRERR mirror the PIC16 EECON1; EEPGD/CFGS/FREE select data
+ * EEPROM vs program flash vs config (DS39632E §7.0). For data EEPROM
+ * access, EEPGD = 0 and CFGS = 0. */
+#define PIC_EECON1_RD          PIC8_BIT(0)  /**< Read control (strobe, self-clears). */
+#define PIC_EECON1_WR          PIC8_BIT(1)  /**< Write control (strobe).             */
+#define PIC_EECON1_WREN        PIC8_BIT(2)  /**< Write enable.                       */
+#define PIC_EECON1_WRERR       PIC8_BIT(3)  /**< Write-error flag.                   */
+#define PIC_EECON1_FREE        PIC8_BIT(4)  /**< Flash row erase enable.             */
+#define PIC_EECON1_CFGS        PIC8_BIT(6)  /**< Config access (1) vs code/data (0). */
+#define PIC_EECON1_EEPGD       PIC8_BIT(7)  /**< 0 = data EEPROM, 1 = program flash. */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -403,6 +424,9 @@
 /* CMCON resets to 0x07 (CM2:CM0 = 111, comparators off — the POR default,
  * DS39632E Figure 22-1). */
 #define PIC_CMCON_POR_VALUE     0x07U
+/* EECON1 resets to 0x00 (RD/WR/WREN clear, EEPGD=0 -> data EEPROM).
+ * DS39632E Table 5-1. */
+#define PIC_EECON1_POR_VALUE    0x00U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

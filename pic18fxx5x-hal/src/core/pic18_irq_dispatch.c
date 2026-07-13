@@ -37,6 +37,7 @@ extern void SSP_IRQHandler(void);
 extern void USART_TX_IRQHandler(void);
 extern void USART_RX_IRQHandler(void);
 extern void COMP_IRQHandler(void);
+extern void EEPROM_IRQHandler(void);
 
 void pic8_dispatch_all_irqs(void)
 {
@@ -50,4 +51,5 @@ void pic8_dispatch_all_irqs(void)
     USART_TX_IRQHandler();
     USART_RX_IRQHandler();
     COMP_IRQHandler();
+    EEPROM_IRQHandler();
 }

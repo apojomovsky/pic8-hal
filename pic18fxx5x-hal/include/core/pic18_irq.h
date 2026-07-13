@@ -35,7 +35,7 @@
  *     - INTCON:   TMR0, INT0, RB<7:4> change.
  *     - INTCON3:  INT1, INT2.
  *     - PIR1:     TMR1, TMR2, CCP1, SSP, USART RX/TX, ADC, SPP.
- *     - PIR2:     TMR3, CCP2, Comparator.
+ *     - PIR2:     TMR3, CCP2, Comparator, EEPROM.
  */
 
 #ifndef PIC18_IRQ_H
@@ -66,8 +66,9 @@ typedef enum {
     PIC18_IRQ_ADC       = 12, /**< A/D conversion done (PIR1<ADIF>).       */
     PIC18_IRQ_CCP2      = 13, /**< CCP2 event (PIR2<CCP2IF>).              */
     PIC18_IRQ_CMP       = 14, /**< Comparator change (PIR2<CMIF>).         */
+    PIC18_IRQ_EEPROM    = 15, /**< EEPROM write complete (PIR2<EEIF>).     */
 #if PIC18FXX5X_FAMILY_HAS_SPP
-    PIC18_IRQ_SPP       = 15, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
+    PIC18_IRQ_SPP       = 16, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
 #endif
 } PIC18_IRQn;
 

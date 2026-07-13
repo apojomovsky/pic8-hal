@@ -89,4 +89,25 @@ void pic18_sim_drive_usart_rx(uint8_t data);
  */
 void pic18_sim_drive_comp(uint8_t c1out, uint8_t c2out);
 
+/**
+ * @brief Preload the simulated EEPROM cell at `addr` with `data` (model a
+ *        byte already stored in the part). The next HAL_EEPROM_ReadByte()
+ *        returns it.
+ */
+void pic18_sim_drive_eeprom_byte(uint8_t addr, uint8_t data);
+
+/**
+ * @brief Model an EEPROM write completion: stores `data` at `addr` in the
+ *        simulated EEPROM array and raises EEIF (PIR2<4>). The next read
+ *        returns the value just written.
+ */
+void pic18_sim_drive_eeprom_done(uint8_t addr, uint8_t data);
+
+/**
+ * @brief Read the simulated EEPROM cell at `addr` (host backend for
+ *        HAL_EEPROM_ReadByte). `addr` is a uint8_t (0..255), always a
+ *        valid index into the 256-byte array.
+ */
+uint8_t pic18_sim_eeprom_read(uint8_t addr);
+
 #endif /* PIC18FXX5X_SIM_H */

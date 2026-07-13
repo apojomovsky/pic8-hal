@@ -32,6 +32,9 @@ uint8_t pic18_sim_sfr[0x1000];
 static uint8_t sim_input_override[5] = {0};
 static uint8_t sim_input_value   [5] = {0};
 
+/* Simulated data EEPROM cell storage (256 bytes, DS39632E §7.0). */
+static uint8_t sim_eeprom[256] = {0};
+
 /* Optional ISR hook (the family dispatcher, registered by the harness). */
 static pic18_sim_irq_cb_t sim_irq_cb = 0;
 
@@ -156,6 +159,7 @@ void pic18_sim_reset(void)
 
     memset(sim_input_override, 0, sizeof sim_input_override);
     memset(sim_input_value,    0, sizeof sim_input_value);
+    memset(sim_eeprom,         0, sizeof sim_eeprom);
     sim_irq_cb = 0;
 }
 
@@ -417,4 +421,24 @@ void pic18_sim_drive_comp(uint8_t c1out, uint8_t c2out)
     pic18_sim_sfr[PIC_REG_CMCON] = v;
     pic18_sim_sfr[PIC_REG_PIR2] |= PIC_PIR2_CMIF;
     if (sim_irq_cb) sim_irq_cb();
+}
+
+/* ───────────────────────────────── EEPROM drive ─────────────────────── */
+
+void pic18_sim_drive_eeprom_byte(uint8_t addr, uint8_t data)
+{
+    sim_eeprom[addr] = data;
+}
+
+void pic18_sim_drive_eeprom_done(uint8_t addr, uint8_t data)
+{
+    sim_eeprom[addr] = data;
+    /* Set PIR2<EEIF> (bit 4) to model the write cycle completing. */
+    pic18_sim_sfr[PIC_REG_PIR2] |= PIC_PIR2_EEIF;
+    if (sim_irq_cb) sim_irq_cb();
+}
+
+uint8_t pic18_sim_eeprom_read(uint8_t addr)
+{
+    return sim_eeprom[addr];
 }
