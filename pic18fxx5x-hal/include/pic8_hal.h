@@ -33,5 +33,6 @@
 #include "peripherals/pic18fxx5x_timer3.h"
 #include "peripherals/pic18fxx5x_ccp.h"
 #include "peripherals/pic18fxx5x_ssp.h"
+#include "peripherals/pic18fxx5x_usart.h"
 
 #endif /* PIC8_HAL_H */

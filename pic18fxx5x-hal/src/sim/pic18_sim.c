@@ -39,6 +39,7 @@ static void sim_step_timer0(void);
 static void sim_step_timer1(void);
 static void sim_step_timer2(void);
 static void sim_step_timer3(void);
+static void sim_step_usart(void);
 
 /* ───────────────────────── helpers ──────────────────────────────── */
 
@@ -113,6 +114,22 @@ void pic18_sim_reset(void)
     pic18_sim_sfr[PIC_REG_PIE2]    = PIC_PIE2_POR_VALUE;      /* 0x00 */
     pic18_sim_sfr[PIC_REG_IPR2]    = PIC_IPR2_POR_VALUE;      /* 0xFF */
 
+    /* EUSART reset values (DS39632E Table 5-1). TXSTA resets to 0x02
+     * (TRMT=1, TSR empty); the rest are clear. TXIF (PIR1<4>) is set
+     * after POR because TXREG is empty (§20.2.1); PIR1 already 0x00 here,
+     * so the sim_step_usart() re-assert path raises it on the first step. */
+    pic18_sim_sfr[PIC_REG_BAUDCON] = PIC_BAUDCON_POR_VALUE;  /* 0x00 */
+    pic18_sim_sfr[PIC_REG_RCSTA]   = PIC_RCSTA_POR_VALUE;    /* 0x00 */
+    pic18_sim_sfr[PIC_REG_TXSTA]   = PIC_TXSTA_POR_VALUE;    /* 0x02 */
+    pic18_sim_sfr[PIC_REG_SPBRG]   = PIC_SPBRG_POR_VALUE;    /* 0x00 */
+    pic18_sim_sfr[PIC_REG_SPBRGH]  = PIC_SPBRGH_POR_VALUE;   /* 0x00 */
+
+    /* PIR1<TXIF> resets to 1 (TXREG empty after POR, §20.2.1). The Table 5-1
+     * POR value for PIR1 is 0x00, but TXIF is a level (set when TXREG is
+     * empty), not a latched flag — so it reads 1 right after reset, the same
+     * way the PIC16 sim models it. */
+    pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_TXIF;
+
     /* TRIS defaults: 1 = input. PORTA is 6-bit, PORTE 3-bit. */
     pic18_sim_sfr[PIC_REG_TRISA] = 0x3FU;
     pic18_sim_sfr[PIC_REG_TRISB] = PIC_TRIS_POR_VALUE;
@@ -146,6 +163,7 @@ void pic18_sim_step(uint32_t ticks)
         sim_step_timer1();
         sim_step_timer2();
         sim_step_timer3();
+        sim_step_usart();
     }
 }
 
@@ -358,5 +376,28 @@ void pic18_sim_drive_ssp_rx(uint8_t data)
     uint8_t stat = (uint8_t)(pic18_sim_sfr[PIC_REG_SSPSTAT] | PIC_SSPSTAT_BF);
     pic18_sim_sfr[PIC_REG_SSPSTAT] = stat;
     pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_SSPIF;
+    if (sim_irq_cb) sim_irq_cb();
+}
+
+/* ───────────────────────────────── EUSART step ─────────────────────── */
+
+static void sim_step_usart(void)
+{
+    /* Re-assert TXIF every cycle when TXEN is set. TXIF is cleared by the
+     * user writing TXREG (see HAL_USART_Transmit); this step brings it
+     * back high to model the instantaneous transmit completion (mirrors
+     * the PIC16 sim). RCIF is set by the host application through
+     * pic18_sim_drive_usart_rx(). */
+    uint8_t txsta = pic18_sim_sfr[PIC_REG_TXSTA];
+    if (txsta & PIC_TXSTA_TXEN) {
+        pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_TXIF;
+    }
+}
+
+void pic18_sim_drive_usart_rx(uint8_t data)
+{
+    /* Place the byte in RCREG (DS39632E §20.2.2), set PIR1<RCIF>. */
+    pic18_sim_sfr[PIC_REG_RCREG] = data;
+    pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_RCIF;
     if (sim_irq_cb) sim_irq_cb();
 }

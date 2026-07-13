@@ -73,4 +73,11 @@ void pic18_sim_set_irq_callback(pic18_sim_irq_cb_t cb);
  */
 void pic18_sim_drive_ssp_rx(uint8_t data);
 
+/**
+ * @brief Inject a byte into the EUSART receiver. Stores `data` in RCREG
+ *        and raises RCIF (PIR1<5>). The next HAL_USART_Receive() returns
+ *        it. Mirrors pic16f87xa_sim_drive_usart_rx().
+ */
+void pic18_sim_drive_usart_rx(uint8_t data);
+
 #endif /* PIC18FXX5X_SIM_H */

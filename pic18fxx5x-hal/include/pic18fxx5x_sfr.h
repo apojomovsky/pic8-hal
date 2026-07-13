@@ -129,6 +129,19 @@
 #define PIC_REG_SSPADD        0xFC8U   /**< MSSP address (I2C slave) / baud (master). */
 #define PIC_REG_SSPBUF        0xFC9U   /**< MSSP data buffer.                          */
 
+/* EUSART, DS39632E §20.0 (Enhanced USART). The EUSART adds BAUDCON (BRG16,
+ * auto-baud, wake-up, sync-clock polarity) and the SPBRGH high byte that the
+ * PIC16 plain USART lacks; TXSTA/RCSTA/TXREG/RCREG/SPBRG are the same shape
+ * as the PIC16 USART. All in the Access Bank, addresses from the DFP
+ * pic18f4550.h SFR map (cross-checked against DS39632E Table 5-1). */
+#define PIC_REG_BAUDCON       0xFB8U   /**< EUSART baud-rate control (BRG16/ABDEN/WUE/...). */
+#define PIC_REG_RCSTA         0xFABU   /**< EUSART receive control/status.            */
+#define PIC_REG_TXSTA         0xFACU   /**< EUSART transmit control/status.            */
+#define PIC_REG_TXREG         0xFADU   /**< EUSART transmit data register.             */
+#define PIC_REG_RCREG         0xFAEU   /**< EUSART receive data register.              */
+#define PIC_REG_SPBRG         0xFAFU   /**< EUSART baud-rate divisor, low byte.        */
+#define PIC_REG_SPBRGH        0xFB0U   /**< EUSART baud-rate divisor, high byte (BRG16=1). */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -304,6 +317,37 @@
 #define PIC_SSPSTAT_CKE        PIC8_BIT(6)  /**< Clock edge (SPI).                     */
 #define PIC_SSPSTAT_SMP        PIC8_BIT(7)  /**< Sample phase (SPI master).             */
 
+/* ───────────────────────── EUSART bits (Register 20-1/20-2/20-3) ────── */
+/* TXSTA (Register 20-1) and RCSTA (Register 20-2) have the same bit layout
+ * as the PIC16 USART, so the shared PIC_TXSTA_* / PIC_RCSTA_* names resolve
+ * identically across families (only the PIC_REG_* address differs).
+ * BAUDCON (Register 20-3) is the PIC18 EUSART addition. DS39632E §20.0. */
+#define PIC_TXSTA_TX9D         PIC8_BIT(0)  /**< 9th bit of TX data.                  */
+#define PIC_TXSTA_TRMT         PIC8_BIT(1)  /**< TSR empty (read-only).               */
+#define PIC_TXSTA_BRGH         PIC8_BIT(2)  /**< High baud rate.                      */
+#define PIC_TXSTA_SYNC         PIC8_BIT(4)  /**< Sync mode.                           */
+#define PIC_TXSTA_TXEN         PIC8_BIT(5)  /**< TX enable.                           */
+#define PIC_TXSTA_TX9          PIC8_BIT(6)  /**< 9-bit TX.                            */
+#define PIC_TXSTA_CSRC         PIC8_BIT(7)  /**< Clock source (sync).                 */
+
+#define PIC_RCSTA_RX9D         PIC8_BIT(0)  /**< 9th bit of RX data.                  */
+#define PIC_RCSTA_OERR         PIC8_BIT(1)  /**< Overrun error.                       */
+#define PIC_RCSTA_FERR         PIC8_BIT(2)  /**< Framing error.                       */
+#define PIC_RCSTA_ADDEN        PIC8_BIT(3)  /**< Address detect (9-bit).              */
+#define PIC_RCSTA_CREN         PIC8_BIT(4)  /**< Continuous receive.                  */
+#define PIC_RCSTA_SREN         PIC8_BIT(5)  /**< Single receive.                      */
+#define PIC_RCSTA_RX9          PIC8_BIT(6)  /**< 9-bit RX.                            */
+#define PIC_RCSTA_SPEN         PIC8_BIT(7)  /**< Serial port enable.                  */
+
+/* BAUDCON (Register 20-3) — the EUSART-specific control/status register. */
+#define PIC_BAUDCON_ABDEN      PIC8_BIT(0)  /**< Auto-baud detect enable.            */
+#define PIC_BAUDCON_WUE        PIC8_BIT(1)  /**< Wake-up enable (async).             */
+#define PIC_BAUDCON_BRG16      PIC8_BIT(3)  /**< 16-bit baud generator (else 8-bit). */
+#define PIC_BAUDCON_TXCKP      PIC8_BIT(4)  /**< Sync: TX clock polarity.            */
+#define PIC_BAUDCON_RXDTP      PIC8_BIT(5)  /**< Sync: RX data polarity.             */
+#define PIC_BAUDCON_RCIDL      PIC8_BIT(6)  /**< Receiver idle (read-only).          */
+#define PIC_BAUDCON_ABDOVF     PIC8_BIT(7)  /**< Auto-baud overflow (read/clear).    */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -334,6 +378,13 @@
 #define PIC_SSPCON2_POR_VALUE    0x00U
 #define PIC_SSPSTAT_POR_VALUE    0x00U
 #define PIC_SSPADD_POR_VALUE     0x00U
+/* EUSART: TXSTA resets to 0x02 (TRMT=1, TSR empty); the rest are clear.
+ * DS39632E Table 5-1. */
+#define PIC_BAUDCON_POR_VALUE   0x00U
+#define PIC_RCSTA_POR_VALUE     0x00U
+#define PIC_TXSTA_POR_VALUE     0x02U
+#define PIC_SPBRG_POR_VALUE     0x00U
+#define PIC_SPBRGH_POR_VALUE    0x00U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U
