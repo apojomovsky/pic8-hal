@@ -15,14 +15,15 @@ drivers) live here.
 
 ## Status
 
-**Phase 2 MVP + Phase 4 (Timers + ECCP + SSP) done.** GPIO, Timer0-3, the
-dual-priority interrupt core, WDT/Sleep, the Enhanced CCP (ECCP1) + plain
-CCP2, and the MSSP (SSP) driver are implemented and cited against
-DS39632E; `example_blink` / `example_timer1`/`2`/`3` /
-`example_ccp_pwm` / `example_ssp` run on the host sim and the HAL builds
-to a `.hex` (vectors at 0008h/0018h) for all four devices on XC8. The
-broader peripheral coverage (ADC, EUSART, EEPROM, SPP) is the rest of
-Phase 4.
+**Phase 4 complete — every peripheral on the part is ported.** GPIO,
+Timer0-3, the dual-priority interrupt core, WDT/Sleep, the Enhanced CCP
+(ECCP1) + plain CCP2, MSSP (SSP), EUSART, Comparator, Data EEPROM, the
+10-bit A/D converter, and the Streaming Parallel Port (SPP) are all
+implemented and cited against DS39632E. `example_blink` /
+`example_timer1`/`2`/`3` / `example_ccp_pwm` / `example_ssp` /
+`example_usart` / `example_comp` / `example_eeprom` / `example_adc` /
+`example_spp` run on the host sim, and the HAL builds to a `.hex`
+(vectors at 0008h/0018h) for all four devices on XC8.
 
 - ✅ Family header (`pic18fxx5x.h`): device select for all four parts,
   family capability macros (flash / RAM / EEPROM / I/O / ADC channels /
@@ -62,6 +63,35 @@ Phase 4.
   match" mode. CCP2 is the plain CCP (no enhanced features). The
   `T3CCP2:T3CCP1` Timer1/Timer3 capture/compare time-base select is left
   at reset (Timer1) for the driver; configurable via Timer3.
+- ✅ MSSP / SSP driver (`peripherals/pic18fxx5x_ssp.h`): SPI master/slave +
+  I²C master/slave, mirrors PIC16's `HAL_SSP_*` API; PIC18 MSSP registers
+  are all in the Access Bank (no bank switching) and the control register
+  is SSPCON1 (PIC16's is SSPCON). Register-level only — the I²C state
+  machine (Start/Stop/ACK, address matching) is left to the user.
+- ✅ EUSART driver (`peripherals/pic18fxx5x_usart.h`): Enhanced USART,
+  mirrors PIC16's `HAL_USART_*` API + the PIC18 additions via `BAUDCON` +
+  `SPBRGH` — 16-bit baud generator (`BRG16`), auto-baud detect (`ABDEN`),
+  9-bit address-detect (`ADDEN`). `USART_ComputeSPBRG` encodes all four
+  rows of Table 20-1.
+- ✅ Comparator driver (`peripherals/pic18fxx5x_comp.h`): two on-chip
+  comparators, mirrors PIC16's `HAL_COMP_*` API — the PIC18 `CMCON` has
+  the same bit layout and eight modes, just in the Access Bank. Added
+  `PIC18_IRQ_CMP` (PIR2<CMIF>). CVRCON (comparator Vref) is separate.
+- ✅ Data EEPROM driver (`peripherals/pic18fxx5x_eeprom.h`): 256-byte
+  data EEPROM, mirrors PIC16's `HAL_EEPROM_*` API; PIC18 moves the
+  registers into the Access Bank and adds `EEPGD`/`CFGS` (kept 0 for
+  data EEPROM). Write does the mandatory 0x55→0xAA unlock; the sim models
+  the cell array.
+- ✅ A/D Converter driver (`peripherals/pic18fxx5x_adc.h`): 10-bit ADC,
+  10/13 channels; a fresh design (not a mirror) for the PIC18's three
+  control registers — `ADCON0` (channel/GO-DONE/ADON), `ADCON1`
+  (PCFG + VCFG Vref), `ADCON2` (ADCS clock / ACQT acquisition / ADFM).
+  Tables cross-checked against DS39632E §21; PCFG is a raw Table 21-3 code.
+- ✅ SPP driver (`peripherals/pic18fxx5x_spp.h`): Streaming Parallel Port,
+  the USB-era parallel port (the PIC18 analog of PIC16's PSP), 40/44-pin
+  only — fully gated through `PIC18FXX5X_FAMILY_HAS_SPP`. Register-level:
+  programs SPPCON/SPPCFG/SPPEPS, byte-level SPPDATA access, busy/WR/RD
+  status, SPPIF IRQ; the USB streaming protocol is left to the user.
 - ✅ Interrupt core (`core/pic18_irq.h`): `PIC18_IRQn` enum, `HAL_IRQ_*`
   against INTCON / INTCON2 / INTCON3 / PIE1 / PIR1 / IPR1, priority mode
   (IPEN) enabled by `HAL_IRQ_Restore`. `HAL_IRQ_SetPriority` is the
@@ -77,12 +107,13 @@ Phase 4.
   drive/read, mirroring `pic16f87xa_sim.c`'s API shape.
 - ✅ `example_blink` (Timer0 + GPIO + interrupt), `example_timer1`,
   `example_timer2`, `example_timer3`, `example_ccp_pwm` (ECCP1 half-bridge
-  PWM + dead-band), + `example_smoke` (harness seam), all buildable on
-  host sim and XC8.
+  PWM + dead-band), `example_ssp`, `example_usart`, `example_comp`,
+  `example_eeprom`, `example_adc`, `example_spp`, + `example_smoke`
+  (harness seam) — all buildable on host sim; the XC8 target build uses
+  `example_blink` as its APP_SOURCES and links the full HAL library.
 
 **Deferred:** real-silicon blink confirmation (no PIC18 board on hand;
-flagged in the plan, not silently skipped). **Rest of Phase 4:** MSSP,
-ADC, EUSART, EEPROM, SPP.
+flagged in the plan, not silently skipped).
 
 ## Layout
 

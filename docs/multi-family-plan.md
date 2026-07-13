@@ -1,11 +1,11 @@
 # Multi-family PIC HAL: refactor plan
 
-Status: **approved; Phases 0-3 done, litmus test met (real-silicon deferred)**.
+Status: **approved; Phases 0-4 done, litmus test met (real-silicon deferred)**.
 This document is the plan agreed for generalizing the PIC16F87XA HAL so it
 can support additional 8-bit PIC families (starting with
 PIC18F2455/2550/4455/4550, DS39632E) without rewriting the whole tree per
-chip. Phase 4 (broaden PIC18 peripheral coverage) is the next work to
-start.
+chip. Phase 4 (broaden PIC18 peripheral coverage) is complete — every
+peripheral on the part is ported.
 
 ## Motivation
 
@@ -372,23 +372,23 @@ Not blocking for the multi-family architecture claim, this is ordinary HAL
 growth at the established one-peripheral-at-a-time pace.
 
 **Done so far:**
-- **Timer1** (commit pending): 16-bit timer/counter, same API as PIC16.
+- **Timer1** (done): 16-bit timer/counter, same API as PIC16.
   PIC18 T1CON adds `RD16` (16-bit read/write mode, set by the driver) and
   the read-only `T1RUN` status bit; the rest of T1CON matches PIC16.
   Host-sim stepping + `example_timer1` (3 overflows at 1:1, 65536 cycles
   each) + XC8 all four devices.
-- **Timer2** (commit pending): 8-bit timer with PR2 + postscaler, same API
+- **Timer2** (done): 8-bit timer with PR2 + postscaler, same API
   as PIC16; simpler because PIC18's PR2 is in the Access Bank (no bank
   switching). Host-sim stepping + `example_timer2` (5 overflows, period
   250 cycles with PR2=249) + XC8 all four devices.
-- **Timer3** (commit pending): 16-bit timer/counter, mirrors Timer1's API;
+- **Timer3** (done): 16-bit timer/counter, mirrors Timer1's API;
   shares Timer1's T1OSC (no T3OSCEN), RD16 set, leaves T3CCP2:T3CCP1 at
   reset (CCP timer-select bits, managed by the future CCP/ECCP driver).
   Overflow -> PIR2<TMR3IF> (added PIR2/PIE2/IPR2 to the SFR map + the
   PIC18_IRQ_TMR3 source). Host-sim stepping + `example_timer3` (3
   overflows at 1:8, 524288 cycles each) + XC8 all four devices. The
   PIC18F2455 family's full timer set (Timer0-3) is now covered.
-- **ECCP1 + CCP2** (commit pending): the first genuinely PIC18-richer
+- **ECCP1 + CCP2** (done): the first genuinely PIC18-richer
   peripheral. Mirrors PIC16's `HAL_CCP_*` API (capture/compare/PWM, weak
   CCP1/CCP2 ISRs) and adds the Enhanced CCP features PIC16's plain CCP
   lacks: multi-output PWM (single / half-bridge / full-bridge
@@ -400,7 +400,7 @@ growth at the established one-peripheral-at-a-time pace.
   sim models the SFR image (the example verifies CCP1CON/CCPR1L/ECCP1DEL
   + counts Timer2 PWM periods); no CCP pin-toggle sim. `example_ccp_pwm`
   exercises the half-bridge + dead-band path. XC8 all four devices.
-- **SSP / MSSP** (commit pending): the Master Synchronous Serial Port
+- **SSP / MSSP** (done): the Master Synchronous Serial Port
   (SPI master/slave + I2C master/slave). Mirrors PIC16's `HAL_SSP_*` API
   (same `SSP_HandleTypeDef`, `SSP_*TypeDef`, weak `SSP_IRQHandler`);
   simpler than the PIC16 driver because the PIC18 MSSP registers are all
@@ -411,11 +411,44 @@ growth at the established one-peripheral-at-a-time pace.
   39, / 400 kHz → 9), SPI master programming, write/read loopback via the
   new `pic18_sim_drive_ssp_rx` hook, and I2C master Start/Stop (SEN/PEN).
   XC8 all four devices.
+- **EUSART** (done): Enhanced USART. Mirrors PIC16's `HAL_USART_*` API +
+  the PIC18 additions via `BAUDCON` + `SPBRGH` — 16-bit baud generator
+  (`BRG16`), auto-baud detect (`ABDEN`), 9-bit address-detect (`ADDEN`).
+  `USART_ComputeSPBRG` encodes all four rows of Table 20-1. SFRs:
+  TXSTA/RCSTA/BAUDCON/SPBRG/SPBRGH/TXREG/RCREG. `example_usart` verifies
+  the BRG math (8/16-bit), init, TX/RX, auto-baud, address-detect.
+- **Comparator** (done): two on-chip comparators, mirrors PIC16's
+  `HAL_COMP_*` API — PIC18 `CMCON` has the same bit layout and eight
+  modes, just in the Access Bank. Added `PIC18_IRQ_CMP` (PIR2<CMIF>).
+  `example_comp` verifies mode/inv/CIS, output readback, change flag.
+- **Data EEPROM** (done): 256-byte data EEPROM, mirrors PIC16's
+  `HAL_EEPROM_*` API; PIC18 moves the registers into the Access Bank and
+  adds `EEPGD`/`CFGS` (kept 0 for data EEPROM). Write does the mandatory
+  0x55→0xAA unlock; the sim models the cell array. `example_eeprom`
+  verifies read, write unlock, completion (EEIF), buffer round-trip.
+- **A/D Converter** (done): 10-bit ADC, 10/13 channels. A fresh design
+  (not a mirror) for the PIC18's three control registers — `ADCON0`
+  (channel/GO-DONE/ADON), `ADCON1` (PCFG pin config + VCFG Vref),
+  `ADCON2` (ADCS clock / ACQT acquisition / ADFM). Tables cross-checked
+  against DS39632E §21; PCFG is a raw Table 21-3 code. The ADC IRQ
+  (`PIR1<ADIF>`) already existed; this wired `ADC_IRQHandler` into the
+  dispatch. `example_adc` verifies init (3 ADCON regs), start/done, read
+  in both ADFM justifications, Vref, channel select.
+- **SPP** (done): Streaming Parallel Port, the USB-era parallel port
+  (the PIC18 analog of PIC16's PSP), 40/44-pin only — fully gated through
+  `PIC18FXX5X_FAMILY_HAS_SPP` across sfr.h, the driver, sim, dispatch,
+  CMake (a `PIC18FXX5X_FAMILY_HAS_SPP` derivation mirroring the PIC16 PSP
+  pattern), and the XC8 Makefile (`HAS_SPP` for 18F4455/18F4550 only).
+  Register-level: programs SPPCON/SPPCFG/SPPEPS, byte-level SPPDATA
+  access, busy/WR/RD status, SPPIF IRQ; the USB streaming protocol is
+  left to the user. `example_spp` verifies init, write/read, status
+  flags. XC8 all four devices (spp.c compiles only on the 40-pin parts).
 
-**Remaining:** ADC, comparator, EEPROM, EUSART, SPP (replaces PIC16's
-PSP, USB-streaming). USB and the extended instruction set are large
-enough to scope as separate future efforts, not part of "general 8-bit
-PIC support."
+**Phase 4 complete:** every peripheral on the PIC18F2455 family is
+ported, validated host (16/16 examples, `-Wall -Wextra -Werror`) and XC8
+(4/4 devices, no errors). USB and the extended instruction set remain
+large enough to scope as separate future efforts, not part of "general
+8-bit PIC support."
 
 **Validation per peripheral** (repeat of the existing HAL's established
 pattern, nothing new to invent): datasheet-cited driver, host-sim example,
