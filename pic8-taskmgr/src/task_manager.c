@@ -124,6 +124,23 @@ void task_stop(task_id_t id)
     HAL_IRQ_Restore(prev);
 }
 
+void task_reset(task_id_t id)
+{
+    /* Re-arm: restart the countdown from the full period and ensure the
+     * task is enabled (matches FreeRTOS xTimerReset, which starts a dormant
+     * timer). Same critical section as the other mutators, so it is safe to
+     * call from a running task — e.g. a debounce task calling task_reset on
+     * itself, or another task pushing a timeout out. */
+    if (id >= TASK_MGR_MAX_TASKS) return;
+    uint8_t prev = HAL_IRQ_Disable();
+    if (g_tasks[id].flags & TM_FLAG_USED) {
+        g_tasks[id].countdown = arm_countdown(g_tasks[id].period);
+        g_tasks[id].flags |=  TM_FLAG_ENABLED;
+        g_tasks[id].flags &= (uint8_t)~TM_FLAG_READY;
+    }
+    HAL_IRQ_Restore(prev);
+}
+
 void task_set_period(task_id_t id, uint16_t period_ticks)
 {
     if (id >= TASK_MGR_MAX_TASKS) return;

@@ -45,6 +45,20 @@
  *   short critical section, so they are safe to call from a running task
  *   (e.g. a supervisor that spawns one-shot children at runtime).
  *
+ *   Common patterns:
+ *     - Periodic work: spawn with `period > 0`; the callback fires every
+ *       `period` ticks.
+ *     - One-shot: spawn with `period == 0`; the callback fires once on the
+ *       next tick and the slot is freed. To re-trigger, spawn again — a
+ *       periodic supervisor re-spawning one-shots is the idiomatic pattern,
+ *       used by example_multi_blink's supervisor.
+ *     - Re-triggerable timeout (debounce / feed-the-watchdog): spawn a
+ *       periodic task with the timeout period and call @ref task_reset on
+ *       each event to push the fire out by a full period; @ref task_stop it
+ *       (or let it fire and stop itself) when the timeout should lapse.
+ *       @ref task_reset is the re-arm verb — it restarts the countdown from
+ *       the full period without changing the period or freeing the slot.
+ *
  *   See examples/example_multi_blink.c for a complete, build-agnostic use.
  */
 
@@ -162,6 +176,21 @@ void task_stop(task_id_t id);
 
 /** Change a task's period at runtime. Takes effect on the next arming. */
 void task_set_period(task_id_t id, uint16_t period_ticks);
+
+/**
+ * @brief  Re-arm a task: restart its countdown from the full period and
+ *         ensure it is enabled. The "re-trigger the timeout" verb — the
+ *         single most-used timer operation in real firmware (debounce,
+ *         feed-the-watchdog, push a timeout out on activity). It does not
+ *         change the period or free the slot; it just moves the next fire
+ *         out by a full period.
+ *
+ * @note   Equivalent to @ref task_start on the countdown; provided as a
+ *         distinct name so re-arming a *running* timeout reads as such at
+ *         the call site (`task_start` reads as "start a stopped task"). Safe
+ *         to call from a running task.
+ */
+void task_reset(task_id_t id);
 
 /* ───────────────────────── the scheduler ─────────────────────────── */
 

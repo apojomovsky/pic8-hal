@@ -70,6 +70,11 @@ add_executable(example_multi_blink examples/example_multi_blink.c)
 target_compile_definitions(example_multi_blink PRIVATE -D${DEFAULT_DEVICE})
 target_link_libraries(example_multi_blink PRIVATE task_manager)
 
+# Focused test: task_reset re-arms a task from the full period.
+add_executable(example_timer_reset examples/example_timer_reset.c)
+target_compile_definitions(example_timer_reset PRIVATE -D${DEFAULT_DEVICE})
+target_link_libraries(example_timer_reset PRIVATE task_manager)
+
 # Optional: the example for every device in the family. PORTB-only, so it
 # runs on all parts; the scheduler's TASK_MGR_MAX_TASKS default scales to
 # the family's RAM (6 slots on the 192 B PIC16 873A/874A, 8 on the 368 B
