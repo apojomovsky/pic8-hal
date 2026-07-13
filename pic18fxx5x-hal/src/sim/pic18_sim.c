@@ -124,6 +124,9 @@ void pic18_sim_reset(void)
     pic18_sim_sfr[PIC_REG_SPBRG]   = PIC_SPBRG_POR_VALUE;    /* 0x00 */
     pic18_sim_sfr[PIC_REG_SPBRGH]  = PIC_SPBRGH_POR_VALUE;   /* 0x00 */
 
+    /* Comparator: CMCON resets to 0x07 (comparators off, DS39632E Fig 22-1). */
+    pic18_sim_sfr[PIC_REG_CMCON]   = PIC_CMCON_POR_VALUE;    /* 0x07 */
+
     /* PIR1<TXIF> resets to 1 (TXREG empty after POR, §20.2.1). The Table 5-1
      * POR value for PIR1 is 0x00, but TXIF is a level (set when TXREG is
      * empty), not a latched flag — so it reads 1 right after reset, the same
@@ -399,5 +402,19 @@ void pic18_sim_drive_usart_rx(uint8_t data)
     /* Place the byte in RCREG (DS39632E §20.2.2), set PIR1<RCIF>. */
     pic18_sim_sfr[PIC_REG_RCREG] = data;
     pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_RCIF;
+    if (sim_irq_cb) sim_irq_cb();
+}
+
+/* ───────────────────────────────── Comparator drive ──────────────────── */
+
+void pic18_sim_drive_comp(uint8_t c1out, uint8_t c2out)
+{
+    /* Set CMCON<C1OUT>/<C2OUT> (the comparator output levels, read-only in
+     * real hardware) and raise CMIF (PIR2<6>) to model an output change. */
+    uint8_t v = pic18_sim_sfr[PIC_REG_CMCON] & (uint8_t)~(PIC_CMCON_C1OUT | PIC_CMCON_C2OUT);
+    if (c1out) v |= PIC_CMCON_C1OUT;
+    if (c2out) v |= PIC_CMCON_C2OUT;
+    pic18_sim_sfr[PIC_REG_CMCON] = v;
+    pic18_sim_sfr[PIC_REG_PIR2] |= PIC_PIR2_CMIF;
     if (sim_irq_cb) sim_irq_cb();
 }

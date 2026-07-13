@@ -59,6 +59,7 @@ set(PIC8_HAL_SOURCES
     src/peripherals/pic18fxx5x_ccp.c
     src/peripherals/pic18fxx5x_ssp.c
     src/peripherals/pic18fxx5x_usart.c
+    src/peripherals/pic18fxx5x_comp.c
 )
 
 pic8_add_hal_library(${PIC8_HAL_LIB})
@@ -72,6 +73,7 @@ pic8_add_example(example_timer3 tests/example_timer3.c)
 pic8_add_example(example_ccp_pwm tests/example_ccp_pwm.c)
 pic8_add_example(example_ssp tests/example_ssp.c)
 pic8_add_example(example_usart tests/example_usart.c)
+pic8_add_example(example_comp tests/example_comp.c)
 pic8_add_example(example_smoke tests/example_smoke.c)
 
 # Optional: the blink example for every device in the family, proving every

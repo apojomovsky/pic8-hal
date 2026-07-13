@@ -34,5 +34,6 @@
 #include "peripherals/pic18fxx5x_ccp.h"
 #include "peripherals/pic18fxx5x_ssp.h"
 #include "peripherals/pic18fxx5x_usart.h"
+#include "peripherals/pic18fxx5x_comp.h"
 
 #endif /* PIC8_HAL_H */

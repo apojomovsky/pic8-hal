@@ -80,4 +80,13 @@ void pic18_sim_drive_ssp_rx(uint8_t data);
  */
 void pic18_sim_drive_usart_rx(uint8_t data);
 
+/**
+ * @brief Drive the comparator outputs from the test rig. Sets CMCON<C1OUT>
+ *        and/or CMCON<C2OUT> and raises CMIF (PIR2<6>) to model a change of
+ *        output level. The next HAL_COMP_C1Out()/C2Out() reads reflect it.
+ * @param c1out  0 or 1 for the C1 output level.
+ * @param c2out  0 or 1 for the C2 output level.
+ */
+void pic18_sim_drive_comp(uint8_t c1out, uint8_t c2out);
+
 #endif /* PIC18FXX5X_SIM_H */

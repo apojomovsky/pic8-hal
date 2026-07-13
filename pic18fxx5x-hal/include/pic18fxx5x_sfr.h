@@ -142,6 +142,11 @@
 #define PIC_REG_SPBRG         0xFAFU   /**< EUSART baud-rate divisor, low byte.        */
 #define PIC_REG_SPBRGH        0xFB0U   /**< EUSART baud-rate divisor, high byte (BRG16=1). */
 
+/* Comparator, DS39632E §22.0 (two on-chip comparators). CMCON has the same
+ * bit layout as the PIC16 CMCON; only the address differs (Access Bank).
+ * CVRCON (comparator voltage reference) is at 0xFB5, ported separately. */
+#define PIC_REG_CMCON         0xFB4U   /**< Comparator control (mode/inputs/outputs). */
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -348,6 +353,16 @@
 #define PIC_BAUDCON_RCIDL      PIC8_BIT(6)  /**< Receiver idle (read-only).          */
 #define PIC_BAUDCON_ABDOVF     PIC8_BIT(7)  /**< Auto-baud overflow (read/clear).    */
 
+/* ───────────────────────── CMCON bits (Register 22-1) ──────────────── */
+/* Same bit layout as the PIC16 CMCON (DS39632E §22.0). Eight operating
+ * modes are selected by CM2:CM0; POR default is 111 (comparators off). */
+#define PIC_CMCON_CM_MASK      0x07U        /**< CM2:CM0 at bits 2:0 (mode select). */
+#define PIC_CMCON_CIS          PIC8_BIT(3)  /**< Comparator input switch.            */
+#define PIC_CMCON_C1INV        PIC8_BIT(4)  /**< C1 output inversion.                 */
+#define PIC_CMCON_C2INV        PIC8_BIT(5)  /**< C2 output inversion.                 */
+#define PIC_CMCON_C1OUT        PIC8_BIT(6)  /**< C1 output (read-only).              */
+#define PIC_CMCON_C2OUT        PIC8_BIT(7)  /**< C2 output (read-only).              */
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -385,6 +400,9 @@
 #define PIC_TXSTA_POR_VALUE     0x02U
 #define PIC_SPBRG_POR_VALUE     0x00U
 #define PIC_SPBRGH_POR_VALUE    0x00U
+/* CMCON resets to 0x07 (CM2:CM0 = 111, comparators off — the POR default,
+ * DS39632E Figure 22-1). */
+#define PIC_CMCON_POR_VALUE     0x07U
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

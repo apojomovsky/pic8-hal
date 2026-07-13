@@ -31,10 +31,11 @@
  *   the matching priority bit; sources default to high after reset
  *   (INTCON2 / INTCON3 / IPR1 reset to all-ones, DS39632E Table 5-1).
  *
- *   Sources covered (the MVP + the PIR1 peripheral set):
+ *   Sources covered (the MVP + the PIR1/PIR2 peripheral set):
  *     - INTCON:   TMR0, INT0, RB<7:4> change.
  *     - INTCON3:  INT1, INT2.
  *     - PIR1:     TMR1, TMR2, CCP1, SSP, USART RX/TX, ADC, SPP.
+ *     - PIR2:     TMR3, CCP2, Comparator.
  */
 
 #ifndef PIC18_IRQ_H
@@ -64,8 +65,9 @@ typedef enum {
     PIC18_IRQ_USART_RX  = 11, /**< USART RX byte ready (PIR1<RCIF>).       */
     PIC18_IRQ_ADC       = 12, /**< A/D conversion done (PIR1<ADIF>).       */
     PIC18_IRQ_CCP2      = 13, /**< CCP2 event (PIR2<CCP2IF>).              */
+    PIC18_IRQ_CMP       = 14, /**< Comparator change (PIR2<CMIF>).         */
 #if PIC18FXX5X_FAMILY_HAS_SPP
-    PIC18_IRQ_SPP       = 14, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
+    PIC18_IRQ_SPP       = 15, /**< Streaming Parallel Port (PIR1<SPPIF>).  */
 #endif
 } PIC18_IRQn;
 
