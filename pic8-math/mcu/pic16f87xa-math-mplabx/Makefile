@@ -68,7 +68,7 @@ CC     := xc8-cc
 # real-target (volatile-dereference) version, not the host memory-backed one.
 # pic8-math's own header lives under APP_DIR/include; the shared HAL
 # status / harness headers live under pic8-common/include.
-INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(COMMON_DIR)/include -I$(APP_DIR)/include
+INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(COMMON_DIR)/include -I$(APP_DIR)/include -I$(APP_DIR)/tests
 CFLAGS := $(DFP_FLAG) \
           -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
           -O2 -std=c99 -Wall -Wextra \
@@ -77,11 +77,17 @@ CFLAGS := $(DFP_FLAG) \
           -DFOSC_HZ=$(FOSC_HZ)
 
 # ─────────────────────────── source layout ─────────────────────────
-# The HAL peripheral/core sources compile for the target exactly as they do
-# for the host; the sim/ backend and the *_sim.c harness are NOT compiled
+# The full HAL peripheral/core sources compile for the target exactly as they
+# do for the host; the sim/ backend and the *_sim.c harness are NOT compiled
 # (XC8 never links pic16f87xa_sim.c). The family-blind harness target impl
 # lives in pic8-common and is linked here alongside the PIC16 core and the
 # pic8-math sources.
+#
+# The on-target app is the PIC16 smoke (tests/target_smoke16.c), not the
+# full golden-vector self-test: the PIC16F87XA family tops out at 8 K words
+# flash / 368 B RAM, too small for math + full HAL + golden_vectors.h +
+# target_selftest.c. The full Tier-3 self-test is the PIC18 artifact
+# (mcu/pic18fxx5x-math-mplabx). See docs/ARCHITECTURE.md "Testing tiers".
 
 HAL_SOURCES := \
   $(HAL_DIR)/src/peripherals/pic16f87xa_gpio.c     \
@@ -115,14 +121,21 @@ MATH_SOURCES := \
   $(APP_DIR)/src/pic16/pic_math_div.c      \
   $(APP_DIR)/src/pic16/pic_math_addsub.c   \
   $(APP_DIR)/src/pic16/pic_math_bcd.c      \
+  $(APP_DIR)/src/pic16/pic_math_scratch.c  \
   $(APP_DIR)/src/common/pic_math_sqrt.c    \
   $(APP_DIR)/src/common/pic_math_numeric.c \
   $(APP_DIR)/src/common/pic_math_rand.c
 
-# The application: the on-target self-test (Tier 3). Phase 5 fills in the
-# golden_vectors.h replay + USART PASS/FAIL reporting; Phase 0 builds the
-# harness-only stub to prove the XC8 pipeline links.
-APP_SOURCES := $(APP_DIR)/tests/target_selftest.c
+# The application: the PIC16 on-target smoke (tests/target_smoke16.c), which
+# links the real PIC16 inline-asm math backend and exercises a few routines.
+# The full golden-vector self-test (tests/target_selftest.c) is the PIC18
+# Tier-3 artifact: the 8 K-word / 368 B PIC16F87XA cannot hold math + full HAL
+# + golden_vectors.h + the self-test, and the HAL's ISR/irq code addresses
+# only bank 0, so the self-test's data (USART handle + counters + golden-
+# vector access) spills to bank 1 and overflows. PIC16 Tier-3 therefore relies
+# on Tier-1 (exhaustive host tests) + the asm build (the smoke proves the
+# backends link) + the hand-traces. See docs/ARCHITECTURE.md "Testing tiers".
+APP_SOURCES := $(APP_DIR)/tests/target_smoke16.c
 
 # All real .c sources (the config word is generated separately, below).
 SRCS := $(HAL_SOURCES) $(MATH_SOURCES) $(APP_SOURCES)

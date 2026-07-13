@@ -73,3 +73,11 @@ pic_math_add_test(test_bcd    tests/test_bcd.c)
 pic_math_add_test(test_sqrt   tests/test_sqrt.c)
 pic_math_add_test(test_numeric tests/test_numeric.c)
 pic_math_add_test(test_rand   tests/test_rand.c)
+
+# ─── golden-vector generator (host tool) ─────────────────────────
+# Builds against the host oracle and emits tests/golden_vectors.h: the
+# curated input/expected-output table shared by all three test tiers. Not a
+# test itself -- run it to (re)generate the checked-in header:
+#   ./build/gen_golden_vectors > tests/golden_vectors.h
+add_executable(gen_golden_vectors tools/gen_golden_vectors.c)
+target_link_libraries(gen_golden_vectors PRIVATE pic_math)

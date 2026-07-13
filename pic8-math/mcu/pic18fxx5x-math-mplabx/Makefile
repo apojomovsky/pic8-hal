@@ -63,7 +63,7 @@ endif
 CC     := xc8-cc
 # include/target ahead of include so pic18_platform.h resolves to the
 # real-target version. APP_DIR/include is pic8-math's own header.
-INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(COMMON_DIR)/include -I$(APP_DIR)/include
+INC    := -I$(HAL_DIR)/include/target -I$(HAL_DIR)/include -I$(COMMON_DIR)/include -I$(APP_DIR)/include -I$(APP_DIR)/tests
 CFLAGS := $(DFP_FLAG) \
           -mcpu=$(shell echo $(MCU) | tr A-Z a-z) \
           -O2 -std=c99 -Wall -Wextra \
