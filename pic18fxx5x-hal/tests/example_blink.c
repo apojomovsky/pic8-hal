@@ -1,0 +1,86 @@
+/**
+ * @file    example_blink.c
+ * @brief   Blink an LED on RB0 from a Timer0 overflow, the PIC18 analog of
+ *          the PIC16F87XA canonical HAL smoke test.
+ *
+ * @details
+ *   One source builds for both the host simulation backend and a real XC8
+ *   target with no `#ifdef` in the code: the build selects the harness
+ *   implementation (core/pic8_harness.h), which abstracts the only two
+ *   execution-model differences, pumping simulated time vs. real time
+ *   advancing on its own, and a terminating pass/fail test vs. firmware
+ *   that runs forever.
+ *
+ *   Timer0 overflows drive an interrupt; the ISR toggles RB0. The main
+ *   loop just lets time pass (pumping the sim on the host, busy-spinning
+ *   on the target) and refreshes the WDT, the peripheral does the work.
+ *
+ *   Wiring (real target): LED + resistor between RB0 and GND
+ *   (active-high); 20 MHz crystal on OSC1/OSC2 -> FOSC = HS, FCY = 5 MHz.
+ *   Timer0 8-bit mode (the PIC18 T0CON default selected here), internal
+ *   Fosc/4, 1:256 prescaler, reload 0 -> overflow every 256 x 256 x 0.2 us
+ *   ~ 13 ms, so RB0 toggles ~76x/s (a fast blink), matching the PIC16
+ *   example. The WDT (enabled in the config word) is refreshed in the loop.
+ */
+
+#include "pic18fxx5x.h"
+#include "pic18fxx5x_sfr.h"
+#include "peripherals/pic18fxx5x_gpio.h"
+#include "peripherals/pic18fxx5x_timer0.h"
+#include "core/pic18_irq.h"
+#include "core/pic18fxx5x_wdt_sleep.h"
+#include "core/pic8_harness.h"
+
+/** Simulated run length (host only). 256 x 256 = 65536 cycles per Timer0
+ *  overflow at 1:256 in 8-bit mode, so 600k cycles give ~9 toggles. */
+#define SIM_CYCLES  600000UL
+
+/* Toggle count, the ISR is the only writer. */
+static volatile uint32_t g_toggle_count = 0;
+
+/* Timer0 overflow callback, runs in interrupt context (target) or the
+ * sim IRQ callback (host). */
+static void on_t0_overflow(void)
+{
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    g_toggle_count++;
+}
+
+int main(void)
+{
+    pic8_harness_init(SIM_CYCLES);
+
+    /* 1. RB0 as output, start low (writes go through LATB, DS39632E §10.0). */
+    HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+
+    /* 2. Timer0: 8-bit mode, internal Fosc/4, 1:256 prescaler, reload 0,
+     *    toggle on each overflow. */
+    TIMER0_HandleTypeDef h = TIMER0_HANDLE_DEFAULT;
+    h.Mode              = TIMER0_BITMODE_8BIT;
+    h.ClockSource       = TIMER0_CLOCK_INTERNAL;
+    h.Prescaler         = TIMER0_PRESCALER_1_256;
+    h.PrescalerAssigned = true;
+    h.ReloadValue       = 0x00U;
+    h.OverflowCallback  = on_t0_overflow;
+    HAL_TIMER0_Init(&h);
+    HAL_TIMER0_Start(&h);
+
+    /* 3. Arm the Timer0 interrupt (HAL_TIMER0_Init set TMR0IE; now enable
+     *    the masters). On the sim the IRQ fires regardless, so this is
+     *    harmless there. */
+    HAL_IRQ_Restore(1);
+
+    /* 4. Let time pass. On the target this busy-spins forever, refreshing
+     *    the WDT while the Timer0 ISR toggles RB0; on the host the harness
+     *    bounds the loop to SIM_CYCLES and pumps the sim each iteration.
+     *    HAL_WDT_Refresh is a no-op on the host, so it is called
+     *    unconditionally. */
+    for (uint32_t i = 0; pic8_harness_running(i); i++) {
+        pic8_harness_tick();
+        HAL_WDT_Refresh();
+    }
+
+    pic8_harness_log("RB0 toggled %u times.\n", (unsigned)g_toggle_count);
+    return pic8_harness_report(g_toggle_count >= 2U);
+}

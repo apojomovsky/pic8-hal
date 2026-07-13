@@ -14,7 +14,7 @@
 # task_manager.c/.h builds against any family. Select the family with
 # -DHAL_FAMILY=PIC18 (default PIC16); the build points at that family's
 # tree and device list. This is the Phase 3 litmus test: pointing the task
-# manager at pic18f2455-hal needs zero changes to task_manager.c/.h.
+# manager at pic18fxx5x-hal needs zero changes to task_manager.c/.h.
 #
 # The host/target split is done at build time, not with #ifdef, exactly as
 # in the HAL: the CMake build puts include/host first on the HAL's include
@@ -29,13 +29,13 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Which HAL family to link against. PIC16 (default) -> pic16f87xa-hal,
-# PIC18 -> pic18f2455-hal. Override with -DHAL_FAMILY=PIC18.
+# PIC18 -> pic18fxx5x-hal. Override with -DHAL_FAMILY=PIC18.
 set(HAL_FAMILY "PIC16" CACHE STRING "HAL family to link: PIC16 or PIC18")
 
 if(HAL_FAMILY STREQUAL "PIC18")
-    set(HAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pic18f2455-hal
-        CACHE PATH "Path to the pic18f2455-hal source tree")
-    set(HAL_LIB          pic18f2455_hal)
+    set(HAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pic18fxx5x-hal
+        CACHE PATH "Path to the pic18fxx5x-hal source tree")
+    set(HAL_LIB          pic18fxx5x_hal)
     set(FAMILY_DEVICES   PIC18F2455 PIC18F2550 PIC18F4455 PIC18F4550)
     set(DEFAULT_DEVICE   PIC18F4550)
 else()

@@ -53,7 +53,7 @@ contract headers (`pic8_hal.h`, `core/hal_irq.h`,
 `peripherals/hal_timer0.h`, `core/hal_wdt_sleep.h`) plus the shared
 `pic8_harness.h`, so the same `task_manager.c`/`.h` builds against any
 8-bit PIC family. To build against the PIC18F2455 family instead
-(`pic18f2455-hal`), pass `-DHAL_FAMILY=PIC18`:
+(`pic18fxx5x-hal`), pass `-DHAL_FAMILY=PIC18`:
 
 ```sh
 cmake -B build18 -S . -DHAL_FAMILY=PIC18
@@ -64,7 +64,7 @@ cmake --build build18
 
 This is the multi-family litmus test
 ([docs/multi-family-plan.md](../docs/multi-family-plan.md), Phase 3):
-pointing the task manager at `pic18f2455-hal` needs zero changes to
+pointing the task manager at `pic18fxx5x-hal` needs zero changes to
 `task_manager.c`/`task_manager.h` (only the 3 family-neutral include
 lines, which are the same for either family). The PIC18 run produces the
 same output shape (four rates, one spawned blip, slot reuse); exact tick
@@ -104,8 +104,8 @@ make MCU=16F873A          # 192 B part
 make clean
 
 # PIC18F2455 family (needs the PIC18Fxxxx DFP installed; see
-# pic18f2455-hal/mcu/pic18f2455-mplabx/README.md):
-cd ../pic18f2455-taskmgr-mplabx
+# pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md):
+cd ../pic18fxx5x-taskmgr-mplabx
 make MCU=18F4550          # default; also 2455 / 2550 / 4455
 make clean
 ```

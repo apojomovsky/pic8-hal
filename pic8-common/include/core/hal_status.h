@@ -5,7 +5,7 @@
  *
  * @details
  *   This is the one header in the shared layer (`pic8-common/`) that every
- *   per-family HAL tree (`pic16f87xa-hal/`, `pic18f2455-hal/`, ...) includes
+ *   per-family HAL tree (`pic16f87xa-hal/`, `pic18fxx5x-hal/`, ...) includes
  *   unmodified. It mirrors the role of `HAL_StatusTypeDef` and the bit
  *   helpers in STM32Cube's `stm32fxxx_hal_def.h`: the names and values are
  *   identical on every family, so consumer code (the task manager, the

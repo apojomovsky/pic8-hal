@@ -21,7 +21,7 @@ for a host **simulator** and real **silicon**, with no `#ifdef` in the code.
                        pic8-taskmgr  (family-agnostic cooperative scheduler)
                             │   builds against either family
               ┌─────────────┴─────────────┐
-        pic16f87xa-hal               pic18f2455-hal
+        pic16f87xa-hal               pic18fxx5x-hal
         (PIC16F87XA family)           (PIC18F2455 family)
               └─────────────┬─────────────┘
                             │   both reuse
@@ -33,8 +33,8 @@ for a host **simulator** and real **silicon**, with no `#ifdef` in the code.
 | | Component | What it is | Docs |
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part (GPIO, Timers, CCP, MSSP, ADC, Comparator, Vref, EEPROM, PSP, WDT), with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
-| 🆕 | **[pic18f2455-hal](pic18f2455-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **MVP done** (GPIO write-through-LATx, Timer0, dual-priority interrupts, WDT/sleep); broader peripheral coverage is Phase 4. | [README](pic18f2455-hal/README.md) |
-| 🗓️ | **[pic8-taskmgr](pic8-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic** — same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18f2455-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic8-taskmgr/README.md) · [Architecture](pic8-taskmgr/docs/ARCHITECTURE.md) · [API](pic8-taskmgr/docs/API.md) |
+| 🆕 | **[pic18fxx5x-hal](pic18fxx5x-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **MVP done** (GPIO write-through-LATx, Timer0, dual-priority interrupts, WDT/sleep); broader peripheral coverage is Phase 4. | [README](pic18fxx5x-hal/README.md) |
+| 🗓️ | **[pic8-taskmgr](pic8-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic** — same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18fxx5x-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic8-taskmgr/README.md) · [Architecture](pic8-taskmgr/docs/ARCHITECTURE.md) · [API](pic8-taskmgr/docs/API.md) |
 | 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) |
 | 📐 | **[docs/multi-family-plan](docs/multi-family-plan.md)** | The refactor plan: extract `pic8-common`, add families behind a fixed contract. **Phases 0–3 done** (litmus test met). | — |
 
@@ -84,7 +84,7 @@ cd pic8-taskmgr/mcu/pic16f87xa-taskmgr-mplabx
 make MCU=16F877A        # also 873A / 874A / 876A
 
 # PIC18F2455 family (needs the PIC18Fxxxx DFP installed):
-cd ../pic18f2455-taskmgr-mplabx
+cd ../pic18fxx5x-taskmgr-mplabx
 make MCU=18F4550        # also 2455 / 2550 / 4455
 ```
 
@@ -104,7 +104,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
   - [docs/API.md](pic8-taskmgr/docs/API.md): full API reference
 - **Multi-family**
   - [docs/multi-family-plan.md](docs/multi-family-plan.md): the refactor plan that extracted `pic8-common/` and added the PIC18F2455 family behind a fixed contract (**Phases 0–3 done**, litmus test met, real-silicon deferred)
-  - [pic18f2455-hal/README.md](pic18f2455-hal/README.md): the second family (MVP slice done)
+  - [pic18fxx5x-hal/README.md](pic18fxx5x-hal/README.md): the second family (MVP slice done)
 - **Datasheets**: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) PIC16F87XA (also locally as `39582b.pdf`), [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf) PIC18F2455 family (also locally as `39632e.pdf`)
 
 ## Repository layout
@@ -128,9 +128,9 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   ├── README.md  MANUAL.md
 │   └── CMakeLists.txt              # host simulation build
 │
-├── pic18f2455-hal/                 # second family (PIC18F2455/2550/4455/4550)
+├── pic18fxx5x-hal/                 # second family (PIC18F2455/2550/4455/4550)
 │   ├── include/  src/  tests/      # MVP: GPIO, Timer0, dual-priority IRQ, WDT/sleep
-│   ├── mcu/pic18f2455-mplabx/      # XC8 Makefile (needs PIC18Fxxxx DFP, see README)
+│   ├── mcu/pic18fxx5x-mplabx/      # XC8 Makefile (needs PIC18Fxxxx DFP, see README)
 │   ├── README.md
 │   └── CMakeLists.txt              # host simulation build (reuses pic8-common)
 │
@@ -138,7 +138,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   ├── include/  src/  examples/   # library + multi-blink example
 │   ├── docs/                      # ARCHITECTURE.md, API.md
 │   ├── mcu/pic16f87xa-taskmgr-mplabx/   # XC8 Makefile (PIC16F87XA)
-│   ├── mcu/pic18f2455-taskmgr-mplabx/   # XC8 Makefile (PIC18F2455 family)
+│   ├── mcu/pic18fxx5x-taskmgr-mplabx/   # XC8 Makefile (PIC18F2455 family)
 │   ├── README.md
 │   └── CMakeLists.txt              # host sim build, -DHAL_FAMILY=PIC16|PIC18
 │
@@ -156,7 +156,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
   PIC16F877A and PIC18F4550; the examples use PORTB only, so they run on all
   parts of both families. The PIC18 XC8 build needs the PIC18Fxxxx Device
   Family Pack installed (the PIC16Fxxx DFP ships with XC8; the PIC18Fxxxx DFP
-  does not — see [pic18f2455-hal/mcu/pic18f2455-mplabx/README.md](pic18f2455-hal/mcu/pic18f2455-mplabx/README.md)).
+  does not — see [pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md](pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md)).
 
 ## License
 

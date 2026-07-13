@@ -70,12 +70,12 @@ pic16f87xa-hal/                      # EXISTING tree, restructured in place
   include/peripherals/...            # HAL_GPIO_*, HAL_TIMER0_* — names unchanged
   src/...
 
-pic18f2455-hal/                      # NEW — same skeleton as pic16f87xa-hal
+pic18fxx5x-hal/                      # NEW — same skeleton as pic16f87xa-hal
   include/{host,target}/...          # PIC18 BSR/Access-Bank addressing, LATx-aware GPIO
   include/core/pic18_irq.h           # PIC18 IRQn enum, 2-vector + priority backend
   include/peripherals/...            # same HAL_GPIO_*/HAL_TIMER0_* names, PIC18-shaped bodies
   src/...
-  mcu/pic18f2455-mplabx/Makefile     # includes mk/pic8_family.mk
+  mcu/pic18fxx5x-mplabx/Makefile     # includes mk/pic8_family.mk
 
 pic8-taskmgr/                  # UNCHANGED in scope — must become provably
                                       # family-agnostic (see Phase 3 validation)
@@ -83,7 +83,7 @@ pic8-taskmgr/                  # UNCHANGED in scope — must become provably
 
 ## Litmus test for the whole effort
 
-After Phase 3, the task manager's build can point at `pic18f2455-hal`
+After Phase 3, the task manager's build can point at `pic18fxx5x-hal`
 instead of `pic16f87xa-hal` with **zero changes to `task_manager.c` or
 `task_manager.h`**, and `example_multi_blink` passes on the PIC18 host sim
 and on real PIC18 silicon. If that requires touching the task manager, the
@@ -161,16 +161,16 @@ partially-done rename.
 
 ---
 
-### Phase 1 — Scaffold `pic18f2455-hal/` (empty backend)
+### Phase 1 — Scaffold `pic18fxx5x-hal/` (empty backend)
 
 Stand up the skeleton so the family-selection seam can be exercised before
 any real PIC18 register code exists. **Done.**
 
 **Tasks**
-1. Create `pic18f2455-hal/` mirroring `pic16f87xa-hal/`'s directory shape:
+1. Create `pic18fxx5x-hal/` mirroring `pic16f87xa-hal/`'s directory shape:
    `include/{host,target}/`, `include/core/`, `include/peripherals/`,
-   `src/{core,peripherals,sim}/`, `tests/`, `mcu/pic18f2455-mplabx/`.
-2. Device-select header (`pic18f2455.h` analog to `pic16f87xa.h`): defines
+   `src/{core,peripherals,sim}/`, `tests/`, `mcu/pic18fxx5x-mplabx/`.
+2. Device-select header (`pic18fxx5x.h` analog to `pic16f87xa.h`): defines
    exactly one of `PIC18F2455/2550/4455/4550`, sets family capability
    macros (flash size, RAM, ADC channel count, has-SPP, etc., mirroring
    `PIC16F87XA_FAMILY_HAS_*`).
@@ -179,7 +179,7 @@ any real PIC18 register code exists. **Done.**
    model is mapped in Phase 2), target version a placeholder volatile
    dereference. Both can be minimal/incomplete at this stage, they exist so
    the build wires up, not so registers work yet.
-4. `CMakeLists.txt` and `mcu/pic18f2455-mplabx/Makefile`, both including
+4. `CMakeLists.txt` and `mcu/pic18fxx5x-mplabx/Makefile`, both including
    `pic8-common`'s shared CMake/Makefile fragments from Phase 0.
 5. One trivial smoke source (`tests/example_smoke.c`) that does nothing but
    call `pic8_harness_init/tick/running/log/report`, to prove the harness
@@ -189,8 +189,8 @@ any real PIC18 register code exists. **Done.**
 Timer0 yet. This phase proves the *build* seam, not the *hardware*.
 
 **Validation**
-- [x] `cmake -B build -S pic18f2455-hal && cmake --build build` succeeds
-      and produces `example_smoke`. (Built into `pic18f2455-hal/build` to
+- [x] `cmake -B build -S pic18fxx5x-hal && cmake --build build` succeeds
+      and produces `example_smoke`. (Built into `pic18fxx5x-hal/build` to
       avoid colliding with the taskmgr build at the repo-root `build/`;
       `-Wall -Wextra -Werror` clean.)
 - [x] `./build/example_smoke` runs and reports pass via the shared harness
@@ -303,7 +303,7 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
 
 **Tasks**
 1. Add a `pic8-taskmgr` build variant (or a build-time switch) that
-   links against `pic18f2455-hal` instead of `pic16f87xa-hal`.
+   links against `pic18fxx5x-hal` instead of `pic16f87xa-hal`.
 2. Do **not** modify `task_manager.c`/`task_manager.h` to make this work.
    If a modification seems necessary, stop and treat it as a Phase 0-2 gap:
    the shared contract is missing something, go fix the contract, not the
@@ -326,8 +326,8 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
   3 include lines — zero scheduler-logic change.
 - *Build variant.* `pic8-taskmgr/CMakeLists.txt` gained a
   `-DHAL_FAMILY=PIC18` switch (default PIC16) that points `HAL_DIR` at
-  `pic18f2455-hal` and swaps the device list. A separate
-  `mcu/pic18f2455-taskmgr-mplabx/Makefile` does the same for XC8.
+  `pic18fxx5x-hal` and swaps the device list. A separate
+  `mcu/pic18fxx5x-taskmgr-mplabx/Makefile` does the same for XC8.
 - *Timer0 handle ownership (a latent bug the litmus test exposed).* The
   Timer0 driver stored a pointer to the caller's (stack-local) handle;
   the ISR read it back after the caller returned, a dangling pointer.
@@ -338,7 +338,7 @@ XC8 build producing correct vector placement, and zero PIC16 regression.
   output is unchanged by the copy.
 
 **Validation**
-- [x] `example_multi_blink` builds against `pic18f2455-hal` on host sim
+- [x] `example_multi_blink` builds against `pic18fxx5x-hal` on host sim
       with zero changes to `task_manager.c`/`task_manager.h` logic. (Diff
       vs Phase 2 is exactly the 3 include-line neutralizations above; the
       scheduler body is byte-identical.)
@@ -498,5 +498,5 @@ matching the rigor already applied to every PIC16 peripheral driver.
   `Microchip.PIC18Fxxxx_DFP.1.7.171.atpack` into
   `/opt/microchip/xc8/v3.10/pic/packs/Microchip.PIC18Fxxxx_DFP/`. This is
   an environment setup step, documented in
-  `pic18f2455-hal/mcu/pic18f2455-mplabx/README.md`; it is not part of the
+  `pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md`; it is not part of the
   repo. Family #3 onward will need its own DFP installed the same way.
