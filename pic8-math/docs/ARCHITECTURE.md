@@ -38,12 +38,149 @@ lives entirely in the XC8 Makefile targets under `mcu/`. This is the
 plan-consistent reading of Tier 1 ("build `src/host/` + `src/common/` as a
 host static lib and test it directly").
 
-## Inline-asm binding
+## Inline-asm binding — the XC8 round-trip probe
 
-_Populated by the Phase-0→1 XC8 round-trip probe (task #2): the exact
-operand-binding pattern for getting a C parameter into a register and a
-computed result back out via XC8's `asm()`, and the PIC18 `WREG`/`PRODL`/
-`PRODH` SFR additions to `pic18fxx5x_sfr.h`._
+The plan required establishing, before any arithmetic bodies were written,
+exactly how a C parameter reaches a register and a computed result comes
+back out through XC8's `asm()` — and said to stop and pick the
+plan-consistent option if the assumed binding did not work. This section
+is the result of that empirical probe (XC8 v3.10, both families, `-O0`
+and `-O2`, inspecting the generated `.s`).
+
+### What does NOT work
+
+XC8's inline assembler is **not** GNU extended asm: there is no `%0`-style
+operand substitution and no input/output constraint list. More importantly,
+the assembler can only reference symbols that have a file-scope storage
+location. Concretely, all of these fail to link with `undefined symbol`:
+
+```c
+uint8_t add_param(uint8_t a, uint8_t b) {
+    asm("movf _a,w");      /* error: undefined symbol "_a" -- params are NOT symbols */
+    asm("addwf _b,w");
+    ...
+}
+uint8_t add_static(uint8_t a, uint8_t b) {
+    static volatile uint8_t sa, sb, sr;   /* function-local statics are NOT symbols either */
+    sa = a; sb = b;
+    asm("movf _sa,w");     /* error: undefined symbol "_sa" */
+    ...
+}
+```
+
+So **function parameters, autos, and even function-local `static`s are not
+addressable from inline asm.** Only **file-scope** variables are.
+
+### What does work — the established convention
+
+Each leaf primitive is a C wrapper that takes its operands **by value**
+(the public, reentrant-from-the-caller's-view API), copies them into
+**file-scope `static volatile` operand scratch** (one set per function,
+name-prefixed so no two routines share), runs the `asm()` body against
+those named symbols, and returns the `volatile` result:
+
+```c
+/* src/pic18/pic_math_mul.c (XC8-only; #include <xc.h> for SFR symbols) */
+static volatile uint8_t  m_mul_u8_a, m_mul_u8_b;
+static volatile uint16_t m_mul_u8_r;
+
+uint16_t pic_math_mul_u8(uint8_t a, uint8_t b)
+{
+    m_mul_u8_a = a;             /* C store -- volatile, so not elided */
+    m_mul_u8_b = b;
+    asm("movf  m_mul_u8_a,w");   /* asm reads the file-scope scratch by _name */
+    asm("mulwf m_mul_u8_b");     /* PIC18 hardware 8x8->16 into PRODH:PRODL  */
+    asm("movf  PRODL,w");
+    asm("movwf m_mul_u8_r+0");
+    asm("movf  PRODH,w");
+    asm("movwf m_mul_u8_r+1");
+    return m_mul_u8_r;           /* C read -- volatile, so not elided */
+}
+```
+
+Confirmed in the generated assembly (PIC18, `-O2`):
+
+```
+movf  m_mul_u8_a,w      ; the C "m_mul_u8_a = a" store preceded this
+mulwf m_mul_u8_b
+movf  PRODL,w           ; PRODL/PRODH resolve as built-in xc.h SFR symbols
+movwf m_mul_u8_r
+movf  PRODH,w
+movwf m_mul_u8_r+1
+```
+
+The load-bearing details:
+
+- **`volatile` is required on every scratch byte.** The asm is opaque to
+  the compiler, so without `volatile` the `m_mul_u8_a = a` store (no C code
+  reads it) and the `return m_mul_u8_r` read (no C code wrote it) would be
+  optimized away as dead. `volatile` forces both, bracketing the asm.
+- **`#include <xc.h>` in the XC8-only asm `.c` files** makes the device SFR
+  symbols (`STATUS`, `WREG`, `PRODL`, `PRODH`) available to the assembler.
+  The public header `pic_math.h` stays `xc.h`-free (only `<stdint.h>`/
+  `<stdbool.h>`), so the host build and library consumers never pull it in.
+- **STATUS bits are referenced by number, not name**: `btfsc STATUS,0` for
+  carry, `STATUS,2` for zero, `STATUS,1` for digit-carry. XC8's assembler
+  does **not** know the `C`/`Z`/`DC` bit aliases (`undefined symbol "C"`),
+  so the numeric form is mandatory. (PIC18 adds `STATUS,3` = OV,
+  `STATUS,4` = N, unused by the arithmetic here.)
+- **Multi-byte scratch** is addressed with byte offsets: `m_name+0`,
+  `m_name+1`, `m_name+2`, `m_name+3` (little-endian; `+0` is the low byte).
+- **No `pic18fxx5x_sfr.h` edit was needed.** The plan predicted adding
+  `PIC_REG_WREG`/`PIC_REG_PRODL`/`PIC_REG_PRODH` there; the probe showed
+  the asm uses the `xc.h` SFR symbols directly and the C code never touches
+  `PROD`, so the HAL's SFR header is left untouched. `pic8-math` stays
+  self-contained — it adds no symbols to any other module.
+
+### Per-family flag access
+
+- **PIC16** (mid-range, no `ADDWFC`/`SUBWFB`, no hardware multiply): carry
+  propagation uses AN526's own idiom — `btfsc STATUS,0` + `incf` — which
+  ports to PIC16F87XA unchanged (mid-range is a superset of the baseline
+  core AN526 targeted, for arithmetic). Multiply is shift-and-add.
+- **PIC18** (has `MULWF`, `addwfc`, `subfwb`): use the single-instruction
+  carry-add/subtract directly — do **not** carry AN526/AN544's
+  skip-and-increment idiom onto PIC18 where one instruction does it.
+
+### Where hand-asm actually adds value
+
+The probe confirmed XC8's optimizer already emits `mulwf` for idiomatic
+`return (uint16_t)a * (uint16_t)b` with `uint8_t` operands on PIC18. So
+for `pic_math_mul_u8` the hand-asm and the plain-C paths produce
+equivalent `mulwf` code. The hand-written asm genuinely earns its keep on
+the **structured** routines — the 16×16 multiply built from three partial
+products, the restoring shift-subtract divide loop, the BCD digit-adjust —
+where the compiler does not auto-structure the optimal sequence. That
+matches the plan's "minimal asm surface" priority: asm on the leaves where
+it matters, portable C on everything derived.
+
+### The one relaxation of "no global mutable state"
+
+The plan's headline API improvement was "no global mutable arithmetic
+state anywhere," replacing AN526/AN544's fixed shared `ACCa`/`ACCb` RAM.
+XC8's operand-binding constraint forces a partial walk-back: the leaf
+primitives keep **per-function** file-scope scratch. This is deliberately
+narrower than the app notes' hazard, and the testability concern is fully
+eliminated:
+
+- **Per-function, name-prefixed scratch** — `pic_math_mul_u8`'s scratch
+  is distinct from `pic_math_divmod_u16`'s, so two call sites of *different*
+  routines can never collide (AN526's cross-routine `ACCa` collision is
+  impossible; callers never see or name the scratch).
+- **Written before read, every call** — no stale-state bug; the wrapper
+  initializes the scratch from the value parameters on entry.
+- **The public API is still by-value** — callers pass values/pointers, as
+  the plan requires; the scratch is a hidden implementation detail.
+
+The one residual hazard is **interrupt re-entrancy of the same leaf
+function**: if an ISR runs the same routine while main is mid-computation
+in it, the shared scratch is corrupted. This is the same limitation the
+PIC16 compiled-stack already imposes on any non-`reentrant` function, and
+AN526/AN544 had it too. Callers that need to call a `pic_math_*` primitive
+from both main-loop and ISR context should bracket the ISR call with
+`HAL_IRQ_Disable`/`HAL_IRQ_Restore` (the family-neutral contract the rest
+of this repo already uses); a future `PIC_MATH_REENTRANT` build knob could
+add that bracket inside the wrappers if a caller needs it as a default.
 
 ## Testing tiers
 
