@@ -359,14 +359,13 @@ static uint8_t sim_eeprom_loaded[256];
 
 void pic16f87xa_sim_drive_eeprom_byte(uint8_t addr, uint8_t data)
 {
-    if (addr >= 256U) return;
+    /* `addr` is uint8_t (0..255), always a valid index into sim_eeprom[256]. */
     sim_eeprom[addr] = data;
     sim_eeprom_loaded[addr] = 1U;
 }
 
 void pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data)
 {
-    if (addr >= 256U) return;
     sim_eeprom[addr] = data;
     sim_eeprom_loaded[addr] = 1U;
     /* Set PIR2<EEIF> (bit 4). */
@@ -376,6 +375,5 @@ void pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data)
 
 uint8_t pic16f87xa_sim_eeprom_read(uint8_t addr)
 {
-    if (addr >= 256U) return 0xFFU;
     return sim_eeprom[addr];
 }
