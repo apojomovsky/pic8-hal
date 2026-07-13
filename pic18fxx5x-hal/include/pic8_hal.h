@@ -37,5 +37,8 @@
 #include "peripherals/pic18fxx5x_comp.h"
 #include "peripherals/pic18fxx5x_eeprom.h"
 #include "peripherals/pic18fxx5x_adc.h"
+#if PIC18FXX5X_FAMILY_HAS_SPP
+#include "peripherals/pic18fxx5x_spp.h"
+#endif
 
 #endif /* PIC8_HAL_H */

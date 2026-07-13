@@ -118,4 +118,13 @@ uint8_t pic18_sim_eeprom_read(uint8_t addr);
  */
 void pic18_sim_drive_adc_done(uint16_t result);
 
+#if PIC18FXX5X_FAMILY_HAS_SPP
+/**
+ * @brief Model an SPP transfer event: sets the SPPEPS<WRSPP>/<RDSPP>
+ *        status bits (as selected by `wrspp`/`rdspp`) and raises SPPIF
+ *        (PIR1<7>). 40/44-pin parts only.
+ */
+void pic18_sim_drive_spp(uint8_t wrspp, uint8_t rdspp);
+#endif
+
 #endif /* PIC18FXX5X_SIM_H */

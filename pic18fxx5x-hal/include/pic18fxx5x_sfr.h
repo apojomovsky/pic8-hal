@@ -166,6 +166,18 @@
 #define PIC_REG_ADRESL        0xFC3U   /**< A/D result low byte.                       */
 #define PIC_REG_ADRESH        0xFC4U   /**< A/D result high byte.                       */
 
+/* Streaming Parallel Port (SPP), DS39632E §18.0. USB-era parallel port,
+ * present only on the 40/44-pin parts (4455/4550); gated so 28-pin builds
+ * don't reference registers that aren't there. SPPDATA is the data byte,
+ * SPPCFG configures clocks/wait-states, SPPEPS selects the USB endpoint,
+ * SPPCON enables the module. */
+#if PIC18FXX5X_FAMILY_HAS_SPP
+#define PIC_REG_SPPDATA        0xF62U   /**< SPP data register.                         */
+#define PIC_REG_SPPCFG         0xF63U   /**< SPP configuration (CLKCFG/CSEN/CLK1EN/WS).   */
+#define PIC_REG_SPPEPS         0xF64U   /**< SPP endpoint select + status (ADDR/BUSY/WR/RD). */
+#define PIC_REG_SPPCON         0xF65U   /**< SPP control (SPPEN/SPPOWN).                 */
+#endif
+
 /* ───────────────────────── STATUS bits (Register 5-2) ───────────── */
 #define PIC_STATUS_N          PIC8_BIT(4)   /**< Negative / borrow complement. */
 #define PIC_STATUS_OV         PIC8_BIT(3)   /**< Overflow.                     */
@@ -415,6 +427,25 @@
 #define PIC_ADCON2_ACQT_POS    3            /**< ACQT field shift.                     */
 #define PIC_ADCON2_ADFM        PIC8_BIT(7)  /**< 1 = right justified, 0 = left.       */
 
+/* ───────────────────────── SPP bits (Register 18-1/18-2/18-3) ──────── */
+/* Gated to 40/44-pin parts (PIC18FXX5X_FAMILY_HAS_SPP). DS39632E §18.0. */
+#if PIC18FXX5X_FAMILY_HAS_SPP
+/* SPPCON (Register 18-1). */
+#define PIC_SPPCON_SPPEN       PIC8_BIT(0)  /**< SPP enable.                       */
+#define PIC_SPPCON_SPPOWN      PIC8_BIT(1)  /**< Ownership: 1=USB, 0=MCU.          */
+/* SPPCFG (Register 18-2). */
+#define PIC_SPPCFG_WS_MASK     0x0FU        /**< WS3:WS0 at bits 3:0 (0..30 wait states, x2). */
+#define PIC_SPPCFG_CLK1EN      PIC8_BIT(4)  /**< RE0 as SPP CLK1 output.           */
+#define PIC_SPPCFG_CSEN        PIC8_BIT(5)  /**< RB4 as SPP CS output.             */
+#define PIC_SPPCFG_CLKCFG_MASK 0xC0U        /**< CLKCFG1:CLKCFG0 at bits 7:6.      */
+#define PIC_SPPCFG_CLKCFG_POS  6            /**< CLKCFG field shift.                */
+/* SPPEPS (Register 18-3). ADDR3:ADDR0 at bits 3:0, status bits read-only. */
+#define PIC_SPPEPS_ADDR_MASK   0x0FU        /**< Endpoint address at bits 3:0.     */
+#define PIC_SPPEPS_SPPBUSY     PIC8_BIT(4)  /**< SPP busy (read-only).             */
+#define PIC_SPPEPS_WRSPP       PIC8_BIT(6)  /**< Write occurred (read-only status). */
+#define PIC_SPPEPS_RDSPP       PIC8_BIT(7)  /**< Read occurred (read-only status).  */
+#endif
+
 /* ───────────────────────── Reset values (POR) ───────────────────── */
 /* DS39632E Table 5-1 "Value at POR" column + Register 4-1 reset notes.
  * RCON after POR: IPEN=0, SBOREN=1, RI=0, TO=1, PD=1, POR=1, BOR=1
@@ -463,6 +494,12 @@
 #define PIC_ADCON0_POR_VALUE    0x00U
 #define PIC_ADCON1_POR_VALUE    0x00U
 #define PIC_ADCON2_POR_VALUE    0x00U
+/* SPP registers reset to 0x00 (DS39632E Table 5-1); 40/44-pin only. */
+#if PIC18FXX5X_FAMILY_HAS_SPP
+#define PIC_SPPCON_POR_VALUE     0x00U
+#define PIC_SPPCFG_POR_VALUE     0x00U
+#define PIC_SPPEPS_POR_VALUE     0x00U
+#endif
 #define PIC_TRIS_POR_VALUE       0xFFU   /* All pins inputs after POR. */
 #define PIC_LAT_POR_VALUE        0x00U   /* Output latches clear after POR. */
 #define PIC_PORT_POR_VALUE       0x00U

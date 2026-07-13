@@ -134,6 +134,12 @@ void pic18_sim_reset(void)
     pic18_sim_sfr[PIC_REG_ADCON0]  = PIC_ADCON0_POR_VALUE;   /* 0x00 */
     pic18_sim_sfr[PIC_REG_ADCON1]  = PIC_ADCON1_POR_VALUE;   /* 0x00 */
     pic18_sim_sfr[PIC_REG_ADCON2]  = PIC_ADCON2_POR_VALUE;   /* 0x00 */
+#if PIC18FXX5X_FAMILY_HAS_SPP
+    /* SPP (40/44-pin only): all registers reset to 0x00. */
+    pic18_sim_sfr[PIC_REG_SPPCON]  = PIC_SPPCON_POR_VALUE;
+    pic18_sim_sfr[PIC_REG_SPPCFG]  = PIC_SPPCFG_POR_VALUE;
+    pic18_sim_sfr[PIC_REG_SPPEPS]  = PIC_SPPEPS_POR_VALUE;
+#endif
 
     /* PIR1<TXIF> resets to 1 (TXREG empty after POR, §20.2.1). The Table 5-1
      * POR value for PIR1 is 0x00, but TXIF is a level (set when TXREG is
@@ -473,3 +479,19 @@ void pic18_sim_drive_adc_done(uint16_t result)
     pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_ADIF;
     if (sim_irq_cb) sim_irq_cb();
 }
+
+#if PIC18FXX5X_FAMILY_HAS_SPP
+/* ───────────────────────────────── SPP drive ────────────────────────── */
+
+void pic18_sim_drive_spp(uint8_t wrspp, uint8_t rdspp)
+{
+    /* Set the SPPEPS<WRSPP>/<RDSPP> status bits to model a transfer event,
+     * and raise SPPIF (PIR1<7>). SPPBUSY is left for a dedicated hook. */
+    uint8_t eps = pic18_sim_sfr[PIC_REG_SPPEPS] & (uint8_t)~(PIC_SPPEPS_WRSPP | PIC_SPPEPS_RDSPP);
+    if (wrspp) eps |= PIC_SPPEPS_WRSPP;
+    if (rdspp) eps |= PIC_SPPEPS_RDSPP;
+    pic18_sim_sfr[PIC_REG_SPPEPS] = eps;
+    pic18_sim_sfr[PIC_REG_PIR1] |= PIC_PIR1_SPPIF;
+    if (sim_irq_cb) sim_irq_cb();
+}
+#endif

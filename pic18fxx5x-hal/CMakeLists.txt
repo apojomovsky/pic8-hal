@@ -36,6 +36,16 @@ endif()
 
 set(PIC18FXX5X_DEFAULT_DEVICE PIC18F4550)
 
+# Determine whether the default device has the SPP (40/44-pin only). The
+# CMake variable mirrors the C macro PIC18FXX5X_FAMILY_HAS_SPP so the SPP
+# source and example can be gated here, the way pic16f87xa-hal gates PSP.
+if(PIC18FXX5X_DEFAULT_DEVICE STREQUAL "PIC18F4455" OR
+   PIC18FXX5X_DEFAULT_DEVICE STREQUAL "PIC18F4550")
+    set(PIC18FXX5X_FAMILY_HAS_SPP 1)
+else()
+    set(PIC18FXX5X_FAMILY_HAS_SPP 0)
+endif()
+
 # Variables consumed by the shared pic8_family.cmake helpers.
 set(PIC8_HAL_LIB              pic18fxx5x_hal)
 set(PIC8_DEFAULT_DEVICE       ${PIC18FXX5X_DEFAULT_DEVICE})
@@ -64,6 +74,13 @@ set(PIC8_HAL_SOURCES
     src/peripherals/pic18fxx5x_adc.c
 )
 
+# SPP is 40/44-pin only (4455/4550). The default device is PIC18F4550, which
+# has it, so the library includes the SPP driver; 28-pin per-device examples
+# just don't use it (and don't include the gated header).
+if(PIC18FXX5X_FAMILY_HAS_SPP)
+    list(APPEND PIC8_HAL_SOURCES src/peripherals/pic18fxx5x_spp.c)
+endif()
+
 pic8_add_hal_library(${PIC8_HAL_LIB})
 
 # Phase 2 MVP examples. example_blink is the canonical Timer0 + GPIO +
@@ -78,6 +95,9 @@ pic8_add_example(example_usart tests/example_usart.c)
 pic8_add_example(example_comp tests/example_comp.c)
 pic8_add_example(example_eeprom tests/example_eeprom.c)
 pic8_add_example(example_adc tests/example_adc.c)
+if(PIC18FXX5X_FAMILY_HAS_SPP)
+    pic8_add_example(example_spp tests/example_spp.c)
+endif()
 pic8_add_example(example_smoke tests/example_smoke.c)
 
 # Optional: the blink example for every device in the family, proving every

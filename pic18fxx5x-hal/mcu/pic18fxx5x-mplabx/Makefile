@@ -66,6 +66,14 @@ else
   HAS_BLOCK3 :=
 endif
 
+# SPP is only on the 40/44-pin parts (18F4455 / 18F4550). The driver header
+# #errors on 28-pin parts, so its source must not be compiled there.
+ifeq ($(filter $(MCU),18F4455 18F4550),$(MCU))
+  HAS_SPP := 1
+else
+  HAS_SPP :=
+endif
+
 # ─────────────────────────── paths ────────────────────────────────
 # Adjust HAL_DIR if the firmware project is not a sibling of pic18fxx5x-hal.
 # pic8-common holds the shared harness target impl and headers; it is a
@@ -128,6 +136,11 @@ HAL_SOURCES := \
   $(HAL_DIR)/src/core/pic18fxx5x_wdt_sleep.c              \
   $(HAL_DIR)/src/core/pic18fxx5x_wdt_sleep_target.c       \
   $(COMMON_DIR)/src/core/pic8_harness_target.c
+
+# SPP source only on the 40/44-pin parts that have the peripheral.
+ifeq ($(HAS_SPP),1)
+  HAL_SOURCES += $(HAL_DIR)/src/peripherals/pic18fxx5x_spp.c
+endif
 
 # Add your application sources here. example_blink is the canonical
 # "turn an LED on" smoke test (Timer0 + GPIO + interrupt). Replace it with
