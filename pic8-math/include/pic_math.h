@@ -167,13 +167,22 @@ int32_t  pic_math_negate_s32(int32_t v);
  * into the low 3 nibbles of a uint32_t. */
 
 /**
- * @brief  5-digit packed BCD (0x00000..0x99999) -> binary 0..99999.
- * @note   A nibble > 9 is invalid input; the documented behavior is in
- *         docs/API.md (the conversion treats each nibble independently).
+ * @brief  5-digit packed BCD (0x00000..0x99999) -> binary, returned as
+ *         uint16_t. The BCD can represent up to 99999, but the binary side
+ *         is 16-bit: BCD representing 0..65535 returns exactly; 65536..99999
+ *         wrap to the low 16 bits (documented truncation, mirroring the
+ *         library's other 16-bit-width forms).
+ * @note   A nibble > 9 is invalid input; the conversion treats each nibble
+ *         independently (each contributes its value times its place), so
+ *         bcd8_to_bin(0x0A) = 10 and bcd16_to_bin(0xABCDE) is well-defined.
  */
 uint16_t pic_math_bcd16_to_bin(uint32_t bcd5);
 
-/** @brief 0..99999 -> 5-digit packed BCD. */
+/**
+ * @brief  0..65535 (the uint16_t range) -> 5-digit packed BCD
+ *         (0x00000..0x65535). The "16" names the binary width; a uint16_t
+ *         cannot reach 99999, so the BCD output tops out at 0x65535.
+ */
 uint32_t pic_math_bin_to_bcd16(uint16_t value);
 
 /** @brief 2-digit packed BCD (0x00..0x99) -> binary 0..99. */
