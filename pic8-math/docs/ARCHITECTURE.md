@@ -132,7 +132,24 @@ The load-bearing details:
   `PROD`, so the HAL's SFR header is left untouched. `pic8-math` stays
   self-contained — it adds no symbols to any other module.
 
-### Per-family flag access
+### Per-family scratch layout (banking)
+
+The file-scratch convention has one per-family wrinkle the probe surfaced:
+
+- **PIC18**: file-scope `static volatile` variables land in `COMRAM` (the
+  access bank, 0x00-0x5F). One `banksel _m_x` per routine (emitting `movlb`)
+  covers the whole routine's scratch when XC8 co-locates it. PRODL/PRODH and
+  other SFRs are addressed via the access bank automatically by the assembler.
+- **PIC16**: file-scope `static volatile` *separate variables*, when there
+  are many, get scattered across banks 0-2 by the linker; an inline-asm
+  operand that resolves to a bank-2 address (>= 0x100) does not fit the
+  instruction's file-address field and causes a link-time "fixup overflow".
+  The fix is to make each routine's scratch a **single struct** -- one
+  object, which XC8 cannot split across banks, so it lands whole in one bank
+  and one `banksel` covers every member, accessed by byte offset `(_m_x)+N`.
+  Mid-range also lacks `setf` (carry/borrow-out is recorded with `incf`,
+  read back as a bool) and lacks `addwfc`/`subwfb`/`rlcf`/`bra` (uses the
+  `btfsc/btfss STATUS,0` + `incf` carry idiom, `rlf`/`rrf`, `goto`).
 
 - **PIC16** (mid-range, no `ADDWFC`/`SUBWFB`, no hardware multiply): carry
   propagation uses AN526's own idiom — `btfsc STATUS,0` + `incf` — which

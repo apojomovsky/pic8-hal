@@ -52,6 +52,25 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* ─── configuration ────────────────────────────────────────────── */
+
+/**
+ * @brief  PIC16 multiply code-size vs speed trade-off.
+ *
+ * @details AN526 offers both a straight-line (faster, larger) and a looped
+ *         (slower, smaller) 8x8 multiply; on a part with as little as 1.5 KB
+ *         of flash that is a meaningful trade-off. The PIC16 backend honors
+ *         it: define PIC_MATH_OPTIMIZE_FOR_SIZE=0 (default 1) to select the
+ *         straight-line form. The PIC18 backend is unaffected -- it uses the
+ *         hardware MULWF regardless of this knob.
+ *
+ *         Override by defining before including the header, or pass
+ *         -DPIC_MATH_OPTIMIZE_FOR_SIZE=0 on the XC8 command line.
+ */
+#ifndef PIC_MATH_OPTIMIZE_FOR_SIZE
+#define PIC_MATH_OPTIMIZE_FOR_SIZE 1
+#endif
+
 /* ─── multiply ─────────────────────────────────────────────────── */
 
 /**

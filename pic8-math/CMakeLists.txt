@@ -55,3 +55,15 @@ enable_testing()
 add_executable(test_smoke tests/test_smoke.c)
 target_link_libraries(test_smoke PRIVATE pic_math)
 add_test(NAME smoke COMMAND test_smoke)
+
+# Phase 1: core arithmetic. Each test is a standalone main() returning 0 on
+# pass; pic_math_test.h provides the CHECK macro and the reproducible LCG.
+function(pic_math_add_test name src)
+    add_executable(${name} ${src})
+    target_link_libraries(${name} PRIVATE pic_math)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+pic_math_add_test(test_mul    tests/test_mul.c)
+pic_math_add_test(test_div    tests/test_div.c)
+pic_math_add_test(test_addsub tests/test_addsub.c)
