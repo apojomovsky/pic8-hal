@@ -1,0 +1,57 @@
+# pic8-math, fixed-point math utility library for the 8-bit PIC HAL.
+#
+#   cmake -B build && cmake --build build
+#   ctest --testdir build --output-on-failure
+#   ./build/test_mul
+#
+# This is the host reference build: src/host/ (portable-C leaf primitives)
+# plus src/common/ (the portable-C derived routines every backend shares),
+# built as a host static library and exercised by the Tier-1 unit tests
+# under tests/. The family-specific inline-asm backends (src/pic16/,
+# src/pic18/) are built by the XC8 Makefiles under mcu/, not by CMake --
+# that asm targets XC8's PIC16/PIC18 instruction sets, not the host.
+#
+# Unlike pic8-taskmgr's CMake, this build does NOT add_subdirectory() a HAL.
+# pic8-math is a stateless computation library: the public header needs only
+# <stdint.h>/<stdbool.h>, and the host reference backend needs no peripheral
+# model. The family dimension (PIC16 vs PIC18, and the HAL each on-target
+# self-test links) lives entirely in the XC8 Makefile targets, which is the
+# only place a HAL is actually required. Keeping the host build HAL-free is
+# the plan-consistent reading of "Build src/host/ + src/common/ as a host
+# static lib and test it directly" (Tier 1); see docs/ARCHITECTURE.md.
+#
+# The host/target split is done at build time, not with #ifdef, exactly as
+# in the HAL: CMake links src/host/, the XC8 Makefiles link src/pic16/ or
+# src/pic18/. No math source file has a preprocessor branch for either
+# build or either family.
+
+cmake_minimum_required(VERSION 3.16)
+project(pic8_math C)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# The host reference static library: portable-C leaf primitives (src/host/)
+# plus the shared derived routines (src/common/, linked by every backend).
+add_library(pic_math STATIC
+    src/host/pic_math_mul.c
+    src/host/pic_math_div.c
+    src/host/pic_math_addsub.c
+    src/host/pic_math_bcd.c
+    src/common/pic_math_sqrt.c
+    src/common/pic_math_numeric.c
+    src/common/pic_math_rand.c)
+target_include_directories(pic_math PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# ─── Tier 1: host unit tests (automated, the bulk of coverage) ────
+# Each test is a standalone main() that returns 0 on pass, 1 on fail, and
+# is registered with CTest. Tests link the host reference library and use
+# it as the oracle; the per-family asm backends are validated separately
+# (Tier 2: optional gpsim for PIC16; Tier 3: on-target USART self-test).
+enable_testing()
+
+# Phase 0 smoke: proves the host build links and the header compiles.
+add_executable(test_smoke tests/test_smoke.c)
+target_link_libraries(test_smoke PRIVATE pic_math)
+add_test(NAME smoke COMMAND test_smoke)
