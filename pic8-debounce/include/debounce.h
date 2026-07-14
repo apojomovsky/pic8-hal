@@ -7,18 +7,18 @@
  *   anything read as a boolean): given a raw, possibly-bouncy pin read, decide
  *   when the *stable* state has actually changed and emit a press/release edge
  *   event. Multiple instances, each independent plain data, cover multiple
- *   inputs — there is no global "the button" anywhere in this design.
+ *   inputs, there is no global "the button" anywhere in this design.
  *
  *   Vendor-agnostic: the caller supplies a small read callback
  *   (`debounce_read_fn`) returning `true` when the pin currently reads
- *   "active" — the callback itself resolves active-high vs. active-low, so the
+ *   "active", the callback itself resolves active-high vs. active-low, so the
  *   debounce core never needs to know or care which convention a given input
  *   uses. This makes the module equally useful over a HAL GPIO pin, an
  *   I2C-expander bit (`pic8-bus`), or a mock pin in a host test.
  *
  *   The implementation depends on `pic8-tick` for its timebase (calling
- *   `pic8_tick_get()` / `pic8_tick_elapsed_since()` directly — not an injected
- *   clock — so the host test suite exercises genuinely real timing semantics
+ *   `pic8_tick_get()` / `pic8_tick_elapsed_since()` directly, not an injected
+ *   clock, so the host test suite exercises genuinely real timing semantics
  *   under simulated tick advancement). Only `src/debounce.c` includes
  *   `pic8_tick.h`; this header stays a two-`#include` file
  *   (`<stdint.h>`, `<stdbool.h>`), dependency-free.
@@ -51,7 +51,7 @@ typedef enum {
 #define DEBOUNCE_FLAG_STABLE     0x01U  /**< current committed (debounced) state */
 #define DEBOUNCE_FLAG_CANDIDATE  0x02U  /**< last raw read being watched for stability */
 
-/** One debounce instance — plain data, no hidden global state. One per input. */
+/** One debounce instance, plain data, no hidden global state. One per input. */
 typedef struct {
     debounce_read_fn read;           /**< pin-read callback               */
     void            *read_ctx;       /**< opaque context for the callback */

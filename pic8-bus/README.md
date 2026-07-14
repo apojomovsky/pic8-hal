@@ -1,7 +1,7 @@
-# pic8-bus — I2C/SPI "MEM" register access for 8-bit PICs
+# pic8-bus, I2C/SPI "MEM" register access for 8-bit PICs
 
 The register-transaction idiom STM32Cube's `HAL_I2C_Mem_Read`/`Mem_Write` and
-SPI sensor code use, on the HAL's MSSP/SSP driver — "write a register
+SPI sensor code use, on the HAL's MSSP/SSP driver, "write a register
 address, then read/write N bytes" in one call, for both I2C and SPI.
 
 - **One family-agnostic API** (`pic8_bus_i2c_mem_read`/`write`,
@@ -11,14 +11,14 @@ address, then read/write N bytes" in one call, for both I2C and SPI.
   setter, no wait-for-idle); pic8-bus adds the NACK-the-last-byte and
   SSPIF-poll pieces with one small family branch.
 - **Host-testable via an ops seam**: inject a mock MEM device
-  (`pic8_bus_set_i2c_ops`/`set_spi_ops`) to exercise the transaction logic —
+  (`pic8_bus_set_i2c_ops`/`set_spi_ops`) to exercise the transaction logic.
   the host sim has no SSP slave model, so the default HAL ops are for target.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — transaction shapes, the ops seam,
+- [Architecture](docs/ARCHITECTURE.md), transaction shapes, the ops seam,
   the family branch, testing.
-- [API reference](docs/API.md) — per-function semantics + usage.
+- [API reference](docs/API.md), per-function semantics + usage.
 
 ## Quick start
 
@@ -30,7 +30,7 @@ ctest --test-dir build --output-on-failure   # example_bus: I2C+SPI MEM, fails=0
 cmake -B build18 -DHAL_FAMILY=PIC18 && ctest --test-dir build18
 ```
 
-### Real target (XC8) — bus init smoke
+### Real target (XC8), bus init smoke
 
 ```sh
 export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
@@ -52,4 +52,4 @@ pic8_bus_spi_mem_write(0x20, cfg, 2);          /* write 2 regs */
 
 ## License
 
-MIT — see the [repo LICENSE](../LICENSE).
+MIT, see the [repo LICENSE](../LICENSE).

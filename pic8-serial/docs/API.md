@@ -23,7 +23,7 @@ Bytes available to read from the RX ring (single-byte atomic read).
 
 ### `int pic8_serial_tx_pending(void)`
 Bytes still in the TX ring (not yet loaded into TXREG). 0 means the ring is
-empty; the last byte may still be shifting out — use `flush` to wait for that.
+empty; the last byte may still be shifting out, use `flush` to wait for that.
 
 ### `void pic8_serial_flush(void)`
 Block until the TX ring is empty AND the shift register has drained. Use

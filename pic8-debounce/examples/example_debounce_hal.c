@@ -1,13 +1,13 @@
 /**
  * @file    example_debounce_hal.c
- * @brief   Two debounce instances on two HAL GPIO pins — demonstrates
+ * @brief   Two debounce instances on two HAL GPIO pins, demonstrates
  *          "any gpio" (the read callback wraps `HAL_GPIO_ReadPin`) and
  *          reuse (two independent `debounce_t`).
  *
  * @details
  *   Host-sim runnable. Two buttons on RA0 and RA1 are debounced; a press on
  *   either toggles the LED on RB0. The read callback wraps
- *   `HAL_GPIO_ReadPin` through a small `pin_ctx_t` — the debounce core never
+ *   `HAL_GPIO_ReadPin` through a small `pin_ctx_t`, the debounce core never
  *   sees a HAL type, proving the vendor-agnostic design. On the host sim the
  *   example drives RA0 high/low to simulate a button press/release; on a real
  *   target the pins read real switches (the PORTA writes are harmless for
@@ -26,7 +26,7 @@
 #define SIM_CYCLES 3000000UL
 #define DB_MS      20u
 
-/* The pin context the read callback uses — demonstrates "any gpio": the
+/* The pin context the read callback uses, demonstrates "any gpio": the
  * debounce core never sees GPIO_TypeDef, only the bool the callback returns. */
 typedef struct { uint8_t port; uint16_t pin; } pin_ctx_t;
 

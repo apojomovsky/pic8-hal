@@ -1,7 +1,7 @@
 # `pic8-bus` architecture
 
-The I2C/SPI "MEM" register-access idiom — STM32Cube's `HAL_I2C_Mem_Read`/
-`Mem_Write` and the SPI register-transaction pattern — on the HAL's MSSP/SSP
+The I2C/SPI "MEM" register-access idiom, STM32Cube's `HAL_I2C_Mem_Read`/
+`Mem_Write` and the SPI register-transaction pattern, on the HAL's MSSP/SSP
 driver.
 
 ## What it is
@@ -32,7 +32,7 @@ CS high.
 
 The HAL's SSP driver is **register-level**: it exposes `Start`/`Stop`/
 `RepeatedStart`/`WriteByte`/`ReceiveEnable`/`AcknowledgeEnable`/
-`AcknowledgeStatus` but NOT the two things a clean MEM transaction needs —
+`AcknowledgeStatus` but NOT the two things a clean MEM transaction needs.
 the **ACKDT** bit (to NACK the last read byte) and a **wait-for-idle** poll
 (the control functions return immediately). pic8-bus's default I2C ops add
 those: a read-modify-write of `SSPCON2<ACKDT>` (0=ACK, 1=NACK) and a poll of
@@ -40,7 +40,7 @@ SSPIF (`HAL_IRQ_GetFlag`/`ClearFlag` on the SSP IRQ) before each step.
 
 The host sim has **no SSP slave model** (it never raises SSPIF for bus
 operations), so the default ops would hang there. `pic8_bus_set_i2c_ops` /
-`pic8_bus_set_spi_ops` inject an alternate ops table — the host test wires in
+`pic8_bus_set_spi_ops` inject an alternate ops table, the host test wires in
 a mock MEM device (a register map + transaction state machine) and exercises
 the family-neutral transaction LOGIC without hardware. On a real target the
 default (HAL) ops are used.
@@ -49,11 +49,11 @@ default (HAL) ops are used.
 
 `SSPCON2`, `ACKDT`, and `ACKSTAT` have the same bit names on both families;
 the register address differs (PIC16 bank-1 `0x91`, PIC18 `0xFC5`) and so does
-the access idiom (PIC16 `PIC8_REG8 =`, PIC18 `pic8_sfr_read8`/`write8` — XC8
+the access idiom (PIC16 `PIC8_REG8 =`, PIC18 `pic8_sfr_read8`/`write8`, XC8
 can't lower `|=` on a volatile cast lvalue at a runtime SFR address) and the
 SSP IRQ number. These are `#if`-gated on the family device define the build
 passes; everything else is family-neutral through `pic8_hal.h`. The SPI CS
-uses `HAL_GPIO_WritePin` (the HAL's GPIO abstraction) — no raw PORTx pokes.
+uses `HAL_GPIO_WritePin` (the HAL's GPIO abstraction), no raw PORTx pokes.
 
 ## Testing
 

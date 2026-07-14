@@ -1,11 +1,11 @@
 /**
  * @file    debounce.c
- * @brief   Poll-driven timestamp-comparison debounce — one implementation for
+ * @brief   Poll-driven timestamp-comparison debounce, one implementation for
  *          host, PIC16, and PIC18 alike (no per-family backend, no inline asm).
  *
  * @details
  *   The algorithm is the standard "commit only after the new reading holds
- *   for the full window" debounce — not a novel design:
+ *   for the full window" debounce, not a novel design:
  *
  *     raw = read(ctx)
  *     if raw != candidate_state:
@@ -26,7 +26,7 @@
  *
  *   This file includes `pic8_tick.h` for the timebase; the public header
  *   `debounce.h` does not, keeping it dependency-free. The module does NOT
- *   use `pic8-fsm` internally — a 2-state timestamp comparison is more direct
+ *   use `pic8-fsm` internally, a 2-state timestamp comparison is more direct
  *   than a transition table here. `debounce_poll`'s return value is a
  *   perfectly good `fsm_dispatch` event for a caller who wants to feed button
  *   edges into a larger state machine; that composition happens one level up.

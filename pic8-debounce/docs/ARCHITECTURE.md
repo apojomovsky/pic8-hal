@@ -1,6 +1,6 @@
 # `pic8-debounce` architecture
 
-A vendor-agnostic, instantiable digital-input debouncer — one `debounce_t`
+A vendor-agnostic, instantiable digital-input debouncer, one `debounce_t`
 per input, no global state, no per-family backend, no inline asm.
 
 ## What it is
@@ -9,12 +9,12 @@ Given a raw, possibly-bouncy pin read, decide when the *stable* state has
 actually changed and emit a press/release edge event. Multiple instances
 cover multiple inputs. The algorithm is a timestamp comparison (not a hardware
 operation), so `src/debounce.c` is one file that compiles unchanged for host,
-PIC16, and PIC18 — the host unit suite tests the exact code that ships.
+PIC16, and PIC18, the host unit suite tests the exact code that ships.
 
 ## Vendor-agnostic: the read callback
 
 The caller supplies a `debounce_read_fn` returning `true` when the pin reads
-"active" — the callback resolves active-high vs. active-low. The debounce core
+"active", the callback resolves active-high vs. active-low. The debounce core
 never sees a HAL type, so it's equally useful over a HAL GPIO pin
 (`HAL_GPIO_ReadPin`), an I2C-expander bit (`pic8-bus`), or a mock pin in a
 test. This is the design choice that makes the module "reusable on any gpio."
@@ -22,7 +22,7 @@ test. This is the design choice that makes the module "reusable on any gpio."
 ## Depends on `pic8-tick` directly (not an injected clock)
 
 The algorithm needs elapsed-time. It calls `pic8_tick_get()` /
-`pic8_tick_elapsed_since()` directly — not a second injected callback — so the
+`pic8_tick_elapsed_since()` directly, not a second injected callback, so the
 host test suite exercises genuinely real timing semantics under simulated tick
 advancement (a stronger correctness signal for an algorithm whose entire job is
 timing). Only `src/debounce.c` includes `pic8_tick.h`; the public header
@@ -66,7 +66,7 @@ fire a PRESSED event after the window elapses.
 
 `debounce_poll` emits `PRESSED`/`RELEASED` only. Click detection and
 long-press are built by a caller composing edge events with a timestamp or a
-small `pic8-fsm` machine one level up — not built into this module.
+small `pic8-fsm` machine one level up, not built into this module.
 
 ## Footprint
 

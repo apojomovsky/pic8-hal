@@ -20,7 +20,7 @@ Block for `ms` milliseconds. Guarantees at least `ms` (may overshoot by up to
 advances; on a real target it spins while the Timer2 ISR advances the counter.
 
 ### `uint32_t pic8_tick_elapsed_since(uint32_t t0)`
-`pic8_tick_get() - t0` — the non-blocking idiom
+`pic8_tick_get() - t0`, the non-blocking idiom
 `if (pic8_tick_elapsed_since(t0) >= timeout)` instead of blocking.
 Wraparound-safe (unsigned subtraction), so it stays correct across the
 ~49.7-day roll.

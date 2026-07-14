@@ -1,21 +1,21 @@
-# pic8-tick — a 1 ms timebase for 8-bit PICs
+# pic8-tick, a 1 ms timebase for 8-bit PICs
 
 The STM32Cube `HAL_GetTick` / `HAL_Delay` equivalent: a monotonic millisecond
-counter, a blocking delay, and a non-blocking elapsed-time helper — built on
+counter, a blocking delay, and a non-blocking elapsed-time helper, built on
 the HAL's Timer2 (auto-reload, so the ISR just increments a counter).
 
 - **One family-agnostic API** (`pic8_tick_init` / `pic8_tick_get` /
   `pic8_tick_delay_ms` / `pic8_tick_elapsed_since`), same `src/pic8_tick.c`
   builds against `pic16f87xa-hal` or `pic18fxx5x-hal`.
 - **Atomic 32-bit tick read** (interrupts disabled around the read).
-- **Works on the host simulator** — `pic8_tick_delay_ms` pumps
-  `pic8_harness_tick()` so simulated time advances — and on real silicon.
+- **Works on the host simulator**, `pic8_tick_delay_ms` pumps
+  `pic8_harness_tick()` so simulated time advances, and on real silicon.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — Timer2 timebase, period math,
+- [Architecture](docs/ARCHITECTURE.md), Timer2 timebase, period math,
   atomicity, host vs target.
-- [API reference](docs/API.md) — per-function semantics + usage.
+- [API reference](docs/API.md), per-function semantics + usage.
 
 ## Quick start
 
@@ -47,4 +47,4 @@ if (pic8_tick_elapsed_since(t0) >= 50u) { /* timeout */ }
 
 ## License
 
-MIT — see the [repo LICENSE](../LICENSE).
+MIT, see the [repo LICENSE](../LICENSE).

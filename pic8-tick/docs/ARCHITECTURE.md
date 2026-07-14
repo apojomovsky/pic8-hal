@@ -1,7 +1,7 @@
 # `pic8-tick` architecture
 
-A 1 ms timebase — the STM32Cube `HAL_GetTick`/`HAL_Delay` equivalent for
-8-bit PICs — built on the HAL's Timer2.
+A 1 ms timebase, the STM32Cube `HAL_GetTick`/`HAL_Delay` equivalent for
+8-bit PICs, built on the HAL's Timer2.
 
 ## What it is
 
@@ -9,19 +9,19 @@ A 1 ms timebase — the STM32Cube `HAL_GetTick`/`HAL_Delay` equivalent for
 a blocking delay (`pic8_tick_delay_ms`), and a non-blocking elapsed-time
 helper (`pic8_tick_elapsed_since`). It is the single most-used Cube utility,
 and the foundation other timed modules (timeouts, debouncing, serial flush
-deadlines) stand on. It works on every PIC this repo supports — PIC16F87XA
-and PIC18F2455/2550/4455/4550 — and on the host simulator, from one
+deadlines) stand on. It works on every PIC this repo supports, PIC16F87XA
+and PIC18F2455/2550/4455/4550, and on the host simulator, from one
 family-agnostic source file.
 
 ## How the tick is produced
 
 Timer2 is auto-reload (PR2): on a period match it raises TMR2IF, the HAL's
 `TIMER2_IRQHandler` clears the flag and calls the handle's `OverflowCallback`,
-which is `pic8_tick_on_overflow` here — it increments a `volatile uint32`
+which is `pic8_tick_on_overflow` here, it increments a `volatile uint32`
 millisecond counter. The module installs the callback through the Timer2
 handle (`OverflowCallback` field set before `HAL_TIMER2_Init`), exactly the
 pattern `pic8-taskmgr` uses for its Timer0 tick. It does **not** redefine
-`TIMER2_IRQHandler` — the HAL driver owns that handler.
+`TIMER2_IRQHandler`, the HAL driver owns that handler.
 
 The handle is `static` because the PIC16 Timer2 driver stores the caller's
 pointer (not a copy), so the handle must outlive the ISR; the PIC18 driver
@@ -56,7 +56,7 @@ requested milliseconds (overshoot ≤ ~1 tick).
 
 ## Why Timer2 and not Timer0
 
-Timer2 is auto-reload (PR2), so the ISR need only increment the counter — no
+Timer2 is auto-reload (PR2), so the ISR need only increment the counter, no
 manual reload write. Timer0 has no auto-reload (the task manager reloads it in
 its own ISR), so Timer2 is the cleaner choice for a standalone timebase.
 `pic8-taskmgr` keeps Timer0; the two coexist on their own timers.

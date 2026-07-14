@@ -103,7 +103,7 @@ static void test_bouncy_transition(void)
     }
     /* The bouncy flips (calls 10..15) keep resetting the candidate timer.
      * From call 16 (poll i=15) the raw is stably true. 5 ms later
-     * (poll i=20): PRESSED. Exactly 1 — not one per flip. */
+     * (poll i=20): PRESSED. Exactly 1, not one per flip. */
     CHECK(presses == 1, "bouncy: exactly 1 PRESSED despite flips");
     CHECK(debounce_is_active(&db), "bouncy: active after settle");
 }
@@ -112,7 +112,7 @@ static void test_reversed_before_window(void)
 {
     /* Script: false for 0..9, true for 10..12, false for 13+. The true
      * candidate starts at call 10 (poll i=9) but reverses to false at
-     * call 13 (poll i=12) — only 3 ms later, before the 5 ms window. */
+     * call 13 (poll i=12), only 3 ms later, before the 5 ms window. */
     g_idx = 0;
     for (int i = 0; i < 512; i++) g_script[i] = (i >= 10 && i < 13);
 
@@ -173,7 +173,7 @@ static void test_two_independent_instances(void)
 
     /* Actually, let me just use the global g_script for A and a separate
      * static for B, with two read fns. Define them as file-scope statics. */
-    /* This test needs its own read functions — let me restructure. */
+    /* This test needs its own read functions, let me restructure. */
     /* For simplicity, test independence by: init A with the global mock,
      * init B with the global mock but a different script, and verify A's
      * events don't leak into B. But they share g_idx... */

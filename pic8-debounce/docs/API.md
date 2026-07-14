@@ -21,7 +21,7 @@ timestamp-comparison debounce, and commits a new stable state only after the
 raw reading has held for the full `debounce_ms` window.
 
 ### `bool debounce_is_active(const debounce_t *db)`
-The last committed (debounced) stable state — `true` if active. Reflects the
+The last committed (debounced) stable state, `true` if active. Reflects the
 committed state, not the raw/candidate state.
 
 ## Usage

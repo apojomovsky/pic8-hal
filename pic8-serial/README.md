@@ -1,7 +1,7 @@
-# pic8-serial — interrupt-driven ring-buffered UART + printf
+# pic8-serial, interrupt-driven ring-buffered UART + printf
 
 The non-blocking serial layer STM32Cube's `HAL_UART_Transmit_DMA`/
-`Receive_DMA`/`_IT` give, for 8-bit PICs — built on the HAL's USART driver.
+`Receive_DMA`/`_IT` give, for 8-bit PICs, built on the HAL's USART driver.
 
 - **Ring-buffered IT TX/RX**: `write` enqueues and the TX ISR drains in the
   background; received bytes land in an RX ring and `read` pulls them without
@@ -15,9 +15,9 @@ The non-blocking serial layer STM32Cube's `HAL_UART_Transmit_DMA`/
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — ISR install via callbacks, demand-driven
+- [Architecture](docs/ARCHITECTURE.md), ISR install via callbacks, demand-driven
   TX, the family branch, host testing.
-- [API reference](docs/API.md) — per-function semantics + usage.
+- [API reference](docs/API.md), per-function semantics + usage.
 
 ## Quick start
 
@@ -29,7 +29,7 @@ ctest --test-dir build --output-on-failure   # example_serial: rx=2 tx=2
 cmake -B build18 -DHAL_FAMILY=PIC18 && ctest --test-dir build18
 ```
 
-### Real target (XC8) — banner + echo demo
+### Real target (XC8), banner + echo demo
 
 ```sh
 export PATH=$PATH:/opt/microchip/xc8/v3.10/bin
@@ -49,4 +49,4 @@ printf("x=%u\n", x);                          /* target: via putch */
 
 ## License
 
-MIT — see the [repo LICENSE](../LICENSE).
+MIT, see the [repo LICENSE](../LICENSE).

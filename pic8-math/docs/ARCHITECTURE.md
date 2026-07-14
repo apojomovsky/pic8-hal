@@ -18,12 +18,12 @@ material and the full implementation plan.
 
 | Layer | Source | Built by | Notes |
 |---|---|---|---|
-| Leaf primitives (mul/div/addsub/bcd) — **host** | `src/host/` | CMake | Portable C; the Tier-1 oracle |
-| Leaf primitives — **PIC16** | `src/pic16/` | XC8 Makefile | shift-add (no HW multiply) |
-| Leaf primitives — **PIC18** | `src/pic18/` | XC8 Makefile | hardware `MULWF`, `addwfc`/`subfwb` |
-| Derived routines (sqrt/numeric/rand) — **all** | `src/common/` | both | One portable-C body, no asm |
+| Leaf primitives (mul/div/addsub/bcd), **host** | `src/host/` | CMake | Portable C; the Tier-1 oracle |
+| Leaf primitives, **PIC16** | `src/pic16/` | XC8 Makefile | shift-add (no HW multiply) |
+| Leaf primitives, **PIC18** | `src/pic18/` | XC8 Makefile | hardware `MULWF`, `addwfc`/`subfwb` |
+| Derived routines (sqrt/numeric/rand), **all** | `src/common/` | both | One portable-C body, no asm |
 
-The build selects the backend by source-list, never `#ifdef` — the same
+The build selects the backend by source-list, never `#ifdef`, the same
 pattern the HALs use for their host/target split.
 
 ## Why the host build links no HAL
@@ -37,11 +37,11 @@ lives entirely in the XC8 Makefile targets under `mcu/`. This is the
 plan-consistent reading of Tier 1 ("build `src/host/` + `src/common/` as a
 host static lib and test it directly").
 
-## Inline-asm binding — the XC8 round-trip probe
+## Inline-asm binding, the XC8 round-trip probe
 
 The plan required establishing, before any arithmetic bodies were written,
 exactly how a C parameter reaches a register and a computed result comes
-back out through XC8's `asm()` — and said to stop and pick the
+back out through XC8's `asm()`, and said to stop and pick the
 plan-consistent option if the assumed binding did not work. This section
 is the result of that empirical probe (XC8 v3.10, both families, `-O0`
 and `-O2`, inspecting the generated `.s`).
@@ -70,7 +70,7 @@ uint8_t add_static(uint8_t a, uint8_t b) {
 So **function parameters, autos, and even function-local `static`s are not
 addressable from inline asm.** Only **file-scope** variables are.
 
-### What does work — the established convention
+### What does work, the established convention
 
 Each leaf primitive is a C wrapper that takes its operands **by value**
 (the public, reentrant-from-the-caller's-view API), copies them into
@@ -129,7 +129,7 @@ The load-bearing details:
   `PIC_REG_WREG`/`PIC_REG_PRODL`/`PIC_REG_PRODH` there; the probe showed
   the asm uses the `xc.h` SFR symbols directly and the C code never touches
   `PROD`, so the HAL's SFR header is left untouched. `pic8-math` stays
-  self-contained — it adds no symbols to any other module.
+  self-contained, it adds no symbols to any other module.
 
 ### Per-family scratch layout (banking)
 
@@ -151,11 +151,11 @@ The file-scratch convention has one per-family wrinkle the probe surfaced:
   `btfsc/btfss STATUS,0` + `incf` carry idiom, `rlf`/`rrf`, `goto`).
 
 - **PIC16** (mid-range, no `ADDWFC`/`SUBWFB`, no hardware multiply): carry
-  propagation uses AN526's own idiom — `btfsc STATUS,0` + `incf` — which
+  propagation uses AN526's own idiom, `btfsc STATUS,0` + `incf`, which
   ports to PIC16F87XA unchanged (mid-range is a superset of the baseline
   core AN526 targeted, for arithmetic). Multiply is shift-and-add.
 - **PIC18** (has `MULWF`, `addwfc`, `subfwb`): use the single-instruction
-  carry-add/subtract directly — do **not** carry AN526/AN544's
+  carry-add/subtract directly, do **not** carry AN526/AN544's
   skip-and-increment idiom onto PIC18 where one instruction does it.
 
 ### Where hand-asm actually adds value
@@ -164,8 +164,8 @@ The probe confirmed XC8's optimizer already emits `mulwf` for idiomatic
 `return (uint16_t)a * (uint16_t)b` with `uint8_t` operands on PIC18. So
 for `pic_math_mul_u8` the hand-asm and the plain-C paths produce
 equivalent `mulwf` code. The hand-written asm genuinely earns its keep on
-the **structured** routines — the 16×16 multiply built from three partial
-products, the restoring shift-subtract divide loop, the BCD digit-adjust —
+the **structured** routines, the 16×16 multiply built from three partial
+products, the restoring shift-subtract divide loop, the BCD digit-adjust.
 where the compiler does not auto-structure the optimal sequence. That
 matches the plan's "minimal asm surface" priority: asm on the leaves where
 it matters, portable C on everything derived.
@@ -179,13 +179,13 @@ primitives keep **per-function** file-scope scratch. This is deliberately
 narrower than the app notes' hazard, and the testability concern is fully
 eliminated:
 
-- **Per-function, name-prefixed scratch** — `pic_math_mul_u8`'s scratch
+- **Per-function, name-prefixed scratch**, `pic_math_mul_u8`'s scratch
   is distinct from `pic_math_divmod_u16`'s, so two call sites of *different*
   routines can never collide (AN526's cross-routine `ACCa` collision is
   impossible; callers never see or name the scratch).
-- **Written before read, every call** — no stale-state bug; the wrapper
+- **Written before read, every call**, no stale-state bug; the wrapper
   initializes the scratch from the value parameters on entry.
-- **The public API is still by-value** — callers pass values/pointers, as
+- **The public API is still by-value**, callers pass values/pointers, as
   the plan requires; the scratch is a hidden implementation detail.
 
 The one residual hazard is **interrupt re-entrancy of the same leaf
@@ -200,7 +200,7 @@ add that bracket inside the wrappers if a caller needs it as a default.
 
 ## Testing tiers
 
-- **Tier 1 — host unit tests** (automated, every `ctest` run, the bulk of
+- **Tier 1, host unit tests** (automated, every `ctest` run, the bulk of
   coverage): build `src/host/` + `src/common/` as a host static lib and test
   it directly under `tests/`. `test_mul` is exhaustive over all 256x256 u8
   pairs; `test_sqrt` is exhaustive over 0..65535; `test_bcd` is exhaustive
@@ -209,13 +209,13 @@ add that bracket inside the wrappers if a caller needs it as a default.
   -1`, BCD invalid nibbles). A C reference of the restoring-division algorithm
   is machine-verified against native `/`,`%` so the asm hand-traces map to a
   tested algorithm. 8/8 tests pass.
-- **Tier 2 — asm regression** (optional, best-effort): `tools/gpsim_selftest.sh`
+- **Tier 2, asm regression** (optional, best-effort): `tools/gpsim_selftest.sh`
   feature-detects `gpsim` and, if present, replays `golden_vectors.h` against
   the PIC16 inline asm. It is skipped cleanly if `gpsim` is absent (it is, in
   this environment -- no passwordless sudo to install it). No PIC18
   equivalent FOSS instruction-level simulator is available; PIC18 asm
   correctness relies on Tier 3 + the hand-traces.
-- **Tier 3 — on-target validation** (manual/deferred): `tests/target_selftest.c`
+- **Tier 3, on-target validation** (manual/deferred): `tests/target_selftest.c`
   replays `golden_vectors.h` through the per-family inline-asm routines on
   real silicon and streams `PASS=`/`FAIL=` over `HAL_USART_*`. It is the
   acceptance step before any firmware ships depending on this library.
