@@ -15,8 +15,10 @@ build*/
 *.swo
 .DS_Store
 
-# CMake
+# CMake (generated only — build*/ above already covers the generated
+# top-level Makefile CMake emits in a build dir; a bare "Makefile" rule here
+# would also match hand-written source Makefiles like mcu/*/Makefile, which
+# are real, tracked files, not build output)
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
