@@ -226,16 +226,24 @@ struct cdc_notification_header {
 struct cdc_serial_state_notification {
 	struct cdc_notification_header header;
 	union {
+		/* Deviation from upstream (pic8-usb, not sent upstream): upstream
+		 * bit-fields are typed uint16_t. XC8 v3.10's Clang-based frontend
+		 * rejects sized stdint types as a bit-field base type ("bit-field
+		 * ... has bad bitfield type 'uint16_t'") -- only plain int/unsigned
+		 * int is accepted, which matches strict ISO C's bit-field base type
+		 * rule anyway. unsigned int is 16 bits on PIC18/XC8, so the 16
+		 * declared bits below still total 16 and match the union's flat
+		 * uint16_t sibling member. See pic8-usb/docs/pic8-usb-plan.md. */
 		struct {
-			uint16_t bRxCarrier : 1; /**< Indicates DCD */
-			uint16_t bTxCarrier : 1; /**< Indicates DSR */
-			uint16_t bBreak : 1;
-			uint16_t bRingSignal : 1;
-			uint16_t bFraming : 1;
-			uint16_t bParity : 1;
-			uint16_t bOverrun : 1;
-			uint16_t : 1;
-			uint16_t : 8; /* XC8 can't handle a 9-bit bitfield */
+			unsigned int bRxCarrier : 1; /**< Indicates DCD */
+			unsigned int bTxCarrier : 1; /**< Indicates DSR */
+			unsigned int bBreak : 1;
+			unsigned int bRingSignal : 1;
+			unsigned int bFraming : 1;
+			unsigned int bParity : 1;
+			unsigned int bOverrun : 1;
+			unsigned int : 1;
+			unsigned int : 8; /* XC8 can't handle a 9-bit bitfield */
 		} bits;
 		uint16_t serial_state;
 	} data;

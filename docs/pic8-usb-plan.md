@@ -264,14 +264,19 @@ peripheral; there is nothing to cross-compile-check there.
 
 ## Milestones
 
-- **Phase 1 — vendor M-Stack, confirm its actual API surface.** Clone into
-  `third_party/m-stack/`, read the CDC class driver and the
+- **Phase 1 — vendor M-Stack, confirm its actual API surface. DONE.** Clone
+  into `third_party/m-stack/`, read the CDC class driver and the
   2455/2550/4455/4550 chip profile, note any place this plan's assumed API
   shape (above) needs correcting against what M-Stack really exposes.
-- **Phase 2 — wrapper + host-stub + unit tests.** `pic8_usb.h`/`.c`, the
-  host-stub backend, `tests/test_pic8_usb.c`. This is the only
-  correctness-bearing phase that host tests can actually cover, per the
-  boundary above.
+- **Phase 2 — wrapper + host-stub + unit tests. DONE**, with a bonus:
+  since this environment happens to have MPLAB XC8 v3.10 actually
+  installed (`/opt/microchip/xc8/v3.10/bin/xc8-cc`), the real-target build
+  was not just written but **actually compiled and linked** against real
+  PIC18F4550 device headers, producing a genuine `.hex` — stronger
+  validation than this phase's original scope asked for. See "Phase 2
+  findings" below for what that turned up. `pic8_usb.h`/`.c`, the
+  host-stub backend, `tests/test_pic8_usb.c` (25 checks, all passing via
+  `ctest`), `examples/example_usb_echo.c`.
 - **Phase 3 — real-silicon bring-up.** `mcu/pic18fxx5x-usb-mplabx/Makefile`,
   descriptor set (VID/PID placeholder from M-Stack's examples, manufacturer/
   product strings), `example_usb_echo.c`. Flash a real PIC18F4550 board,
@@ -283,13 +288,82 @@ peripheral; there is nothing to cross-compile-check there.
   `docs/API.md`, `pic8-usb/README.md`, a root `README.md` component-table
   row.
 
+## Phase 2 findings
+
+**The `usb_hal.h` port (Phase 1's central hypothesis) compiled and linked
+clean on the first real attempt.** The one-line `BD_ADDR` widening
+predicted from the datasheet cross-reference was correct as-is — no
+further chip-specific fix was needed beyond it.
+
+**Three genuine M-Stack-vs-XC8-v3.10 compatibility bugs turned up while
+getting `usb.c`/`usb_cdc.c` to actually compile — all pre-existing in
+upstream, all affecting every PIC18 target (the already-"supported" J50
+included, not just this port), none specific to the 4550.** Fixed in the
+vendored copy with inline comments explaining each (not sent upstream —
+this is a vendored copy, not a maintained fork):
+
+1. `BD_ATTR_TAG`/`XC8_BUFFER_ADDR_TAG` used `@##BD_ADDR` — the legacy
+   PIC18 pic-cc placement syntax, token-pasted. XC8 v3.10's Clang-based
+   PIC18 frontend rejects `##` forming `@0x400` as an invalid
+   preprocessing token, **and** rejects the unpasted `@ 0x400` syntax
+   outright (confirmed with a minimal repro, independent of M-Stack).
+   Fixed to `__at(BD_ADDR)` — confirmed as this compiler's actual syntax
+   by grepping its own headers (e.g. `proc/pic16f59.h`'s
+   `... __at(0x000);`) and a standalone repro that compiled clean.
+2. `usb_cdc.c` called a lowercase `min()` at four call sites
+   (`CDC_GET_ENCAPSULATED_RESPONSE_CALLBACK` and three
+   `SET_LINE_CODING`/`GET_LINE_CODING`-adjacent spots) despite defining an
+   uppercase `MIN()` macro right above them and never defining or including
+   a lowercase `min`. Old lenient compilers apparently let an implicit
+   `int min()` declaration through silently; XC8 v3.10 (strict C99/Clang)
+   correctly rejects it as an undeclared-function error. Fixed: `min(` →
+   `MIN(` at all four sites — a one-word typo fix, not a redesign.
+3. `struct cdc_serial_state_notification`'s bitfields (`bRxCarrier`,
+   `bTxCarrier`, ...) were typed `uint16_t : 1`. XC8 v3.10 rejects sized
+   stdint types as a bit-field base type outright ("bad bitfield type") —
+   only `int`/`unsigned int` is accepted, which is what strict ISO C
+   actually guarantees as a bit-field base type anyway (sized types being
+   usable is implementation-defined, and apparently unsupported here).
+   Fixed: `uint16_t` → `unsigned int` for each bit-field member; the union
+   still totals 16 bits against its `uint16_t serial_state` sibling since
+   `int` is 16 bits on PIC18/XC8.
+
+**Real memory footprint, PIC18F4550, this wrapper + M-Stack's core +
+CDC class driver + a trivial echo `main()`:** 8500 bytes flash (25.9% of
+32 KiB), 454 bytes RAM (22.2% of 2 KiB) — reported by `xc8-cc` itself, not
+estimated. Comfortable headroom against the RAM-budget risk flagged below;
+worth re-checking once real application logic is added on top, but the
+wrapper + stack overhead alone is not the tight part.
+
+**Design decisions made while implementing, deviating from this plan's
+earlier draft:**
+
+- `pic8_usb_init()` returns `void`, not `pic8_status_t` as first drafted.
+  `usb_init()` itself has no failure path to report, so a status return
+  would have been fabricated always-success boilerplate — matches
+  `pic8_fsm_init()`'s precedent of not reaching for `pic8-common`'s status
+  enum when nothing can actually fail.
+- M-Stack's required `app_*`-named callbacks are implemented as
+  `pic8_usb_*_cb` in `pic8_usb.c` (mapped via macros in this module's own
+  `src/usb_config.h`), not literally named `app_*` as M-Stack's own demo
+  does — avoids colliding with a firmware's own `app_*` callbacks if
+  something else in the same build also happens to use M-Stack's naming
+  convention directly.
+- The host-stub test double (`pic8_usb_host_stub.c`) is a genuinely
+  separate implementation from `pic8_usb.c`, as this plan's "Host build
+  story" already called for — not a shortcut discovered during
+  implementation, confirmed as the right call once `pic8_usb.c` turned out
+  to depend on M-Stack's raw endpoint API in ways with no reasonable host
+  fake (see that section).
+
 ## Open risks to resolve during implementation, not now
 
 - **RAM budget.** The PIC18F4550 has 2 KB total RAM; M-Stack's BDT plus
   endpoint buffers plus this module's ring buffers all compete for it.
-  Size the ring buffers small (mirror whatever `pic8-serial` defaults to,
-  don't over-allocate) and confirm actual footprint in Phase 3, on real
-  hardware, not by estimation.
+  Phase 2's real `xc8-cc` build (wrapper + M-Stack core/CDC + a trivial
+  `main()`) measured 454 bytes (22.2%) — comfortable, but re-check once
+  real application logic sits on top in Phase 3, on real hardware, not by
+  estimation.
 - **Clock configuration.** The SIE needs a 48 MHz USB clock via the PLL,
   which constrains which `CONFIG` fuse settings and crystal are usable —
   cross-check against whatever crystal the target board actually has
