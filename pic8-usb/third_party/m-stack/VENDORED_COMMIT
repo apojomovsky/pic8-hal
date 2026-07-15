@@ -1,0 +1,11 @@
+Vendored from: https://github.com/signal11/m-stack.git
+Upstream commit: 979665546f3f39fb4b28a4acedfb1f9a5c55782e
+Upstream commit date: 2017-09-28 16:47:19 -0400
+Vendored on: 2026-07-15
+License used: Apache License 2.0 (the Apache-2.0 arm of M-Stack's
+LGPLv3/Apache-2.0 dual license -- see LICENSE-Apache2.txt in this
+directory). Not relicensed; files are unmodified from upstream except
+where noted in pic8-usb/docs/ARCHITECTURE.md.
+
+To check for upstream updates: git clone the URL above and diff against
+this commit.
