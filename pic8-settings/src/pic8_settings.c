@@ -1,0 +1,135 @@
+/**
+ * @file    pic8_settings.c
+ * @brief   EEPROM-backed settings blobs with CRC-16 validation.
+ *
+ * @details
+ *   The family HAL already exposes `HAL_EEPROM_WriteBuffer`, but that helper
+ *   is unsafe for multi-byte writes today: `HAL_EEPROM_WriteByte` starts a
+ *   write cycle and returns immediately, while `HAL_EEPROM_WriteBuffer`
+ *   simply loops to the next byte without waiting for EEIF / completion.
+ *   This module therefore performs its own byte-at-a-time write sequencing:
+ *   start one byte, wait for completion, clear the completion flag, then
+ *   start the next byte.
+ *
+ *   On real silicon the EEPROM write cycle completes asynchronously in
+ *   hardware. On the host simulator there is no timed EEPROM model, so after
+ *   starting each byte this module drives the simulated write to completion
+ *   immediately, then follows the same poll/clear contract as target code.
+ */
+
+#include "pic8_settings.h"
+
+#include "pic8_hal.h"
+#include "core/pic8_harness.h"
+
+#include <string.h>
+
+#if !defined(__XC8)
+  #if defined(PIC18F2455) || defined(PIC18F2550) || defined(PIC18F4455) || defined(PIC18F4550)
+    #include "pic18fxx5x_sim.h"
+    static void settings_sim_complete(uint8_t addr, uint8_t data)
+    {
+        pic18_sim_drive_eeprom_byte(addr, data);
+        pic8_sfr_write8(PIC_REG_PIR2, (uint8_t)(pic8_sfr_read8(PIC_REG_PIR2) | PIC_PIR2_EEIF));
+    }
+  #else
+    #include "pic16f87xa_sim.h"
+    static void settings_sim_complete(uint8_t addr, uint8_t data)
+    {
+        pic16f87xa_sim_drive_eeprom_byte(addr, data);
+        PIC8_REG8(PIC_REG_PIR2) |= PIC_PIR2_EEIF;
+    }
+  #endif
+#endif
+
+static uint16_t settings_crc16_update(uint16_t crc, uint8_t byte)
+{
+    crc ^= (uint16_t)((uint16_t)byte << 8);
+    for (uint8_t bit = 0; bit < 8u; bit++) {
+        if ((crc & 0x8000u) != 0u) {
+            crc = (uint16_t)((crc << 1) ^ 0x1021u);
+        } else {
+            crc <<= 1;
+        }
+    }
+    return crc;
+}
+
+static uint16_t settings_crc16(const uint8_t *data, uint8_t size)
+{
+    uint16_t crc = 0xFFFFu;
+    for (uint8_t i = 0; i < size; i++) {
+        crc = settings_crc16_update(crc, data[i]);
+    }
+    return crc;
+}
+
+static bool settings_write_bytes(uint8_t start, const uint8_t *buf, uint8_t len)
+{
+    for (uint8_t i = 0; i < len; i++) {
+        uint8_t addr = (uint8_t)(start + i);
+        uint8_t data = buf[i];
+
+        if (HAL_EEPROM_WriteByte(addr, data) != HAL_OK) {
+            return false;
+        }
+
+#if !defined(__XC8)
+        settings_sim_complete(addr, data);
+#endif
+
+        while (HAL_EEPROM_IsWriteComplete() == 0u) {
+            pic8_harness_tick();
+        }
+        HAL_EEPROM_ClearITFlag();
+    }
+    return true;
+}
+
+bool pic8_settings_save(uint8_t eeprom_addr, const void *data, uint8_t size)
+{
+    const uint8_t *bytes = (const uint8_t *)data;
+    uint16_t crc = settings_crc16(bytes, size);
+    uint8_t trailer[2];
+
+    if (!settings_write_bytes(eeprom_addr, bytes, size)) {
+        return false;
+    }
+
+    trailer[0] = (uint8_t)(crc >> 8);
+    trailer[1] = (uint8_t)(crc & 0xFFu);
+    return settings_write_bytes((uint8_t)(eeprom_addr + size), trailer, 2u);
+}
+
+bool pic8_settings_load(uint8_t eeprom_addr, void *data, uint8_t size)
+{
+    uint8_t *out = (uint8_t *)data;
+    uint16_t crc = 0xFFFFu;
+
+    for (uint8_t i = 0; i < size; i++) {
+        crc = settings_crc16_update(crc, HAL_EEPROM_ReadByte((uint8_t)(eeprom_addr + i)));
+    }
+
+    uint16_t stored_crc = (uint16_t)((uint16_t)HAL_EEPROM_ReadByte((uint8_t)(eeprom_addr + size)) << 8);
+    stored_crc |= HAL_EEPROM_ReadByte((uint8_t)(eeprom_addr + size + 1u));
+    if (stored_crc != crc) {
+        return false;
+    }
+
+    for (uint8_t i = 0; i < size; i++) {
+        out[i] = HAL_EEPROM_ReadByte((uint8_t)(eeprom_addr + i));
+    }
+    return true;
+}
+
+bool pic8_settings_load_or_default(uint8_t eeprom_addr, void *data, uint8_t size,
+                                   const void *default_data)
+{
+    if (pic8_settings_load(eeprom_addr, data, size)) {
+        return true;
+    }
+
+    memcpy(data, default_data, size);
+    (void)pic8_settings_save(eeprom_addr, default_data, size);
+    return false;
+}
