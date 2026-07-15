@@ -1,0 +1,257 @@
+# `pic8-sdcard`: SD/MMC-over-SPI block storage for PIC18F2455/2550/4455/4550 — implementation plan
+
+Status: **proposed, not started**. Written for a fresh implementing agent
+with no other context on this conversation — read this top to bottom
+before writing code. Follows the same vendor-a-third-party-stack shape as
+`pic8-usb` (`docs/pic8-usb-plan.md`) — read that plan first if unfamiliar
+with this repo's M-Stack vendoring conventions; this plan assumes it.
+
+## What this is
+
+A block-storage driver for SD/MMC cards over SPI, wrapping M-Stack's
+`storage/mmc.c` (SD/MMC-over-SPI, 512-byte block read/write,
+SDSC/SDHC/SDXC detection, multi-block writes) and `storage/crc.c` (the
+CRC7/CRC16 checksums the SD SPI protocol requires), the same vendored
+upstream this repo already pulled in for `pic8-usb`
+(`github.com/signal11/m-stack`, commit
+`979665546f3f39fb4b28a4acedfb1f9a5c55782e`). Unlike the USB stack, this
+half of M-Stack has **no chip-specific code at all** — it talks to the SD
+card entirely through a small set of caller-supplied SPI/CS/timer
+callbacks, so there is no `usb_hal.h`-style peripheral port to write.
+
+## Chip scope: PIC18F2455/2550/4455/4550 only — but for a different reason than pic8-usb
+
+Read this before assuming the SPI (SSP) HAL driver being genuinely
+portable means the module is too.
+
+`pic18fxx5x-hal` and `pic16f87xa-hal` **both** have a working SSP driver
+with the same neutral API (`HAL_SSP_Init`, `HAL_SSP_WriteByte`,
+`HAL_SSP_ReadByte`, ...) — confirmed by reading both headers;
+`pic18fxx5x_ssp.h`'s own doc comment says it "mirrors pic16f87xa_ssp.h ...
+so consumer code is portable." Unlike `pic8-usb`, there is no hardware
+reason this module couldn't link against either family.
+
+**The real blocker is RAM, not the peripheral.** `mmc.h` fixes
+`MMC_BLOCK_SIZE` at 512 bytes — a hard constant, "the only size supported
+by this implementation," not a tunable knob, because that's what the SD
+protocol's block size is. Every `pic16f87xa-hal` family member's *total*
+RAM is smaller than one block: `PIC16F87XA_FAMILY_RAM_BYTES` is 192 for
+PIC16F873A/874A and 368 for PIC16F876A/877A (confirmed in
+`pic16f87xa-hal/include/pic16f87xa.h`) — even the family's largest part
+falls 144 bytes short of holding a single SD block buffer, before
+accounting for the `mmc_card` struct, CRC state, the call stack, or
+anything the caller's own firmware needs. PIC18F4550 has 2048 bytes and
+comfortably clears it (confirmed for real: `pic8-usb`'s wrapper alone used
+454 bytes per the actual `xc8-cc` build in that plan's Phase 2 findings,
+leaving room for a 512-byte buffer alongside it, though combining both in
+one firmware image is worth re-checking for real once it's built rather
+than assumed — see "Open risks" below).
+
+So: build the SPI/GPIO/timer binding layer in a way that's honestly
+portable C (no reason to hand-tie it to PIC18 SFRs directly, when the HAL
+already isn't family-specific here) — but scope the module's *target* list
+to PIC18F2455/2550/4455/4550, same as `pic8-usb`, because that's the only
+family where the fixed 512-byte block size actually fits. If this repo
+ever gains a PIC18 or PIC16 family member with less RAM, or M-Stack's
+block size assumption changes upstream, revisit; not true today.
+
+## Third-party dependency: same M-Stack commit, a separate small vendored copy
+
+Extract just `storage/include/{crc.h,mmc.h}` and `storage/src/{crc.c,mmc.c}`
+(roughly 1,200 lines total, vs. the full USB stack) from the same pinned
+upstream commit already vendored for `pic8-usb`
+(`979665546f3f39fb4b28a4acedfb1f9a5c55782e`) into
+`pic8-sdcard/third_party/m-stack-storage/`. **Do not** make `pic8-sdcard`
+depend on `pic8-usb/third_party/m-stack/` directly — this module has zero
+USB dependency, and reaching into a sibling module's `third_party/` would
+be a real coupling for no reason; a second small vendored copy, pinned the
+same way, is the right amount of duplication (mirrors why `pic8-common` is
+the shared-code answer for *this repo's own* code, not for third-party
+vendoring). Same Apache-2.0 arm of the LGPLv3/Apache-2.0 dual license, same
+`VENDORED_COMMIT`-file convention as `pic8-usb/third_party/m-stack/`.
+
+Confirm both files still compile standalone (no `usb.h`/`usb_config.h`
+dependency leaked in from being physically colocated with the USB stack
+upstream) as the first implementation step — they read as self-contained
+from `mmc.h`'s own doc comment ("A driver for the SPI hardware itself is
+not provided here... client software... provide[s]... `mmc_config.h`"),
+but confirm before building on top.
+
+## Confirmed API surface (read directly from the vendored headers)
+
+- `crc.h`: `add_crc7(csum, input)`, `add_crc16(csum, input)`,
+  `add_crc16_array(csum, data, len)` — pure math, no callbacks, no state
+  beyond the running checksum the caller threads through.
+- `mmc.h`: `mmc_init(card_array, count)`, `mmc_init_card(card)`,
+  `mmc_get_num_blocks(card)`, `mmc_ready(card)`, `mmc_is_initialized(card)`,
+  `mmc_set_uninitialized(card)`, `mmc_read_block(card, block_addr, data)`,
+  `mmc_write_block(card, block_addr, data)`, and a multi-block write
+  triplet (`mmc_multiblock_write_start/data/end`, plus `_cancel`). `data`
+  buffers are always exactly `MMC_BLOCK_SIZE` (512) bytes.
+- Required callback macros, bound in a caller-supplied `mmc_config.h`
+  (M-Stack's compile-time binding convention, same as `usb_config.h` for
+  the USB stack): `MMC_SPI_TRANSFER(instance, out_buf, in_buf, len)`
+  (blocking full-duplex SPI transfer), `MMC_SPI_SET_CS(instance, value)`
+  (0=asserted), `MMC_SPI_SET_SPEED(instance, speed_hz)` (set SPI clock
+  ≤ the requested rate). `mmc.c` calls `MMC_SPI_SET_SPEED` with a slow rate
+  during card bring-up (SD spec requires ≤ 400 kHz until the card leaves
+  idle state) and with `max_speed_hz` afterward — this module's binding
+  needs to actually change the SSP clock divisor at runtime, not just
+  accept and ignore the call.
+- Optional `MMC_USE_TIMER` + `MMC_TIMER_START/EXPIRED/STOP(instance, ...)`:
+  if undefined, `MMC_TIMER_EXPIRED` becomes a hardcoded `false` and
+  `mmc.c` falls back to bounded retry counts (e.g.
+  `NUM_ACMD41_RETRIES 32768`) with no real wall-clock timeout. **This
+  module should define `MMC_USE_TIMER`** and bind the three macros to
+  `pic8-tick` (same dependency `pic8-debounce` already takes for real
+  timeout semantics, not a synthetic one) — `mmc.c` already has real
+  spec-derived timeout constants sitting unused otherwise
+  (`MMC_READ_TIMEOUT 150` /* ms, SD spec 4.6.2.1 */,
+  `MMC_WRITE_TIMEOUT 500` /* ms, SD spec 4.6.2.2 */); binding them for real
+  is strictly better than the retry-count fallback and costs nothing extra
+  given `pic8-tick` is already proven family-agnostic.
+
+## Public API design
+
+```c
+/* pic8-sdcard/include/pic8_sdcard.h */
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef struct {
+    GPIO_TypeDef  cs_port;   /* board-specific: which pin the card's CS is wired to */
+    uint16_t      cs_pin;
+} pic8_sdcard_pins_t;
+
+/* Owns one mmc_card instance internally; only one card is in scope for
+ * this plan (mmc.h's array-of-cards shape stays available to a future
+ * caller who wants more, this module just doesn't multiplex it yet --
+ * don't build multi-card support speculatively). */
+bool     pic8_sdcard_init(const pic8_sdcard_pins_t *pins, uint32_t fosc_hz);
+bool     pic8_sdcard_ready(void);
+uint32_t pic8_sdcard_num_blocks(void);
+bool     pic8_sdcard_read_block(uint32_t block_addr, uint8_t *data /* 512 B */);
+bool     pic8_sdcard_write_block(uint32_t block_addr, const uint8_t *data /* 512 B */);
+```
+
+Thin on purpose: `mmc.h`'s functions are already the right shape (unlike
+M-Stack's raw USB endpoint API, which genuinely needed `pic8-usb.c` to
+invent ring buffering on top). This module's real work is the *binding*
+layer — `mmc_config.h` pointing `MMC_SPI_TRANSFER`/`MMC_SPI_SET_CS` at
+`HAL_SSP_WriteByte`/`HAL_GPIO_WritePin`, `MMC_SPI_SET_SPEED` at a small
+Hz-to-`SSP_ModeTypeDef` divisor-picking helper (nearest-not-exceeding
+among Fosc/4, /16, /64), and the timer macros at `pic8-tick` — plus
+`pic8_sdcard_init/ready/num_blocks/read_block/write_block` as thin
+call-throughs to `mmc_init`/`mmc_ready`/`mmc_get_num_blocks`/
+`mmc_read_block`/`mmc_write_block` against the one owned `mmc_card`.
+Multi-block write is real, spec-legitimate functionality but adds a
+three-call state machine to the public API for a use case (streaming
+writes across many blocks) this plan doesn't have a concrete caller for
+yet — leave it reachable through the vendored `mmc.h` directly for now,
+don't wrap it until something needs it.
+
+**CS pin is caller-supplied, not assumed.** SCK/SDI/SDO are fixed to the
+SSP peripheral's pins (RC3/RC4/RC5 per `pic18fxx5x_ssp.h`), but CS is
+ordinary GPIO and different boards wire it to different pins — same
+"don't assume the caller's hardware" reasoning `pic8-debounce`'s read
+callback and `pic8-adcfilter`'s read callback already establish for this
+repo, just via a GPIO pin pair instead of a function pointer since GPIO
+control is already HAL-neutral.
+
+## Host build story — genuinely stronger than pic8-usb's
+
+`pic8-usb`'s host build could only test the ring-buffer logic this repo's
+own code owns, because there is no faithful simulation of a real USB SIE
+enumerating against a real host driver stack. **SD-over-SPI does not have
+that problem** — it's a well-documented, deterministic byte-level
+command/response protocol (send a command byte sequence, read a response
+token, optionally clock out/in a data block + CRC16). A host build can
+implement a **mock SPI slave** that plays the SD card's side of that
+protocol (respond to `CMD0`/`CMD8`/`ACMD41`/`CMD17`/`CMD24` etc. the way a
+real card would) and bind `MMC_SPI_TRANSFER` to it instead of real
+hardware. That means `mmc_init_card`/`mmc_read_block`/`mmc_write_block`'s
+actual logic — not just a hand-written stand-in for it, unlike
+`pic8_usb_host_stub.c` — can be host-tested directly, the same
+"host tests prove the shipped code" story `pic8-fsm`/`pic8-debounce`
+already have. `crc.c`'s CRC7/CRC16 are pure math and trivially host-tested
+against known SD CRC test vectors with zero mocking at all.
+
+This is real design/implementation work (the mock SPI slave needs to
+actually implement enough of the SD SPI command set to be worth trusting),
+budget real time for it in Phase 2 — but it is a strictly better
+validation story than what was available for the USB module, worth calling
+out so the difference isn't missed.
+
+## Repo layout
+
+```
+pic8-sdcard/
+  CMakeLists.txt                      # host static lib (against the mock SPI slave) + unit tests
+  include/
+    pic8_sdcard.h
+  src/
+    pic8_sdcard.c                     # HAL/tick binding + mmc_config.h, real target
+    pic8_sdcard_mock_spi.c            # host build: mock SD-over-SPI slave (test-only, not shipped)
+  third_party/
+    m-stack-storage/                  # vendored crc.{c,h}, mmc.{c,h}, own VENDORED_COMMIT
+  examples/
+    example_sdcard_dump.c             # read block 0, print first N bytes -- the smoke test
+  tests/
+    test_pic8_sdcard.c                # init sequence, read/write round-trip, CRC vectors, timeout path
+  mcu/
+    pic18fxx5x-sdcard-mplabx/Makefile # XC8 Makefile, real silicon only (see chip-scope reasoning above)
+  docs/
+    ARCHITECTURE.md
+    API.md
+  README.md
+```
+
+## Milestones
+
+- **Phase 1 — vendor `storage/`, confirm it's genuinely self-contained.**
+  Extract into `third_party/m-stack-storage/`, confirm no leaked USB
+  dependency, re-read `mmc.c`'s actual retry/timeout constants and
+  multi-block state machine closely enough to be sure this plan's API
+  sketch is accurate (same "confirm before coding" discipline
+  `pic8-usb-plan.md` used).
+- **Phase 2 — binding layer + mock-SPI host tests.** `pic8_sdcard.h/.c`,
+  the `HAL_SSP`/`HAL_GPIO`/`pic8-tick` bindings, the clock-divisor helper,
+  the mock SPI slave, `tests/test_pic8_sdcard.c`. Given this environment
+  has XC8 actually installed (per `pic8-usb`'s Phase 2), also attempt a
+  real `xc8-cc` compile+link against PIC18F4550 the same way, including
+  checking real RAM footprint against the "Open risks" concern below —
+  don't just estimate it.
+- **Phase 3 — real hardware.** `mcu/pic18fxx5x-sdcard-mplabx/Makefile`,
+  wire an actual SD card breakout to a real board's SPI pins + a chosen CS
+  pin, confirm `mmc_init_card` actually succeeds against a real card and a
+  read/write/read round-trip matches. Real-card-only; no amount of host
+  mocking substitutes for this, same caveat `pic8-usb-plan.md` has for USB
+  enumeration.
+- **Phase 4 — docs.** `docs/ARCHITECTURE.md`, `docs/API.md`,
+  `pic8-sdcard/README.md`, root `README.md` component-table row.
+
+## Open risks to resolve during implementation, not now
+
+- **RAM headroom if combined with `pic8-usb` in one firmware image.**
+  `pic8-usb`'s wrapper alone measured 454 bytes; a 512-byte block buffer
+  plus the `mmc_card` struct pushes a combined image well past 1000 bytes
+  of a 2048-byte budget before the caller's own application logic. Fine
+  standalone; worth a real combined-build check in Phase 2 if the two are
+  ever meant to ship together (e.g. a USB mass-storage device exposing the
+  SD card — `apps/msc_test/` in the vendored M-Stack tree is exactly that
+  combination, and a plausible future module, not in this plan's scope).
+- **SPI clock divisor granularity.** Fosc/4, /16, /64, and TMR2/2 are the
+  only options `SSP_ModeTypeDef` exposes; the nearest-not-exceeding helper
+  may land meaningfully under a card's actual max supported speed for some
+  `Fosc`/target-speed combinations. Not a correctness problem (SD cards
+  tolerate being clocked slower than their max), but worth noting in
+  `docs/API.md` so a caller chasing throughput knows to check the actual
+  achieved rate, not just the requested one.
+- **Multi-block write correctness is unverified** until Phase 3 — it's
+  real M-Stack code, not something being newly written, but nothing in
+  Phase 1/2 exercises it (this plan doesn't wrap it yet, see "Public API
+  design" above).
+
+Not committing any of this until the user reviews Phase 1's findings —
+implementation proceeds when they say go, git history stays theirs to
+curate.
