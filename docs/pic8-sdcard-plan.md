@@ -230,16 +230,102 @@ pic8-sdcard/
 - **Phase 4 — docs.** `docs/ARCHITECTURE.md`, `docs/API.md`,
   `pic8-sdcard/README.md`, root `README.md` component-table row.
 
+## Phase 1/2 findings
+
+**Vendoring (Phase 1): done, self-contained as expected.** Extracted into
+`pic8-sdcard/third_party/m-stack-storage/`, same pinned upstream commit as
+`pic8-usb`. Confirmed no leaked USB dependency (grepped for
+`usb.h`/`usb_config`/etc., none found). Two small, cosmetic host-build
+compatibility gaps turned up while actually compiling it (not functional
+bugs, just this vendored code never having been asked to build outside
+XC8/XC16/XC32 or with `<xc.h>` unavailable): `mmc.c`'s own compiler
+allowlist didn't include a host-build option, and `mmc.h` used `size_t`
+without including `<stddef.h>` (relying on `<xc.h>`, pulled in from
+`mmc.c` not this header, to provide it transitively -- which a host build
+skips entirely). Both fixed and extracted as
+`pic8-sdcard/third_party/patches/0001-host-build-compat.patch` (verified
+reapplicable the same way `pic8-usb`'s patch was: dry-run + real apply
+against a pristine copy, byte-identical result -- **note this one needs
+`-p0`, not `-p1`**, since its paths already include the `pic8-sdcard/`
+prefix). `crc.{c,h}` needed no changes at all.
+
+**Mock SPI slave (Phase 2): built, and it caught a real bug in itself
+worth recording.** Implements CMD0/8/55/41/58/9/16/17/24/13 against a
+small 4-block in-memory backing store (the card *reports* the planned
+1024-block/512 KiB size via a crafted CSD register, matching a real SDHC
+card's response shape, but only the first 4 blocks are actually backed --
+see the mock's own header comment). 27 host tests pass: init sequence,
+read of pre-seeded data, write-then-read round trip, two blocks staying
+independent, reads rejected past the reported size and before init, and
+CRC7/CRC16 self-consistency checks.
+
+Getting there required correcting a wrong assumption from this plan's
+first draft: **the CRC16 self-check `__read_data_block` relies on
+requires the trailing CRC bytes in MSB-first (`[high, low]`) order, not
+the LSB-first order `mmc_write_block` happens to send them in.** The first
+mock draft mirrored `mmc_write_block`'s send order, reasoning "the sender
+and the self-check must agree" -- which is wrong, because `mmc_write_block`'s
+own CRC is *never independently verified by anything in mmc.c* (writes are
+validated by the card's data-response token instead, not a self-check);
+its byte order is simply an unrelated, unverified convention. Verified
+which order actually self-checks to zero with a standalone probe against
+the real vendored `crc.c` before fixing it (not guessed) -- getting this
+wrong initially cascaded into 21 of 27 test failures, since `CMD9`
+(`SEND_CSD`, needed by every single `mmc_init_card()` call) uses the same
+data-block-reply path.
+
+**Real XC8 compile validation (Phase 2, going beyond this phase's
+original "host tests only" scope, same as `pic8-usb` did):**
+
+- `crc.c` + `mmc.c` alone (no HAL, stub SPI callbacks) compile *and link*
+  clean against real PIC18F4550 headers: **3924 bytes flash (12.0%), 919
+  bytes RAM (44.9% of 2048)** -- a real, measured number, substantially
+  higher than this plan's original "just the 512-byte block buffer"
+  framing assumed. The gap is `mmc.c`'s own internal call-graph-allocated
+  locals across its many static helper functions (`skip_bytes_timeout`,
+  `__read_data_block`, the `uint8_t buf[16]` in `mmc_init_card`, etc.) --
+  XC8's stack-less "auto" variable model means every function's locals
+  get real, permanent RAM allocation shaped by the call graph, not a
+  transient stack frame.
+- `pic8_sdcard.c` also compiles clean standalone (after fixing a
+  self-inflicted bug: a doc comment containing the literal text
+  `HAL_SSP_*/HAL_GPIO_WritePin` accidentally closed the block comment
+  early at the `*/` substring, corrupting everything parsed after it --
+  worth remembering as a gotcha for future doc comments in this repo).
+
+**Unresolved, real risk: the full integrated link did not complete.**
+`pic8_sdcard.c` + `mmc.c`/`crc.c` + the GPIO/SSP/Timer2/IRQ/WDT HAL +
+`pic8-tick` + a minimal `main()` was attempted three times (default
+optimization, then `-O0`, with a trimmed-to-only-what's-needed HAL source
+list) and none finished within several minutes each -- no memory-summary
+success, no clear "doesn't fit" failure either, just no completion. Given
+`crc.c`+`mmc.c` alone already consume 44.9% of RAM, the most plausible
+explanation is that adding `pic8_sdcard.c`'s own locals plus the HAL's
+pushes XC8's auto-variable bank-packing search into a genuinely slow
+regime under real memory pressure, rather than any code being wrong (every
+piece compiles clean individually). **This is a real, unresolved
+question, not glossed over: whether the full wrapper practically fits and
+links in reasonable time on a PIC18F4550 is unproven.** Worth
+investigating in Phase 3 with real MPLAB X tooling (which may report
+progress/diagnostics this command-line invocation didn't surface) --
+candidate mitigations if it's genuinely too tight: the linker's own
+"pointer ... may have no targets" advisories for `mmc_multiblock_write_start/
+data/end` suggest those functions (unused by `pic8_sdcard.h`'s wrapped
+API, see "Public API design" above) might be excludable from the link to
+shrink the call graph, or the caller's own firmware may simply need to be
+lean elsewhere on a 2 KB part.
+
 ## Open risks to resolve during implementation, not now
 
-- **RAM headroom if combined with `pic8-usb` in one firmware image.**
-  `pic8-usb`'s wrapper alone measured 454 bytes; a 512-byte block buffer
-  plus the `mmc_card` struct pushes a combined image well past 1000 bytes
-  of a 2048-byte budget before the caller's own application logic. Fine
-  standalone; worth a real combined-build check in Phase 2 if the two are
-  ever meant to ship together (e.g. a USB mass-storage device exposing the
-  SD card — `apps/msc_test/` in the vendored M-Stack tree is exactly that
-  combination, and a plausible future module, not in this plan's scope).
+- **RAM headroom is tighter than expected even standalone, per Phase 2's
+  real measurements** — see "Phase 1/2 findings" above: `crc.c`+`mmc.c`
+  alone already measured 919 bytes (44.9% of 2048) on real PIC18F4550
+  headers, and the full integrated link (adding `pic8_sdcard.c` + the
+  HAL) didn't complete in three real attempts. Combining with `pic8-usb`
+  (454 bytes alone) in one firmware image — e.g. a USB mass-storage
+  device exposing the SD card, `apps/msc_test/` in the vendored M-Stack
+  tree is exactly that combination — is likely tighter still and
+  unproven; not attempted in this plan.
 - **SPI clock divisor granularity.** Fosc/4, /16, /64, and TMR2/2 are the
   only options `SSP_ModeTypeDef` exposes; the nearest-not-exceeding helper
   may land meaningfully under a card's actual max supported speed for some
