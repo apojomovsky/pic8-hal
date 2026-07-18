@@ -33,7 +33,7 @@ for a host **simulator** and real **silicon**, with no `#ifdef` in the code.
 | | Component | What it is | Docs |
 |---|---|---|---|
 | 🧩 | **[pic16f87xa-hal](pic16f87xa-hal/)** | STM32Cube-style HAL for every peripheral on the part (GPIO, Timers, CCP, MSSP, ADC, Comparator, Vref, EEPROM, PSP, WDT), with a host simulation backend so firmware runs on a PC before it touches hardware. | [README](pic16f87xa-hal/README.md) · [MANUAL](pic16f87xa-hal/MANUAL.md) |
-| 🆕 | **[pic18fxx5x-hal](pic18fxx5x-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **Full peripheral coverage** (Phase 4 done): GPIO, Timer0-3, ECCP1/CCP2, MSSP, EUSART, Comparator, EEPROM, ADC, SPP, all register-level, cited to DS39632E, with a host sim backend. | [README](pic18fxx5x-hal/README.md) |
+| 🆕 | **[pic18fxx5x-hal](pic18fxx5x-hal/)** | Second family under the shared layer: PIC18F2455/2550/4455/4550. **Full peripheral coverage** (Phase 4 done): GPIO, Timer0-3, ECCP1/CCP2, MSSP, EUSART, Comparator, EEPROM, ADC, SPP, all register-level, cited to DS39632E, with a host sim backend. | [README](pic18fxx5x-hal/README.md) · [MANUAL](pic18fxx5x-hal/MANUAL.md) |
 | 🗓️ | **[pic8-taskmgr](pic8-taskmgr/)** | A cooperative scheduler built on the HAL: periodic and one-shot tasks, priority-ordered, race-free. **Family-agnostic**, same `task_manager.c`/`.h` builds against `pic16f87xa-hal` or `pic18fxx5x-hal` (`-DHAL_FAMILY=PIC18`). | [README](pic8-taskmgr/README.md) · [Architecture](pic8-taskmgr/docs/ARCHITECTURE.md) · [API](pic8-taskmgr/docs/API.md) |
 | 🚦 | **[pic8-fsm](pic8-fsm/)** | A vendor-agnostic, table-driven finite state machine engine: the whole machine is one `static const fsm_transition_t[]`, readable at a glance. **No HAL dependency, no per-family backend**, one `fsm.c` compiles unchanged for host, PIC16, and PIC18; composes with `pic8-taskmgr` by staying decoupled from it. | [README](pic8-fsm/README.md) · [Architecture](pic8-fsm/docs/ARCHITECTURE.md) · [API](pic8-fsm/docs/API.md) |
 | 🔢 | **[pic8-math](pic8-math/)** | Fixed-point math utility library ported from AN526/AN544: multiply, divide, add/sub, BCD, sqrt, numerical diff/integration, RNGs. One family-agnostic API, three backends (host reference, PIC16 shift-add inline asm, PIC18 hardware-`MULWF` inline asm); derived routines are one portable-C body. **Exhaustive host tests** + an on-target self-test. | [README](pic8-math/README.md) · [Architecture](pic8-math/docs/ARCHITECTURE.md) · [API](pic8-math/docs/API.md) |
@@ -47,7 +47,7 @@ for a host **simulator** and real **silicon**, with no `#ifdef` in the code.
 | 🔛 | **[pic8-usb](pic8-usb/)** | USB CDC-ACM (virtual serial port) for PIC18F2455/2550/4455/4550, wrapping the vendored M-Stack USB device stack. **PIC18Fxx5x-only** (PIC16F87XA has no USB peripheral); mirrors `pic8_serial_*`'s API shape; polling-based (`pic8_usb_service()`); host stub tests the ring-buffer + connection-state contract only. | [README](pic8-usb/README.md) · [Architecture](pic8-usb/docs/ARCHITECTURE.md) · [API](pic8-usb/docs/API.md) |
 | 💽 | **[pic8-sdcard](pic8-sdcard/)** | SD/MMC-over-SPI block storage for PIC18F2455/2550/4455/4550, wrapping the vendored M-Stack storage driver. **PIC18Fxx5x-only** (RAM constraint — PIC16F87XA parts can't hold a 512-byte block buffer); binds `mmc.c`/`crc.c` to the SSP/GPIO HAL and `pic8-tick`; host tests exercise the real vendored protocol logic against a mock SPI slave. | [README](pic8-sdcard/README.md) · [Architecture](pic8-sdcard/docs/ARCHITECTURE.md) · [API](pic8-sdcard/docs/API.md) |
 | 🖥️ | **[pic8-lcd](pic8-lcd/)** | HD44780-compatible character LCD driver (16x2, 20x4, etc.) with configurable transport: 4-bit GPIO, 8-bit GPIO, or SPI via 74HC595 shift register. **Family-agnostic** (transport-agnostic core with injectable ops); timed delays (no busy-flag polling); host tests verify command logic against the HD44780 spec via mock transport. | [README](pic8-lcd/README.md) · [Architecture](pic8-lcd/docs/ARCHITECTURE.md) · [API](pic8-lcd/docs/API.md) |
-| 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) |
+| 🧱 | **[pic8-common](pic8-common/)** | The shared layer every family reuses: status codes, the host/target harness contract, CMake/Make fragments. | [README](pic8-common/README.md) · [MANUAL](pic8-common/MANUAL.md) |
 | 📐 | **[docs/multi-family-plan](docs/multi-family-plan.md)** | The refactor plan: extract `pic8-common`, add families behind a fixed contract. **Phases 0–3 done** (litmus test met). |, |
 
 ## Quick start
@@ -108,15 +108,16 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 ## Documentation
 
 - **HAL**
-  - [README](pic16f87xa-hal/README.md): overview, build, simulation middleware
-  - [MANUAL.md](pic16f87xa-hal/MANUAL.md): the full manual (architecture, both builds, per-peripheral reference)
+  - [pic8-common/MANUAL.md](pic8-common/MANUAL.md): family-agnostic conventions, the harness, the handle pattern, the shared interrupt model — read this first
+  - [pic16f87xa-hal/README.md](pic16f87xa-hal/README.md) / [MANUAL.md](pic16f87xa-hal/MANUAL.md): PIC16F87XA build + per-peripheral reference
+  - [pic18fxx5x-hal/README.md](pic18fxx5x-hal/README.md) / [MANUAL.md](pic18fxx5x-hal/MANUAL.md): PIC18F2455 family build + per-peripheral reference
 - **Task manager**
   - [README](pic8-taskmgr/README.md): overview, quick start, demo
   - [docs/ARCHITECTURE.md](pic8-taskmgr/docs/ARCHITECTURE.md): cooperative model, tick source, concurrency, RAM scaling, constraints
   - [docs/API.md](pic8-taskmgr/docs/API.md): full API reference
 - **Multi-family**
   - [docs/multi-family-plan.md](docs/multi-family-plan.md): the refactor plan that extracted `pic8-common/` and added the PIC18F2455 family behind a fixed contract (**Phases 0–3 done**, litmus test met, real-silicon deferred)
-  - [pic18fxx5x-hal/README.md](pic18fxx5x-hal/README.md): the second family (MVP slice done)
+  - [docs/hal-manual-plan.md](docs/hal-manual-plan.md): the doc-side split that gave every family the same `MANUAL.md` shape, sharing conventions once in `pic8-common/MANUAL.md`
 - **Datasheets** (not vendored in this repo — Microchip vendor documentation, linked instead): [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) PIC16F87XA, [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf) PIC18F2455 family
 
 ## Repository layout
@@ -128,7 +129,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   │                              #   pic8_irq.h (HAL_IRQ_Priority)
 │   ├── src/core/                  #   pic8_harness_target.c (family-blind no-ops)
 │   ├── cmake/  mk/                #   shared pic8_family.cmake / pic8_family.mk
-│   └── README.md
+│   └── README.md  MANUAL.md
 │
 ├── pic16f87xa-hal/                 # the HAL (PIC16F87XA family), full peripheral coverage
 │   ├── include/                    # public headers (core/ + peripherals/); core/
@@ -143,7 +144,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 ├── pic18fxx5x-hal/                 # second family (PIC18F2455/2550/4455/4550)
 │   ├── include/  src/  tests/      # MVP: GPIO, Timer0, dual-priority IRQ, WDT/sleep
 │   ├── mcu/pic18fxx5x-mplabx/      # XC8 Makefile (needs PIC18Fxxxx DFP, see README)
-│   ├── README.md
+│   ├── README.md  MANUAL.md
 │   └── CMakeLists.txt              # host simulation build (reuses pic8-common)
 │
 ├── pic8-taskmgr/                   # the cooperative scheduler (family-agnostic)

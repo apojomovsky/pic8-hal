@@ -476,6 +476,12 @@ matching the rigor already applied to every PIC16 peripheral driver.
 4. Run the same Phase 3-style litmus test: point the task manager (or
    whatever else consumes the HAL by then) at the new family, expect zero
    changes to the consumer.
+5. Write `<family>-hal/MANUAL.md` against the shape of the existing ones
+   (`pic16f87xa-hal/MANUAL.md`, `pic18fxx5x-hal/MANUAL.md`), pointing back
+   to `pic8-common/MANUAL.md` for every family-agnostic convention instead
+   of re-explaining it. See `docs/hal-manual-plan.md` for how that split
+   was carved out and why — don't let a new family's manual quietly not
+   happen the way PIC18's did the first time around.
 
 ## Open questions (resolve during the phase noted)
 

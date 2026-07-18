@@ -7,10 +7,13 @@ reset value in this HAL is taken 1:1 from that datasheet; each header cites
 the section it implements. If the HAL and the datasheet disagree, the HAL
 is wrong, please treat that as a bug.
 
-This manual is for humans. It explains what the HAL is, how it is put
-together, how to build and run it (on a host simulator *and* on real
-silicon), and how to use every peripheral. It is meant to be read
-end-to-end the first time and skimmed thereafter.
+This manual covers what's genuinely specific to this family: the device
+variants, the peripheral register reference, the SFR map, and this
+family's own known gaps. **Read
+[`pic8-common/MANUAL.md`](../pic8-common/MANUAL.md) first** — naming
+conventions, the handle pattern, status codes, the harness, the host/
+target build-time split, the host-sim API shape, and the shared interrupt
+model are explained there once and apply here unchanged.
 
 ---
 
@@ -20,29 +23,27 @@ end-to-end the first time and skimmed thereafter.
 2. [The big picture](#2-the-big-picture)
 3. [Quick start](#3-quick-start)
 4. [Build systems](#4-build-systems)
-5. [Conventions](#5-conventions)
-6. [The host simulation backend](#6-the-host-simulation-backend)
-7. [The harness](#7-the-harness)
-8. [Interrupts](#8-interrupts)
-9. [Core: WDT, Sleep, BOR/POR](#9-core-wdt-sleep-borpor)
-10. [GPIO](#10-gpio)
-11. [Timer0](#11-timer0)
-12. [Timer1](#12-timer1)
-13. [Timer2](#13-timer2)
-14. [CCP1 / CCP2, Capture, Compare, PWM](#14-ccp1--ccp2--capture-compare-pwm)
-15. [USART](#15-usart)
-16. [MSSP, SPI and I²C](#16-mssp--spi-and-i²c)
-17. [ADC](#17-adc)
-18. [Comparator](#18-comparator)
-19. [Voltage reference (Vref)](#19-voltage-reference-vref)
-20. [Data EEPROM](#20-data-eeprom)
-21. [Parallel Slave Port (PSP)](#21-parallel-slave-port-psp)
-22. [The SFR layer](#22-the-sfr-layer)
-23. [Device selection](#23-device-selection)
-24. [The examples](#24-the-examples)
-25. [Retargeting and porting](#25-retargeting-and-porting)
-26. [Known gaps and gotchas](#26-known-gaps-and-gotchas)
-27. [Appendix: datasheet section index](#27-appendix-datasheet-section-index)
+5. [Datasheet citations](#5-datasheet-citations)
+6. [What the simulator models](#6-what-the-simulator-models)
+7. [Interrupts](#7-interrupts)
+8. [Core: WDT, Sleep, BOR/POR](#8-core-wdt-sleep-borpor)
+9. [GPIO](#9-gpio)
+10. [Timer0](#10-timer0)
+11. [Timer1](#11-timer1)
+12. [Timer2](#12-timer2)
+13. [CCP1 / CCP2, Capture, Compare, PWM](#13-ccp1--ccp2--capture-compare-pwm)
+14. [USART](#14-usart)
+15. [MSSP, SPI and I²C](#15-mssp--spi-and-i²c)
+16. [ADC](#16-adc)
+17. [Comparator](#17-comparator)
+18. [Voltage reference (Vref)](#18-voltage-reference-vref)
+19. [Data EEPROM](#19-data-eeprom)
+20. [Parallel Slave Port (PSP)](#20-parallel-slave-port-psp)
+21. [The SFR layer](#21-the-sfr-layer)
+22. [Device selection](#22-device-selection)
+23. [The examples](#23-the-examples)
+24. [Known gaps and gotchas](#24-known-gaps-and-gotchas)
+25. [Appendix: datasheet section index](#25-appendix-datasheet-section-index)
 
 ---
 
@@ -59,48 +60,15 @@ flash/RAM/EEPROM size, and how many analog channels and ports they expose:
 | 16F876A  | 28   | 8 KW  | 368B | 256B   | 5      | no          | no  |
 | 16F877A  | 40   | 8 KW  | 368B | 256B   | 8      | yes         | yes |
 
-Writing bare-register firmware for these chips is doable but tedious and
-unportable: every SFR lives in a banked register file, the prescaler is
-shared between Timer0 and the WDT, the EEPROM needs a magic unlock
-sequence, and so on. This HAL absorbs that machinery so application code
-reads like a Cube application:
-
-```c
-HAL_GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_OUTPUT);
-HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-```
-
-…rather than a pile of `OPTION_REG = (OPTION_REG & ~0x38) | 0x07;` bit
-twiddling. People who know STM32Cube will feel at home; people who know
-PICs will recognise the peripherals and finally get the abstraction they
-usually hand-roll themselves.
-
-The HAL has two consumers built in:
-
-- a **host simulation backend**, so you can compile and *run* firmware on a
-  Linux/macOS box with gcc, drive it from a C test, and watch timers tick
-  and pins toggle, no hardware required; and
-- a **real-target build** with MPLAB XC8, which produces a `.hex` you
-  program onto a PIC.
-
-The same source files serve both. Crucially, the split between the two is
-done **at build time** (which files are compiled and which header is on
-the include path), never with `#ifdef` inside application code. That is a
-design rule of this HAL and the reason its examples read so cleanly. See
-[§2](#2-the-big-picture) and [§7](#7-the-harness).
+See `pic8-common/MANUAL.md` §1 for why this HAL exists at all (the general
+"absorbs the register-level machinery" pitch) — it's the same reasoning
+for every family in this repo, not repeated here.
 
 ---
 
 ## 2. The big picture
 
 ```
-pic8-common/                     shared layer reused by every family
-├── include/core/              hal_status.h (HAL_*, PIC8_BIT*),
-│                              pic8_harness.h (the 4-fn harness contract)
-├── src/core/                  pic8_harness_target.c (family-blind no-ops)
-├── cmake/  mk/                shared pic8_family.cmake / pic8_family.mk
-└── README.md
-
 pic16f87xa-hal/
 ├── include/
 │   ├── pic16f87xa.h            family header: device select, SFR mapping;
@@ -125,64 +93,22 @@ pic16f87xa-hal/
 └── CMakeLists.txt               host build (gcc + cmake)
 ```
 
-There are three ideas to internalise:
+The general shape of this tree, the SFR-access-by-include-path trick, the
+host/target link-time split, is explained once in `pic8-common/MANUAL.md`
+§2 and applies here unchanged. The one genuinely PIC16-specific piece:
 
-### 2.1 The SFR access layer is selected by include path
+### 2.1 One interrupt vector, one dispatcher
 
-`pic16f87xa.h` ends with one unconditional line:
-
-```c
-#include "pic16f87xa_platform.h"
-```
-
-That header exists in **two same-named copies**:
-
-- `include/host/pic16f87xa_platform.h`, every SFR access indexes a
-  512-byte in-memory array `pic16f87xa_sim_sfr[]`, and
-  `PIC8_WEAK` is the real `__attribute__((weak))`.
-- `include/target/pic16f87xa_platform.h`, every SFR access is a direct
-  `*(volatile uint8_t *)(uintptr_t)addr` dereference, and
-  `PIC8_WEAK` is empty (XC8 has no weak symbols).
-
-The CMake host build puts `include/host` *first* on the include path; the
-XC8 Makefile puts `include/target` first. So the single `#include`
-resolves to the right copy per build, with no preprocessor branching
-anywhere in the HAL or examples. The macros defined there
-(`PIC8_REG8`, `pic8_sfr_read8/write8`, `PIC8_SFR_PTR`)
-are what every driver and every example ultimately touches.
-
-### 2.2 Execution-model differences are selected by linking a different file
-
-A few things genuinely differ between "a host test" and "firmware":
-
-- on the host, time advances only when you call `pic16f87xa_sim_step()`;
-  on a target, the hardware clock advances on its own;
-- a host test must terminate and report pass/fail; firmware's `main()`
-  never returns and has no stdout;
-- the WDT/Sleep helpers are `asm("clrwdt")` / `asm("sleep")` on a target
-  and no-ops on the host;
-- the interrupt vector `__interrupt()` only exists on a target.
-
-Each of those is provided by **two implementation files**, a `*_sim.c`
-the CMake build links and a `*_target.c` the XC8 Makefile links
-(`pic16_harness_sim.c` / `pic8_harness_target.c`,
-`pic16f87xa_wdt_sleep_sim.c` / `*_target.c`). The harness target
-implementation is family-blind (four no-ops), so it lives in the shared
-`pic8-common/` layer; the harness sim and the WDT/Sleep pair stay in
-this tree. The build picks which file to link. No `#ifdef` in
-application code selects between them. The
-[test/firmware harness](#7-the-harness) is the seam that makes the
-examples one source for both builds.
-
-### 2.3 One interrupt vector, one dispatcher
-
-The PIC16F87XA has a **single** interrupt vector at 0x0004. On a real
-target, `src/core/pic16_isr_vector.c` installs the XC8
+The PIC16F87XA has a **single** interrupt vector at 0x0004 (DS39582B
+§14.11). On a real target, `src/core/pic16_isr_vector.c` installs the XC8
 `__interrupt()` handler, which calls `pic8_dispatch_all_irqs()`. On
 the host, the harness registers that same function as the simulator's IRQ
 callback. Either way, the one dispatcher fans out to every peripheral's
 `*IRQHandler`, and each of those is a no-op unless its own flag is set.
-Applications never wire interrupt vectors themselves.
+Applications never wire interrupt vectors themselves. (Contrast with
+`pic18fxx5x-hal`, which has two vectors and a priority model — see its own
+manual §2 and `pic8-common/MANUAL.md` §6 for what's shared about the
+interrupt story across families.)
 
 ---
 
@@ -296,88 +222,7 @@ to omit the flag for an older toolchain).
 
 ---
 
-## 5. Conventions
-
-### 5.1 Naming
-
-Mirrors STM32Cube:
-
-- `HAL_<PPP>_<Verb>(...)` for driver functions
-  (`HAL_GPIO_Init`, `HAL_TIMER0_Start`, `HAL_ADC_Read`).
-- `<PPP>_HandleTypeDef` for the configuration struct
-  (`TIMER0_HandleTypeDef`, `ADC_HandleTypeDef`).
-- `<PPP>_<Feature>TypeDef` for enums
-  (`TIMER0_PrescalerTypeDef`, `ADC_ChannelTypeDef`).
-- `<PPP>_HANDLE_DEFAULT` for a default initialiser you can override field
-  by field (CCP is the one peripheral without one, see [§14](#14-ccp1--ccp2--capture-compare-pwm)).
-- `PIC16F87XA_<NAME>` for HAL-wide types and macros
-  (`HAL_StatusTypeDef`, `PIC8_REG8`).
-- `PIC_REG_<NAME>` and `PIC_<REG>_<BIT>` for raw SFR addresses and bit
-  masks (see [§22](#22-the-sfr-layer)).
-
-### 5.2 Status codes
-
-```c
-typedef enum {
-    HAL_OK      = 0x00,   // success
-    HAL_ERROR   = 0x01,   // generic error
-    HAL_BUSY    = 0x02,   // resource busy
-    HAL_TIMEOUT = 0x03,   // operation timed out
-    HAL_INVALID = 0x04,   // bad parameter / state
-} HAL_StatusTypeDef;
-```
-
-`Init`/`Start`/`Stop`/`DeInit` return this. The most common check is
-`if (HAL_PPP_Init(&h) != HAL_OK) { ... }`. A few helpers return
-data directly with a sentinel instead (`HAL_ADC_Start` returns `0xFFFF`
-if a conversion was already in progress; `HAL_SSP_WriteByte` returns
-`0xFFFF` on a write collision).
-
-### 5.3 The handle pattern
-
-Most peripherals are configured through a `*_HandleTypeDef` filled by the
-caller and passed to `HAL_PPP_Init`:
-
-```c
-TIMER0_HandleTypeDef h = TIMER0_HANDLE_DEFAULT;   // start from sane defaults
-h.Prescaler         = TIMER0_PRESCALER_1_64;
-h.OverflowCallback  = on_t0_overflow;
-HAL_TIMER0_Init(&h);
-HAL_TIMER0_Start(&h);
-```
-
-`Init` programs the SFRs but does **not** start the peripheral, call
-`Start` afterwards. `DeInit` resets the peripheral to its power-on state.
-
-Two peripherals, **EEPROM** and **PSP**, take a raw callback pointer
-instead of a handle, because their configuration is essentially just "do
-you want an interrupt or not":
-
-```c
-HAL_EEPROM_Init(my_eeprom_callback);
-```
-
-### 5.4 Interrupts and callbacks
-
-Each interrupt-capable peripheral declares a weak `PPP_IRQHandler`
-(`TIMER0_IRQHandler`, `ADC_IRQHandler`, …, twelve in total). The HAL's
-default implementation of each handler checks the peripheral's flag,
-clears it, and, if the handle provided a callback, calls it. So the
-normal extension point is **the handle callback**, not the handler:
-
-```c
-static void on_t0_overflow(void) { /* runs in interrupt context */ }
-h.OverflowCallback = on_t0_overflow;
-```
-
-On the host build the handlers are genuinely `__attribute__((weak))`, so a
-user can also override the whole `TIMER0_IRQHandler` if needed. On XC8
-there is no weak symbol, so the callback is the only extension point
-(redefining the handler would be a duplicate symbol).
-
-See [§8](#8-interrupts) for the full interrupt model.
-
-### 5.5 Datasheet citations
+## 5. Datasheet citations
 
 Every header and implementation file annotates the DS39582B section it
 implements. When in doubt about a register bit, grep the header for the
@@ -387,22 +232,20 @@ bug.
 
 ---
 
-## 6. The host simulation backend
+## 6. What the simulator models
 
 The simulator (`src/sim/pic16f87xa_sim.c`, public API in
 `pic16f87xa_sim.h`) is a 512-byte memory array (`pic16f87xa_sim_sfr[]`)
-standing in for the PIC's banked register file, plus behavioural models
-for the peripherals that actually *do* something over time. It lets you
-write and run firmware as an ordinary C program on a host.
-
-### 6.1 What it models
+standing in for the PIC's banked register file. See `pic8-common/MANUAL.md`
+§5 for the shape of its public API and how host tests use it; what it
+actually models, on this family, is:
 
 - **Timer0**, increments per instruction cycle at the OPTION_REG
   prescaler ratio; sets `TMR0IF` on 0xFF→0x00 rollover.
 - **Timer1**, 16-bit increment; advances in internal-clock mode *and*
   in external/T1OSC mode (the latter at a *simplified* rate, the sim
   does not reproduce the 32.768 kHz crystal's real timing, only the
-  overflow/IRQ plumbing; see [§26](#26-known-gaps-and-gotchas)).
+  overflow/IRQ plumbing; see [§24](#24-known-gaps-and-gotchas)).
 - **Timer2**, counts against `PR2`, applies prescaler and postscaler,
   sets `TMR2IF` on period match.
 - **GPIO**, PORTA..PORTE read-modify-write semantics: writes update the
@@ -415,140 +258,15 @@ write and run firmware as an ordinary C program on a host.
 - **EEPROM**, a 256-byte backing store; tests poke bytes and completion
   via the `drive_eeprom_*` helpers.
 
-### 6.2 Public API
-
-```c
-void     pic16f87xa_sim_reset(void);                                // zero + load POR values
-void     pic16f87xa_sim_step(uint32_t ticks);                       // advance time
-
-void     pic16f87xa_sim_drive_input(char port, uint8_t pin, uint8_t level);  // drive an input pin
-uint8_t  pic16f87xa_sim_read_output(char port, uint8_t pin);                  // observe an output pin
-void     pic16f87xa_sim_set_irq_callback(pic16f87xa_sim_irq_cb_t cb);         // (advanced; see below)
-
-void     pic16f87xa_sim_drive_usart_rx(uint8_t data);              // push a received byte
-void     pic16f87xa_sim_drive_ssp_rx(uint8_t data);                // push an SPI/I²C byte
-void     pic16f87xa_sim_drive_adc_done(uint16_t result);           // complete an A/D conversion
-void     pic16f87xa_sim_drive_eeprom_byte(uint8_t addr, uint8_t data);       // seed EEPROM
-void     pic16f87xa_sim_drive_eeprom_done(uint8_t addr, uint8_t data);       // seed + set EEIF
-uint8_t  pic16f87xa_sim_eeprom_read(uint8_t addr);                 // peek EEPROM (test oracle)
-```
-
-`port` is a character `'A'`..`'E'` (case-insensitive). The
-`drive_*` helpers let a test *act as the outside world*: press a button
-(`drive_input`), feed a serial byte (`drive_usart_rx`), deliver an ADC
-result (`drive_adc_done`), etc. Each of the IRQ-producing ones sets the
-relevant flag and fires the IRQ callback.
-
-### 6.3 How interrupts dispatch on the host
-
-You usually do **not** call `pic16f87xa_sim_set_irq_callback` yourself.
-The harness (see [§7](#7-the-harness)) registers
-`pic8_dispatch_all_irqs` as the single sim callback during
-`pic8_harness_init`, which mirrors the real target's single
-interrupt vector. When `sim_step` produces an overflow, it calls that
-dispatcher, which fans out to every peripheral handler; the one whose flag
-is set runs and calls your callback. That is the only thing that makes
-interrupt-driven examples work on the host.
-
-### 6.4 Writing a sim-only test
-
-The sim-only smoke tests (`example_timer1`, `example_usart`, …) talk to
-the simulator directly rather than through the harness:
-
-```c
-pic16f87xa_sim_reset();
-pic16f87xa_sim_set_irq_callback(TIMER1_IRQHandler);   // route TMR1IF → driver → my callback
-/* … configure + start Timer1 … */
-for (uint32_t i = 0; i < SIM_BUDGET; i++) {
-    pic16f87xa_sim_step(1);
-    if (overflows >= EXPECTED) break;
-}
-printf("OK: %u overflows\n", (unsigned)overflows);
-```
-
-These tests are pure host programs, they `printf` and `return` an exit
-code, and they never build for a real target (the XC8 Makefile only links
-the firmware-capable examples). They have no `#ifdef` because they have
-no target path.
-
 ---
 
-## 7. The harness
+## 7. Interrupts
 
-The harness (`pic8_harness.h`, in the shared `pic8-common/` layer and
-included as `core/pic8_harness.h`) is the seam that lets a single example
-source build for *both* the host sim and a real XC8 target with **no
-`#ifdef` in the example code**. It hides the two execution-model
-differences, pumping simulated time vs. real time, and a terminating
-test vs. firmware that runs forever, behind four functions plus a shared
-inline:
-
-```c
-void pic8_harness_init(uint32_t cycles);   // host: reset sim + wire IRQ dispatch; target: no-op
-void pic8_harness_tick(void);              // host: sim_step(1);                target: no-op
-int  pic8_harness_running(uint32_t it);    // host: it < cycles;                target: always 1
-void pic8_harness_log(const char *fmt, ...); // host: printf;                 target: no-op
-static inline int pic8_harness_report(int ok) { return ok ? 0 : 1; }  // shared: map to exit code
-```
-
-Each has a host implementation (`*_harness_sim.c`, linked by CMake) and a
-target implementation (`*_harness_target.c`, linked by the XC8
-Makefile). The build picks one.
-
-### 7.1 The canonical example shape
-
-```c
-int main(void)
-{
-    pic8_harness_init(SIM_CYCLES);
-
-    /* … peripheral setup, identical on both builds … */
-
-    for (uint32_t i = 0; pic8_harness_running(i); i++) {
-        pic8_harness_tick();
-        /* … work, same code on both builds … */
-    }
-    pic8_harness_log("toggled %u\n", (unsigned)count);
-    return pic8_harness_report(count >= 2);
-}
-```
-
-On the **target**, `harness_running` always returns 1, so the loop never
-exits and the log/report lines are unreachable; `harness_tick` is empty
-because real time advances on its own. On the **host**, the loop runs for
-`SIM_CYCLES` simulated cycles, `harness_tick` pumps the simulator each
-iteration, and the log/report produce a pass/fail exit code.
-
-`HAL_Sleep_Enter` and `HAL_WDT_Refresh` are no-ops on the host, so an
-example can call them unconditionally, they are real `sleep`/`clrwdt`
-instructions on the target and vanish on the host. That is what lets the
-idle-blink example (which genuinely sleeps) be one source.
-
-When to reach for the harness: whenever you want an example that is both a
-host smoke test *and* real firmware. For a pure host test (peripheral
-fiddling that needs hardware you do not have), talk to the simulator
-directly as in [§6.4](#64-writing-a-sim-only-test).
-
----
-
-## 8. Interrupts
-
-The PIC16F87XA has one interrupt vector at 0x0004 (DS39582B §14.11). The
-HAL centralises dispatch:
-
-- On a real target, `src/core/pic16_isr_vector.c` defines the XC8
-  `__interrupt()` handler that the CPU vectors to. It calls
-  `pic8_dispatch_all_irqs()`.
-- On the host, the harness registers `pic8_dispatch_all_irqs` as
-  the sim IRQ callback.
-
-`pic8_dispatch_all_irqs()` (in
-`src/core/pic16_irq_dispatch.c`, built on both) calls every
-peripheral `*IRQHandler`. Each handler is a no-op unless its own flag is
-set, so the order is irrelevant and the cost is a handful of cycles per
-interrupt. Applications never touch the vector.
-
-### 8.1 The IRQ identity enum
+The PIC16F87XA has one interrupt vector at 0x0004 (DS39582B §14.11). See
+`pic8-common/MANUAL.md` §6 for the shared `HAL_IRQ_*` API, the priority
+vocabulary (unused on this single-vector family, `HAL_IRQ_SetPriority` is
+a no-op here), and §7 for the ISR-driven-peripheral recipe — both apply
+unchanged. The one per-family piece is the IRQ identity enum:
 
 ```c
 typedef enum {
@@ -570,55 +288,12 @@ typedef enum {
 } PIC16_IRQn;
 ```
 
-### 8.2 The enable/disable API
-
-```c
-uint8_t HAL_IRQ_Disable(void);                    // clears GIE, returns previous GIE (0/1)
-void    HAL_IRQ_Restore(uint8_t prev_state);      // restore GIE to prev_state
-void    HAL_IRQ_Enable(PIC16_IRQn irq);   // set the source's enable bit (+ PEIE for peripherals)
-void    HAL_IRQ_DisableSrc(PIC16_IRQn irq);
-void    HAL_IRQ_ClearFlag(PIC16_IRQn irq);
-uint8_t HAL_IRQ_GetFlag(PIC16_IRQn irq);
-```
-
-**Important gotcha:** `IRQ_Enable` arms the *source* (and sets `PEIE` for
-peripheral sources, as a courtesy) but does **not** set the global enable
-`GIE`. To actually take interrupts you must also set `GIE`. The idiomatic
-way is:
-
-```c
-HAL_TIMER0_Init(&h);            // sets TMR0IE because h.OverflowCallback != NULL
-HAL_TIMER0_Start(&h);
-HAL_IRQ_Restore(1);      // GIE = 1, interrupts now fire
-```
-
-`IRQ_Disable` / `IRQ_Restore` form a critical-section pair: disable
-around a sensitive sequence, restore the previous GIE afterwards.
-
-### 8.3 Writing an ISR-driven peripheral
-
-1. Fill a handle with an `OverflowCallback` / `ConvCpltCallback` / etc.
-2. `HAL_PPP_Init(&h)`, this enables the source's interrupt bit.
-3. `HAL_PPP_Start(&h)`.
-4. `HAL_IRQ_Restore(1)` to set GIE.
-5. In the callback (which runs in interrupt context): do the work. The
-   HAL's handler has already cleared the flag for you, **do not clear it
-   again** unless you know why (DS39582B §14.11 warns that re-enabling
-   with the flag still set causes infinite re-entry).
-
-The default weak handler clears the flag *and* calls the callback, so a
-typical callback just does the application work:
-
-```c
-static void on_t0_overflow(void) {
-    g_ticks++;
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-}
-```
+`pic8_dispatch_all_irqs()` (in `src/core/pic16_irq_dispatch.c`, built on
+both host and target) calls every peripheral `*IRQHandler` in turn.
 
 ---
 
-## 9. Core: WDT, Sleep, BOR/POR
+## 8. Core: WDT, Sleep, BOR/POR
 
 ```c
 void   HAL_WDT_Refresh(void);     // asm("clrwdt") on target; no-op on host
@@ -648,11 +323,11 @@ cause.
 
 ---
 
-## 10. GPIO
+## 9. GPIO
 
 *DS39582B §4.1-§4.5, Tables 4-1..4-9.*
 
-### 10.1 Types
+### 9.1 Types
 
 ```c
 typedef enum { GPIOA=0, GPIOB=1, GPIOC=2, GPIOD=3, GPIOE=4 } GPIO_TypeDef;
@@ -666,7 +341,7 @@ typedef enum { GPIO_MODE_INPUT=0x1, GPIO_MODE_OUTPUT=0x2, GPIO_MODE_ANALOG=0x3 }
 typedef enum { GPIO_NOPULL=0, GPIO_PULLUP=1 } GPIO_PullTypeDef;   // PORTB only
 ```
 
-### 10.2 Functions
+### 9.2 Functions
 
 ```c
 void HAL_GPIO_Init(GPIO_TypeDef port, uint16_t pins, GPIO_ModeTypeDef mode);
@@ -683,7 +358,7 @@ void HAL_GPIO_SetPullups(GPIO_PullTypeDef pull);                  // OPTION_REG<
 pins at once). Pin widths are enforced: PORTA is 6-bit, PORTE is 3-bit,
 others 8-bit; out-of-range bits in `pins` are masked off.
 
-### 10.3 Notes and gotchas
+### 9.3 Notes and gotchas
 
 - The PORTx registers are read-modify-write, but **writes only update the
   latch**; reads return the externally-driven level for inputs and the
@@ -698,13 +373,13 @@ others 8-bit; out-of-range bits in `pins` are masked off.
 
 ---
 
-## 11. Timer0
+## 10. Timer0
 
 *DS39582B §5.0, §5.3, Register 5-1, Table 5-1.*
 
 8-bit timer/counter with a prescaler **shared with the WDT**.
 
-### 11.1 Handle
+### 10.1 Handle
 
 ```c
 typedef struct {
@@ -722,7 +397,7 @@ for Timer0, not 1:1, 1:1 means "don't assign the prescaler to Timer0"
 (`PrescalerAssigned = false`), which sends the prescaler to the WDT and
 gives Timer0 the raw clock.
 
-### 11.2 Functions
+### 10.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_TIMER0_Init(const TIMER0_HandleTypeDef *h);
@@ -735,7 +410,7 @@ uint16_t HAL_TIMER0_PrescalerToRatio(TIMER0_PrescalerTypeDef p);  // 1, 2, …, 
 void     TIMER0_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 11.3 Gotchas
+### 10.3 Gotchas
 
 - **Writing TMR0 clears the prescaler** when it is assigned to Timer0
   (§5.3 note). `Start` and `WriteCounter` both write TMR0, so they reset
@@ -747,7 +422,7 @@ void     TIMER0_IRQHandler(void) PIC8_WEAK;
 - Timer0 on the **internal clock stops in Sleep**, it cannot wake the
   CPU. Use Timer1 + T1OSC for sleep wake-ups.
 
-### 11.4 Example
+### 10.4 Example
 
 ```c
 TIMER0_HandleTypeDef h = TIMER0_HANDLE_DEFAULT;     // internal, 1:256, reload 0
@@ -762,14 +437,14 @@ At FOSC = 20 MHz (FCY = 5 MHz), 1:256 overflows every
 
 ---
 
-## 12. Timer1
+## 11. Timer1
 
 *DS39582B §6.0, Register 6-1.*
 
 16-bit timer with its own prescaler and an optional 32.768 kHz crystal
 oscillator (T1OSC), the only timer that keeps running in Sleep.
 
-### 12.1 Handle
+### 11.1 Handle
 
 ```c
 typedef struct {
@@ -782,7 +457,7 @@ typedef struct {
 } TIMER1_HandleTypeDef;
 ```
 
-### 12.2 Functions
+### 11.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_TIMER1_Init(const TIMER1_HandleTypeDef *h);
@@ -795,7 +470,7 @@ uint16_t HAL_TIMER1_PrescalerToRatio(TIMER1_PrescalerTypeDef p);  // 1, 2, 4, 8
 void     TIMER1_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 12.3 Notes
+### 11.3 Notes
 
 - **Asynchronous mode** (`ClockSync = TIMER1_ASYNC_EXTERNAL`) is required
   for the counter to keep running while the CPU is in Sleep, it bypasses
@@ -806,14 +481,14 @@ void     TIMER1_IRQHandler(void) PIC8_WEAK;
 
 ---
 
-## 13. Timer2
+## 12. Timer2
 
 *DS39582B §7.0, Register 7-1.*
 
 8-bit timer with a period register `PR2` and a postscaler. Its overflow
 (`TMR2IF`) is the PWM time base for CCP1/CCP2.
 
-### 13.1 Handle
+### 12.1 Handle
 
 ```c
 typedef struct {
@@ -827,7 +502,7 @@ typedef struct {
 `TMR2IF` fires every `prescaler × (PR2+1) × postscaler` instruction
 cycles. TMR2 resets to 0 when it matches PR2 (it never holds PR2+1).
 
-### 13.2 Functions
+### 12.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_TIMER2_Init(const TIMER2_HandleTypeDef *h);
@@ -845,7 +520,7 @@ void     TIMER2_IRQHandler(void) PIC8_WEAK;
 
 ---
 
-## 14. CCP1 / CCP2, Capture, Compare, PWM
+## 13. CCP1 / CCP2, Capture, Compare, PWM
 
 *DS39582B §8.0, Register 8-1, Tables 8-1..8-4.*
 
@@ -856,7 +531,7 @@ resets Timer1; CCP2's resets Timer1 **and** starts an A/D conversion
 Timer resources (Table 8-1): **Capture** and **Compare** need Timer1;
 **PWM** needs Timer2 (start Timer2 with the matching period first).
 
-### 14.1 Handle
+### 13.1 Handle
 
 ```c
 typedef struct {
@@ -887,7 +562,7 @@ There is **no `CCP_HANDLE_DEFAULT`**, CCP is the one peripheral that
 expects you to fill the handle explicitly (Instance and Mode are
 load-bearing).
 
-### 14.2 Functions
+### 13.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_CCP_Init(const CCP_HandleTypeDef *h);
@@ -899,7 +574,7 @@ void     CCP1_IRQHandler(void) PIC8_WEAK;
 void     CCP2_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 14.3 PWM usage
+### 13.3 PWM usage
 
 ```c
 TIMER2_HandleTypeDef t2 = TIMER2_HANDLE_DEFAULT;
@@ -919,14 +594,14 @@ period; for duty greater than the period it stays high (§8.3.2 note).
 
 ---
 
-## 15. USART
+## 14. USART
 
 *DS39582B §10.0, Registers 10-1/10-2, §10.1 (BRG).*
 
 One USART instance. Async full-duplex (TX=RC6, RX=RC7), sync
 master/slave, 8- or 9-bit.
 
-### 15.1 Handle and baud computation
+### 14.1 Handle and baud computation
 
 ```c
 typedef struct {
@@ -947,7 +622,7 @@ Baud formulas (§10.1): async `Fosc/(64×(X+1))` (BRGH=0) or
 `Fosc/(16×(X+1))` (BRGH=1); sync `Fosc/(4×(X+1))`. `ComputeSPBRG`
 returns 0..255, or `0xFFFF` if the desired baud needs X > 255.
 
-### 15.2 Functions
+### 14.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_USART_Init(const USART_HandleTypeDef *h);
@@ -962,7 +637,7 @@ void    USART_RX_IRQHandler(void) PIC8_WEAK;
 void    USART_TX_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 15.3 Notes
+### 14.3 Notes
 
 - `TXIF` is **not** cleared by reading, only by writing TXREG. `Transmit`
   does that for you.
@@ -972,7 +647,7 @@ void    USART_TX_IRQHandler(void) PIC8_WEAK;
 
 ---
 
-## 16. MSSP, SPI and I²C
+## 15. MSSP, SPI and I²C
 
 *DS39582B §9.0, Registers 9-1..9-5.*
 
@@ -981,7 +656,7 @@ One MSSP module on RC3/SCK/SCL, RC4/SDI/SDA, RC5/SDO. ⚠ The driver is
 For SPI, a transfer is automatic once `SSPBUF` is written; for I²C master
 you drive Start/Stop/ACK by hand (see below).
 
-### 16.1 Handle
+### 15.1 Handle
 
 ```c
 typedef struct {
@@ -999,7 +674,7 @@ typedef struct {
 `SSP_MODE_I2C_MASTER_FW` (firmware-controlled), `_SLAVE_7BIT_SS`,
 `_SLAVE_10BIT_SS`, `SSP_MODE_I2C_MASTER_FOSC` (hardware).
 
-### 16.2 Functions
+### 15.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_SSP_Init(const SSP_HandleTypeDef *h);
@@ -1021,7 +696,7 @@ uint8_t  HAL_SSP_AcknowledgeStatus(void);
 void     SSP_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 16.3 I²C master by hand
+### 15.3 I²C master by hand
 
 ```c
 HAL_SSP_Start();
@@ -1034,11 +709,11 @@ HAL_SSP_Stop();
 You are responsible for polling `BF` and `ACKSTAT` and for the
 Start/Repeated-Start/Stop sequence. This mirrors the datasheet's
 firmware-controlled master; a higher-level blocking transfer helper is
-not provided (see [§26](#26-known-gaps-and-gotchas)).
+not provided (see [§24](#24-known-gaps-and-gotchas)).
 
 ---
 
-## 17. ADC
+## 16. ADC
 
 *DS39582B §11.0, Registers 11-1/11-2, Table 11-1.*
 
@@ -1046,7 +721,7 @@ not provided (see [§26](#26-known-gaps-and-gotchas)).
 40/44-pin. References are VDD/VSS or VREF+ on AN2/AN3. Result in
 ADRESH:ADRESL.
 
-### 17.1 Handle
+### 16.1 Handle
 
 ```c
 typedef struct {
@@ -1064,7 +739,7 @@ datasheet's configuration table, which also determines which analog pins
 are available. Pick the reference first, then configure the freed PORTA
 pins as analog via `HAL_GPIO_Init`.
 
-### 17.2 Functions
+### 16.2 Functions
 
 ```c
 HAL_StatusTypeDef HAL_ADC_Init(const ADC_HandleTypeDef *h);
@@ -1078,7 +753,7 @@ uint16_t HAL_ADC_Read(void);                    // 0..1023 (right-justified; lef
 void     ADC_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 17.3 The acquisition-time step
+### 16.3 The acquisition-time step
 
 The driver splits channel-select and start so the
 acquisition time (§11.1, ~20 µs at VDD = 5 V) can elapse between them:
@@ -1096,7 +771,7 @@ the callback receives the 10-bit result.
 
 ---
 
-## 18. Comparator
+## 17. Comparator
 
 *DS39582B §12.0, Register 12-1, Figure 12-1.*
 
@@ -1105,7 +780,7 @@ Two on-chip comparators with eight operating modes selected by
 (C1OUT) and RA5 (C2OUT) when enabled. Interrupt on output change
 (`CMIF`).
 
-### 18.1 Handle and functions
+### 17.1 Handle and functions
 
 ```c
 typedef struct {
@@ -1131,7 +806,7 @@ comparators with outputs on RA4/RA5.
 
 ---
 
-## 19. Voltage reference (Vref)
+## 18. Voltage reference (Vref)
 
 *DS39582B §13.0, Register 13-1.*
 
@@ -1157,7 +832,7 @@ range, and tap, handy for tests and for printing what you configured.
 
 ---
 
-## 20. Data EEPROM
+## 19. Data EEPROM
 
 *DS39582B §3.0, Table 3-1, Register 3-1, §3.4/§3.5.*
 
@@ -1165,7 +840,7 @@ range, and tap, handy for tests and for printing what you configured.
 EEPROM. The driver **hides the mandatory unlock sequence** (write 0x55
 then 0xAA to EECON2 before WR, §3.4, Example 3-1).
 
-### 20.1 API
+### 19.1 API
 
 EEPROM takes a raw callback, not a handle:
 
@@ -1183,7 +858,7 @@ void     HAL_EEPROM_ClearITFlag(void);
 void     EEPROM_IRQHandler(void) PIC8_WEAK;
 ```
 
-### 20.2 Notes
+### 19.2 Notes
 
 - Writes are **non-blocking**: `WriteByte` returns as soon as `WR` is set.
   Detect completion by polling `HAL_EEPROM_IsWriteComplete()` (EEIF,
@@ -1194,7 +869,7 @@ void     EEPROM_IRQHandler(void) PIC8_WEAK;
 
 ---
 
-## 21. Parallel Slave Port (PSP)
+## 20. Parallel Slave Port (PSP)
 
 *DS39582B §4.5, Register 4-9. 40/44-pin parts only.*
 
@@ -1222,13 +897,13 @@ on real silicon; on the sim, tests drive state through the
 
 ---
 
-## 22. The SFR layer
+## 21. The SFR layer
 
 When the HAL does not cover something, you can still talk to registers
 directly through the platform macros and the SFR map
 (`pic16f87xa_sfr.h`).
 
-### 22.1 Address and bit constants
+### 21.1 Address and bit constants
 
 `pic16f87xa_sfr.h` defines, 1:1 with DS39582B:
 
@@ -1242,7 +917,7 @@ directly through the platform macros and the SFR map
   (0x18), `PIC_INTCON_POR_VALUE` (0x00), …
 - a `pic_select_bank(uint8_t bank)` inline to set STATUS<RP1:RP0>.
 
-### 22.2 The access macros (platform header)
+### 21.2 The access macros (platform header)
 
 ```c
 PIC8_REG8(addr)                 // an lvalue for the register at addr
@@ -1260,7 +935,7 @@ On the host `PIC8_REG8(0x05)` is `pic16f87xa_sim_sfr[0x05]`; on a
 target it is `*(volatile uint8_t *)(uintptr_t)0x05`. The same source
 compiles to both, which is the whole point of the platform layer.
 
-### 22.3 Example: raw register access
+### 21.3 Example: raw register access
 
 ```c
 #include "pic16f87xa_sfr.h"
@@ -1274,7 +949,7 @@ does not expose.
 
 ---
 
-## 23. Device selection
+## 22. Device selection
 
 Define exactly **one** of `PIC16F873A`, `PIC16F874A`, `PIC16F876A`,
 `PIC16F877A` before including any HAL header. If none is defined,
@@ -1301,11 +976,11 @@ default device; the XC8 Makefile compiles it for `MCU`.
 
 ---
 
-## 24. The examples
+## 23. The examples
 
 All live under `tests/`. The first two build for **both** host and target
-(via the harness); the rest are host-only smoke tests that talk to the
-simulator directly.
+(via the harness, `pic8-common/MANUAL.md` §4); the rest are host-only
+smoke tests that talk to the simulator directly.
 
 - **`example_blink`**, Timer0 overflow ISR toggles RB0. The canonical
   "the HAL drives a real application" test. Basic blink (~38 Hz at
@@ -1339,24 +1014,7 @@ for t in build/example_*; do "$t"; done   # exit code 0 = pass
 
 ---
 
-## 25. Retargeting and porting
-
-- **To another XC8 version.** v2.40 used `-ohex:` and `.o` objects with
-  no `-mdfp`; v3.x uses `.p1` + `-ginhx32` + `-mdfp`. The Makefile targets
-  v3.10. For v2.40, set `DFP_DIR=` empty and expect to adjust the link
-  step.
-- **To another host compiler.** The host build is plain C99 with gcc/clang.
-  The only gcc-isms are `__attribute__((weak))` (in
-  `include/host/pic16f87xa_platform.h`) and the `static inline` report.
-  Any C99 compiler should do.
-- **To another PIC16 family.** The SFR map, the platform header, and the
-  peripheral drivers would need rework against that family's datasheet,
-  but the *structure*, handle pattern, harness, link-time host/target
-  split, single-vector dispatcher, is reusable as-is.
-
----
-
-## 26. Known gaps and gotchas
+## 24. Known gaps and gotchas
 
 - **T1OSC timing in the sim is approximate.** The simulator does not
   reproduce the 32.768 kHz crystal's real rate; it advances external-clock
@@ -1365,12 +1023,9 @@ for t in build/example_*; do "$t"; done   # exit code 0 = pass
   overflow/IRQ plumbing is faithful; the wall-clock rate is not.
 - **MSSP I²C is register-level.** There is no blocking
   read/write/transfer state machine. You drive Start/Stop/ACK and poll
-  `BF`/`ACKSTAT` yourself (§16.3).
-- **`IRQ_Enable` does not set GIE.** It arms the source (and PEIE for
-  peripherals) only. Set GIE with `HAL_IRQ_Restore(1)` (or your own
-  enable) to actually take interrupts (§8.2).
+  `BF`/`ACKSTAT` yourself (§15.3).
 - **Timer0 stops in Sleep.** Use Timer1 + T1OSC (async) to wake from
-  Sleep (§9).
+  Sleep (§8).
 - **WDT vs. Sleep.** With `WDTE = ON` the WDT keeps running in Sleep; in
   a sleeping loop, refresh it from the wake-up ISR so it does not expire
   mid-sleep (as `example_idle_blink` does). Alternatively set `WDTE = OFF`
@@ -1380,14 +1035,15 @@ for t in build/example_*; do "$t"; done   # exit code 0 = pass
 - **CCP has no `HANDLE_DEFAULT`**, fill `Instance` and `Mode` explicitly.
 - **PSP is 40/44-pin only**, including its header on a 28-pin part is a
   deliberate `#error`.
-- **No `HAL_PPP_MspInit`.** Unlike STM32Cube, ISR-vector wiring is not a
-  per-peripheral weak callback; the single shared dispatcher
-  (`pic8_dispatch_all_irqs`) handles it, and extension is via the
-  handle callbacks.
+
+See `pic8-common/MANUAL.md` §6 for two HAL-wide design decisions that used
+to be listed here (`HAL_IRQ_Enable` not setting the global enable, and
+there being no `HAL_PPP_MspInit`) — they're true of every family, not a
+PIC16F87XA-specific gap, so they moved to the shared manual.
 
 ---
 
-## 27. Appendix: datasheet section index
+## 25. Appendix: datasheet section index
 
 Where each HAL module lives in DS39582B:
 
@@ -1414,4 +1070,5 @@ Where each HAL module lives in DS39582B:
 | Reset values               | Table 14-6                   |
 
 When a header or driver makes a claim you want to verify, the citation in
-its comments points at the row above.
+its comment is the section to check against
+[DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf).
