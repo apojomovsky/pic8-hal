@@ -17,11 +17,14 @@ framebuffer at any standard VGA resolution.
 
 ## Solved / validated
 
-Validated against the local `39582b.pdf` (DS39582B) datasheet, this repo's
-existing `pic16f87xa_psp.h`/`.c` driver and `pic8-math`'s documented XC8
-inline-asm conventions (`pic8-math/docs/ARCHITECTURE.md`), a live web search,
-and hands-on probes compiled with the pinned XC8 v3.10 toolchain
-(`xc8-cc -mcpu=16f877a`, scratch-only, nothing below is in the repo tree):
+Validated against the
+[DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf)
+datasheet (not vendored in this repo — Microchip vendor documentation,
+linked instead), this repo's existing `pic16f87xa_psp.h`/`.c` driver and
+`pic8-math`'s documented XC8 inline-asm conventions
+(`pic8-math/docs/ARCHITECTURE.md`), a live web search, and hands-on probes
+compiled with the pinned XC8 v3.10 toolchain (`xc8-cc -mcpu=16f877a`,
+scratch-only, nothing below is in the repo tree):
 
 - **Instruction timing.** All mid-range instructions are 1 cycle (= 4 Fosc,
   200ns at 20MHz) except program-counter-changing instructions (GOTO, CALL,
@@ -113,7 +116,7 @@ Nothing below has been implemented, host-tested, or run on real silicon.
 
 ## Reference
 
-- Datasheet: `39582b.pdf` (DS39582B), already in the repo root.
+- Datasheet: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) (not vendored in this repo).
 - PSP driver: `pic16f87xa-hal/include/peripherals/pic16f87xa_psp.h` (+ `.c`).
 - XC8 inline-asm conventions: `pic8-math/docs/ARCHITECTURE.md`, "Inline-asm
   binding, the XC8 round-trip probe".

@@ -11,8 +11,9 @@ peripheral on the part is ported.
 
 The HAL and task manager currently assume exactly one architecture:
 PIC16F87XA's single interrupt vector, STATUS-bank register addressing, and
-register set. A second family was requested (PIC18F2455/2550/4455/4550,
-datasheet `39632e.pdf`), and a third and fourth are expected to follow. The
+register set. A second family was requested (PIC18F2455/2550/4455/4550, datasheet
+[DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf)),
+and a third and fourth are expected to follow. The
 goal is a structure where adding a new family is bounded, mostly-mechanical
 work: implement a fixed contract once per chip, not re-derive the whole
 harness/build/status-code machinery every time.

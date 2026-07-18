@@ -8,7 +8,7 @@ read this top to bottom before writing code.
 
 ## Source material
 
-- **AN526** (`00526e.pdf`), *"PIC16C5X / PIC16CXXX Math Utility Routines"* —
+- **AN526** ([00526e.pdf](https://ww1.microchip.com/downloads/en/AppNotes/00526e.pdf)), *"PIC16C5X / PIC16CXXX Math Utility Routines"* —
   targets the baseline/mid-range PIC16 core (no hardware multiply, 12/14-bit
   instruction word, W-register-centric). Routines: 8×8 unsigned multiply,
   16×16 multiply → 32-bit (signed/unsigned), a family of fixed-point divide
@@ -16,7 +16,7 @@ read this top to bottom before writing code.
   15/15, 16/8, 16/7, 15/7, signed and unsigned), 16-bit add/subtract, BCD↔binary
   conversion (8-bit and 16-bit), BCD add/subtract, and a 16-bit Newton-Raphson
   square root built on the division routine.
-- **AN544** (`00544d.pdf`), *"Math Utility Routines"* — same functional scope,
+- **AN544** ([00544d.pdf](https://ww1.microchip.com/downloads/en/AppNotes/00544d.pdf)), *"Math Utility Routines"* — same functional scope,
   targeting the PIC17C42. The PIC17 core is a different, more capable
   architecture than PIC16 (WREG, `MOVFP`/`MOVPF`, `ALUSTA`, more addressing
   modes) — architecturally closer to PIC18 than to PIC16, though not
@@ -47,8 +47,9 @@ the gap matters differently for each family:
   lacks `ADDWFC`/`SUBWFB` (that instruction pair didn't arrive until
   enhanced mid-range/PIC18), so AN526's carry-propagation idiom ports to
   PIC16F87XA basically unchanged. Cross-check register/bit names against
-  `pic16f87xa_sfr.h` and `39582b.pdf` (already in the repo root) if a
-  routine ever touches an SFR, but the arithmetic routines in scope here
+  `pic16f87xa_sfr.h` and the datasheet
+  ([DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf))
+  if a routine ever touches an SFR, but the arithmetic routines in scope here
   are pure `W`/`STATUS`/GPR-file operations, so this is mostly a
   non-issue — flagging it so the implementing agent doesn't assume it needs
   to hunt for baseline-only quirks that don't actually apply.
@@ -58,7 +59,8 @@ the gap matters differently for each family:
   `MOVFF`/`WREG`/`STATUS`. Treat AN544 as an *algorithm* reference only
   (the restoring-division loop shape, the negate-and-multiply-unsigned sign
   handling, the BCD digit-adjust logic) — write genuinely PIC18-native
-  inline asm against `39632e.pdf` (already in the repo root), using
+  inline asm against the datasheet
+  ([DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf)), using
   `movff`, `WREG`, `STATUS,C`/`STATUS,Z`, and — unlike mid-range PIC16 —
   PIC18 *does* have `addwfc`/`subfwb`, so use them; don't carry over
   AN526/AN544's skip-and-increment carry idiom onto the PIC18 backend where

@@ -117,7 +117,7 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 - **Multi-family**
   - [docs/multi-family-plan.md](docs/multi-family-plan.md): the refactor plan that extracted `pic8-common/` and added the PIC18F2455 family behind a fixed contract (**Phases 0–3 done**, litmus test met, real-silicon deferred)
   - [pic18fxx5x-hal/README.md](pic18fxx5x-hal/README.md): the second family (MVP slice done)
-- **Datasheets**: [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) PIC16F87XA (also locally as `39582b.pdf`), [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf) PIC18F2455 family (also locally as `39632e.pdf`)
+- **Datasheets** (not vendored in this repo — Microchip vendor documentation, linked instead): [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf) PIC16F87XA, [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf) PIC18F2455 family
 
 ## Repository layout
 
@@ -155,8 +155,6 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 │   └── CMakeLists.txt              # host sim build, -DHAL_FAMILY=PIC16|PIC18
 │
 ├── docs/multi-family-plan.md       # the refactor plan (Phases 0–3 done)
-├── 39582b.pdf                      # Microchip datasheet (DS39582B, PIC16F87XA)
-├── 39632e.pdf                      # Microchip datasheet (DS39632E, PIC18F2455 family)
 ├── LICENSE                          # MIT
 └── README.md                       # this file
 ```
@@ -174,8 +172,8 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 
 MIT; see [LICENSE](LICENSE).
 
-The Microchip datasheets DS39582B (included as `39582b.pdf`, © 2003 Microchip
-Technology Inc.) and DS39632E (included as `39632e.pdf`, © 2009 Microchip
-Technology Inc.) are vendor documentation; register and bit names in the code
-follow them directly. Remove the PDFs from your fork if you do not want to
-redistribute vendor documentation.
+The Microchip datasheets [DS39582B](https://ww1.microchip.com/downloads/en/DeviceDoc/39582b.pdf)
+(© 2003 Microchip Technology Inc.) and [DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf)
+(© 2009 Microchip Technology Inc.) are vendor documentation; register and
+bit names in the code follow them directly. They are not vendored in this
+repo — follow the links above to Microchip's own hosted copies.

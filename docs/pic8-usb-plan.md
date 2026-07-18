@@ -65,9 +65,9 @@ though — three things found in the vendored source make the port low-risk:
    as similar as possible across MCUs").
 2. **The only chip-specific unknown is `BD_ADDR`** (where the Buffer
    Descriptor Table and endpoint buffers sit in the linear memory map) —
-   and cross-referencing `39632e.pdf` (the PIC18F2455/2550/4455/4550
-   datasheet, already vendored in this repo's root and already the
-   register source for `pic18fxx5x-hal`), §17.3 "USB RAM": Bank 4
+   and cross-referencing the PIC18F2455/2550/4455/4550 datasheet
+   ([DS39632E](https://ww1.microchip.com/downloads/en/DeviceDoc/39632e.pdf),
+   already the register source for `pic18fxx5x-hal`), §17.3 "USB RAM": Bank 4
    (`400h`–`4FFh`) holds the BDT, banks 4–7 (`400h`–`7FFh`) are USB RAM —
    **the identical layout already coded for the J50's `BD_ADDR 0x400`.**
    The port is plausibly a one-line addition:

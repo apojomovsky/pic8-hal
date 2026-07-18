@@ -22,3 +22,7 @@ build*/
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+
+# Vendor datasheets / app notes — not committed (copyrighted Microchip
+# documentation); docs link to Microchip's own hosted PDFs instead.
+*.pdf
