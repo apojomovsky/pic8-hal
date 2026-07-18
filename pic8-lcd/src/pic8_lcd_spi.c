@@ -1,0 +1,121 @@
+/**
+ * @file    pic8_lcd_spi.c
+ * @brief   SPI transport for pic8_lcd via 74HC595 shift register.
+ *
+ *          The 74HC595 converts a serial SPI byte into 8 parallel outputs
+ *          (Q0-Q7). A configurable layout struct maps which Q output
+ *          connects to which LCD signal (RS, E, DB4-DB7, optional R/W).
+ *
+ *          Send procedure for one nibble (4-bit LCD mode over SPI):
+ *            1. Shift out a byte with the data nibble and E=0, latch it.
+ *            2. Shift out the same byte but with E=1, latch it.
+ *            3. Shift out the byte with E=0 again, latch it.
+ *          This produces the E-pulse the HD44780 expects.
+ *
+ *          Uses the HAL SSP driver directly (not pic8-bus), because the
+ *          595 isn't a register-addressed device -- it's a raw shift
+ *          register with a single latch pin.
+ */
+
+#include "pic8_lcd.h"
+#include "pic8_hal.h"
+#include "pic8_tick.h"
+
+typedef struct {
+    const pic8_lcd_spi_layout_t *layout;
+    GPIO_TypeDef                 cs_port;
+    uint16_t                     cs_pin;
+} spi_ctx_t;
+
+static uint8_t make_595_byte(const pic8_lcd_spi_layout_t *l,
+                             uint8_t rs, uint8_t nibble, bool e_asserted)
+{
+    uint8_t b = 0;
+
+    if (rs)          b |= (uint8_t)(1u << l->rs_bit);
+    if (e_asserted)  b |= (uint8_t)(1u << l->e_bit);
+
+    if (nibble & 0x01u) b |= (uint8_t)(1u << l->db4_bit);
+    if (nibble & 0x02u) b |= (uint8_t)(1u << l->db5_bit);
+    if (nibble & 0x04u) b |= (uint8_t)(1u << l->db6_bit);
+    if (nibble & 0x08u) b |= (uint8_t)(1u << l->db7_bit);
+
+    return b;
+}
+
+static void spi_latch(spi_ctx_t *s)
+{
+    HAL_GPIO_WritePin(s->cs_port, s->cs_pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(s->cs_port, s->cs_pin, GPIO_PIN_RESET);
+}
+
+static void spi_send_nibble(spi_ctx_t *s, uint8_t rs, uint8_t nibble)
+{
+    const pic8_lcd_spi_layout_t *l = s->layout;
+    uint8_t base = make_595_byte(l, rs, nibble, false);
+
+    /* E=0: data setup */
+    HAL_SSP_WriteByte(base);
+    spi_latch(s);
+
+    /* E=1: write strobe */
+    HAL_SSP_WriteByte((uint8_t)(base | (1u << l->e_bit)));
+    spi_latch(s);
+
+    /* E=0: end of strobe */
+    HAL_SSP_WriteByte(base);
+    spi_latch(s);
+}
+
+static void spi_send(void *ctx, uint8_t rs, uint8_t byte)
+{
+    spi_ctx_t *s = (spi_ctx_t *)ctx;
+    spi_send_nibble(s, rs, (uint8_t)(byte >> 4u));
+    spi_send_nibble(s, rs, (uint8_t)(byte & 0x0Fu));
+}
+
+static void spi_delay_us(void *ctx, uint32_t us)
+{
+    (void)ctx;
+    if (us >= 1000u) {
+        pic8_tick_delay_ms(us / 1000u);
+    }
+}
+
+static void spi_delay_ms(void *ctx, uint32_t ms)
+{
+    (void)ctx;
+    pic8_tick_delay_ms(ms);
+}
+
+const pic8_lcd_spi_layout_t PIC8_LCD_SPI_LAYOUT_COMMON = {
+    .db4_bit = 0,
+    .db5_bit = 1,
+    .db6_bit = 2,
+    .db7_bit = 3,
+    .rs_bit  = 4,
+    .e_bit   = 5,
+    .rw_bit  = 6,
+};
+
+void pic8_lcd_spi_init(pic8_lcd_ops_t *ops, void **ctx,
+                       const pic8_lcd_spi_config_t *config,
+                       const pic8_lcd_spi_layout_t *layout)
+{
+    static spi_ctx_t s;
+    s.layout  = layout;
+    s.cs_port = config->cs_port;
+    s.cs_pin  = config->cs_pin;
+
+    SSP_HandleTypeDef h = SSP_HANDLE_DEFAULT;
+    h.Mode = SSP_MODE_SPI_MASTER_FOSC_64;
+    HAL_SSP_Init(&h);
+
+    HAL_GPIO_Init(s.cs_port, s.cs_pin, GPIO_MODE_OUTPUT);
+    HAL_GPIO_WritePin(s.cs_port, s.cs_pin, GPIO_PIN_RESET);
+
+    ops->send     = spi_send;
+    ops->delay_us = spi_delay_us;
+    ops->delay_ms = spi_delay_ms;
+    *ctx = &s;
+}
