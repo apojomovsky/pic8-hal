@@ -56,9 +56,12 @@ actually per-family.
 
 ## Conventions
 
-- Commits: `type(scope): summary`, types are `feat`, `docs`, `plan`,
-  `fix`, `refactor`, `style`. Scope is usually the module
-  (`feat(pic8-lcd): ...`) or `phaseN` for multi-family work.
+- **Commit whenever a piece of work is finished**, using Conventional
+  Commits (`type(scope): summary`, types `feat`, `docs`, `plan`, `fix`,
+  `refactor`, `style`). Scope is usually the module (`feat(pic8-lcd):
+  ...`) or `phaseN` for multi-family work. Don't batch unrelated changes
+  into one commit, split them and commit each as its own piece of work
+  finishes.
 - Non-trivial work gets a plan doc first: `docs/<name>-plan.md`, a
   `Status:` line, explicit **solved vs. pending** framing when design
   validation happens before implementation.
