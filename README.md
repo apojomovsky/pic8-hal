@@ -174,10 +174,12 @@ crystal, then program with MPLAB X or any programmer. See the task manager
 
 ## Development
 
-`./scripts/install-git-hooks.sh` installs a pre-commit hook (trailing
-newline/whitespace, no-em-dash, `cppcheck` on staged `.c` files), see
-[scripts/README.md](scripts/README.md) for what it checks and why
-`clang-format` isn't part of it yet.
+`./scripts/bootstrap.sh` sets up a fresh clone: installs the host
+toolchain the CMake builds need (`cmake`, `cppcheck`, ...) and the
+pre-commit hook (trailing newline/whitespace, no-em-dash, `cppcheck` on
+staged `.c` files). `--check-only` reports what's missing without
+installing anything. See [scripts/README.md](scripts/README.md) for
+what the hook checks and why `clang-format` isn't part of it yet.
 
 ## License
 

@@ -1,6 +1,26 @@
-# Pre-commit checks
+# Dev environment scripts
 
-A `pre-commit` git hook, installed once per clone:
+## Bootstrap
+
+```sh
+./scripts/bootstrap.sh              # install missing host packages + the git hook
+./scripts/bootstrap.sh --check-only # report what's missing, install nothing,
+                                     # exit nonzero if anything is missing
+```
+
+One-time (idempotent) setup for a fresh clone: installs the host toolchain
+the CMake builds need (`cmake`, `build-essential`, `cppcheck`,
+`clang-format`, via `apt-get`, so Debian/Ubuntu; other package managers
+get a printed package list instead of an auto-install), then runs
+`install-git-hooks.sh` below. Also checks whether `xc8-cc` is on `PATH`
+and points at the README if it isn't. Real-target (XC8) builds need
+MPLAB X + MPLAB XC8 v3.x installed manually (proprietary, license-gated,
+an interactive installer, not something this script attempts); host
+builds work fine without it.
+
+## Pre-commit hook
+
+Installed on its own, or as part of `bootstrap.sh` above:
 
 ```sh
 ./scripts/install-git-hooks.sh
@@ -11,7 +31,7 @@ This symlinks `.git/hooks/pre-commit` to `scripts/pre-commit-checks.sh`
 installer once). Uninstall by deleting `.git/hooks/pre-commit`, or skip it
 for one commit with `git commit --no-verify`.
 
-## What it checks
+### What it checks
 
 1. **Trailing newline / trailing whitespace.** Auto-fixes the working-tree
    file, then blocks the commit and asks you to `git diff`, review, and
@@ -36,7 +56,7 @@ for one commit with `git commit --no-verify`.
    module as dead code. Skipped with a notice if `cppcheck` isn't
    installed.
 
-## What it deliberately does not check yet: `clang-format`
+### What it deliberately does not check yet: `clang-format`
 
 A starter `.clang-format` is in the repo root, but it is **not** wired
 into the hook. Tested against a real file (`pic8-pid/src/pid.c`) before
@@ -57,7 +77,7 @@ enough to stop fighting this codebase's style (or deciding to reformat
 the codebase once and live with the new style going forward) is future
 work, not done here.
 
-## Manual run
+### Manual run
 
 ```sh
 git add <files>
