@@ -172,6 +172,13 @@ crystal, then program with MPLAB X or any programmer. See the task manager
   Family Pack installed (the PIC16Fxxx DFP ships with XC8; the PIC18Fxxxx DFP
   does not, see [pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md](pic18fxx5x-hal/mcu/pic18fxx5x-mplabx/README.md)).
 
+## Development
+
+`./scripts/install-git-hooks.sh` installs a pre-commit hook (trailing
+newline/whitespace, no-em-dash, `cppcheck` on staged `.c` files), see
+[scripts/README.md](scripts/README.md) for what it checks and why
+`clang-format` isn't part of it yet.
+
 ## License
 
 MIT; see [LICENSE](LICENSE).
