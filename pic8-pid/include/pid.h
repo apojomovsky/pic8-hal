@@ -76,6 +76,13 @@ typedef struct {
     bool       have_prev_measurement; /* false until the first pid_update() call
                                         * since init/reset -- gates the D term so
                                         * there is no spurious kick on the first call */
+    bool       skip_next_i_increment; /* true after a MANUAL pid_update that
+                                        * back-calculated the integrator: the
+                                        * next AUTO call must NOT apply the I
+                                        * increment, so its output equals the
+                                        * held manual value exactly (the
+                                        * bumpless-transfer property). Cleared
+                                        * by the AUTO call that consumes it. */
     pid_mode_t mode;
     int16_t    manual_output;         /* caller-set target output while mode == MANUAL */
 } pid_t;
