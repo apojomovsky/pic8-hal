@@ -371,6 +371,51 @@ others 8-bit; out-of-range bits in `pins` are masked off.
 - Pull-ups are PORTB-only and controlled by `OPTION_REG<RBPU>`, which is
   inverted (`RBPU=1` disables). `HAL_GPIO_SetPullups` handles that.
 
+### 9.4 PORTB change interrupt (RB<7:4>)
+
+*DS39582B §14.11.3, INTCON<RBIF>/<RBIE>.*
+
+A whole-port callback hook for the RB<7:4> interrupt-on-change source,
+the same shape as Timer2's one-callback-per-handle but simpler (there is
+only one PORTB, so no handle struct). Added so family-agnostic modules
+(notably `pic8-encoder`) can consume the RB-change interrupt without a
+family-specific include; the family-neutral shim `peripherals/hal_gpio.h`
+pulls this header in.
+
+```c
+void HAL_GPIO_RegisterChangeCallback(void (*callback)(uint8_t portb_value));
+void RB_IRQHandler(void) PIC8_WEAK;
+```
+
+`HAL_GPIO_RegisterChangeCallback` stores one callback slot (NULL is safe,
+the handler no-ops). `RB_IRQHandler` is the weak ISR the dispatcher fans
+out to; the default body reads PORTB, clears RBIF, then calls the
+registered callback with that already-read byte.
+
+**Read before clear, mandatory.** The mismatch comparator latches the
+value of PORTB at the last CPU read, so reading PORTB is what ends the
+current mismatch condition and re-arms the next one. Clearing RBIF first
+(or not reading at all) risks an immediate spurious re-interrupt or a
+silently-missed change. The handler therefore reads PORTB into a local
+*before* `HAL_IRQ_ClearFlag`, and the callback receives that already-read
+value, never a second later read (which by then may not reflect the byte
+the mismatch logic cleared against). Do not reorder this.
+
+The dispatcher calls `RB_IRQHandler` on every interrupt (it checks RBIF
+and returns immediately when not pending), so it costs only a flag test
+when the source is idle. To arm it on a real target, also
+`HAL_IRQ_Enable(PIC16_IRQ_RB)` and `HAL_IRQ_Restore(1)`.
+
+**Host sim.** The sim does not auto-assert RBIF on a PORTB mismatch
+(faithfully modeling the datasheet "snapshot on every PORTB read" would
+require intercepting every CPU read of PORTB through the `PIC8_REG8`
+macro, disproportionate for the one feature that needs it). Tests that
+exercise the handler assert RBIF directly in INTCON, then call
+`RB_IRQHandler` / `pic8_dispatch_all_irqs` and check the callback's byte
+and the post-call flag state. This proves the handler's read/clear/callback
+ordering, the part that actually matters. See
+`tests/example_rb_change.c` and `pic8-encoder/docs/ARCHITECTURE.md`.
+
 ---
 
 ## 10. Timer0

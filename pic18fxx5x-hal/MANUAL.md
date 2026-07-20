@@ -318,6 +318,57 @@ PORTA is 6-bit (RA0-RA5), PORTE is 3-bit; PORTD/PORTE exist only on
 40/44-pin parts (18F4455/4550). Direction is `TRISx` (1 = input, 0 =
 output), same encoding as PIC16.
 
+### 8.1 PORTB change interrupt (RB<7:4>)
+
+*DS39632E §9.0 / §10.2, INTCON<RBIF>/<RBIE>.*
+
+Same names/signatures as PIC16F87XA's hook (the fixed contract across
+families), PIC18 register-level body. A whole-port callback for the
+RB<7:4> interrupt-on-change source, the same shape as Timer2's
+one-callback-per-handle but simpler (there is only one PORTB, so no
+handle struct). Added so family-agnostic modules (notably `pic8-encoder`)
+can consume the RB-change interrupt without a family-specific include;
+the family-neutral shim `peripherals/hal_gpio.h` pulls this header in.
+
+```c
+void HAL_GPIO_RegisterChangeCallback(void (*callback)(uint8_t portb_value));
+void RB_IRQHandler(void) PIC8_WEAK;
+```
+
+`HAL_GPIO_RegisterChangeCallback` stores one callback slot (NULL is safe,
+the handler no-ops). `RB_IRQHandler` is the weak ISR the dispatcher fans
+out to; the default body reads PORTB, clears RBIF, then calls the
+registered callback with that already-read byte. On PIC18 the RB source
+also has a priority bit (`INTCON2<RBIP>`), set via
+`HAL_IRQ_SetPriority(PIC18_IRQ_RB, prio)`; it defaults to high priority
+after reset like every other source (INTCON2 resets to all-ones,
+DS39632E Table 5-1), and only takes effect in priority mode (`IPEN = 1`,
+the mode `HAL_IRQ_Restore` enables).
+
+**Read before clear, mandatory.** The mismatch comparator latches the
+value of PORTB at the last CPU read, so reading PORTB is what ends the
+current mismatch condition and re-arms the next one. Clearing RBIF first
+(or not reading at all) risks an immediate spurious re-interrupt or a
+silently-missed change. The handler therefore reads PORTB into a local
+*before* `HAL_IRQ_ClearFlag`, and the callback receives that already-read
+value, never a second later read (which by then may not reflect the byte
+the mismatch logic cleared against). Do not reorder this.
+
+The dispatcher calls `RB_IRQHandler` on every interrupt (it checks RBIF
+and returns immediately when not pending), so it costs only a flag test
+when the source is idle. To arm it on a real target, also
+`HAL_IRQ_Enable(PIC18_IRQ_RB)` and `HAL_IRQ_Restore(1)`.
+
+**Host sim.** The sim does not auto-assert RBIF on a PORTB mismatch
+(faithfully modeling the datasheet "snapshot on every PORTB read" would
+require intercepting every CPU read of PORTB through the `PIC8_REG8`
+macro, disproportionate for the one feature that needs it). Tests that
+exercise the handler assert RBIF directly in INTCON, then call
+`RB_IRQHandler` / `pic8_dispatch_all_irqs` and check the callback's byte
+and the post-call flag state. This proves the handler's read/clear/callback
+ordering, the part that actually matters. See
+`tests/example_rb_change.c` and `pic8-encoder/docs/ARCHITECTURE.md`.
+
 ## 9. Timer0
 
 *DS39632E §11.0, Register 11-1 (T0CON), Table 11-1 (prescaler encoding).*
