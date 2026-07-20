@@ -59,11 +59,13 @@ endif()
 # pic8-pid for example_encoder_pid_loop (the direct demonstration of this
 # module's purpose: encoder_get_position() fed into pid_update()). pic8-pid
 # is itself HAL-free (it links only pic8-math), and pulls pic8-math in itself.
+# (Pulled in Phase 2 alongside example_encoder_pid_loop; commented out in
+# Phase 1 so the test builds standalone.)
 set(PID_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../pic8-pid
     CACHE PATH "Path to the pic8-pid source tree")
-if(NOT TARGET pid)
-    add_subdirectory(${PID_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pid)
-endif()
+# if(NOT TARGET pid)
+#     add_subdirectory(${PID_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pid)
+# endif()
 
 add_library(encoder STATIC src/encoder.c)
 target_include_directories(encoder PUBLIC
@@ -77,11 +79,11 @@ add_executable(test_encoder tests/test_encoder.c)
 target_link_libraries(test_encoder PRIVATE encoder)
 add_test(NAME encoder_tests COMMAND test_encoder)
 
-# ---- examples ----
-add_executable(example_encoder_hal examples/example_encoder_hal.c)
-target_compile_definitions(example_encoder_hal PRIVATE -D${DEFAULT_DEVICE} -DFOSC_HZ=${DEFAULT_FOSC_HZ})
-target_link_libraries(example_encoder_hal PRIVATE encoder)
-
-add_executable(example_encoder_pid_loop examples/example_encoder_pid_loop.c)
-target_compile_definitions(example_encoder_pid_loop PRIVATE -D${DEFAULT_DEVICE} -DFOSC_HZ=${DEFAULT_FOSC_HZ})
-target_link_libraries(example_encoder_pid_loop PRIVATE encoder pid)
+# ---- examples (added in Phase 2; disabled here so Phase 1 builds green) ----
+# add_executable(example_encoder_hal examples/example_encoder_hal.c)
+# target_compile_definitions(example_encoder_hal PRIVATE -D${DEFAULT_DEVICE} -DFOSC_HZ=${DEFAULT_FOSC_HZ})
+# target_link_libraries(example_encoder_hal PRIVATE encoder)
+#
+# add_executable(example_encoder_pid_loop examples/example_encoder_pid_loop.c)
+# target_compile_definitions(example_encoder_pid_loop PRIVATE -D${DEFAULT_DEVICE} -DFOSC_HZ=${DEFAULT_FOSC_HZ})
+# target_link_libraries(example_encoder_pid_loop PRIVATE encoder pid)
