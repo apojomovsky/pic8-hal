@@ -4,6 +4,7 @@
  */
 
 #include "peripherals/pic16f87xa_gpio.h"
+#include "core/pic16_irq.h"
 
 /**
  * @brief  Map a GPIO_TypeDef to the address of its TRIS register.
@@ -143,4 +144,31 @@ void HAL_GPIO_SetPullups(GPIO_PullTypeDef pull)
         PIC8_BIT_SET(opt, (uint8_t)0x80);    /* RBPU = 1 → disabled */
     }
     PIC8_REG8(PIC_REG_OPTION) = opt;
+}
+
+/* ───────────────────────── PORTB change interrupt ───────────────────── */
+
+/* One callback slot for the whole-port RB<7:4> change interrupt. There is
+ * only one PORTB, so there is no handle struct (mirrors Timer2's
+ * one-callback-per-handle shape but simpler). NULL = unregistered/no-op. */
+static void (*s_rb_change_callback)(uint8_t) = NULL;
+
+void HAL_GPIO_RegisterChangeCallback(void (*callback)(uint8_t))
+{
+    s_rb_change_callback = callback;
+}
+
+void RB_IRQHandler(void)
+{
+    if (!HAL_IRQ_GetFlag(PIC16_IRQ_RB)) return;
+
+    /* MUST read PORTB before clearing RBIF, DS39582B §14.11.3: the mismatch
+     * comparator latches the value at the last CPU read of PORTB, so the
+     * read is what ends the current mismatch condition and re-arms the next
+     * one. Clearing the flag first (or not reading at all) risks an
+     * immediate spurious re-interrupt or a silently-missed change. The
+     * callback gets this already-read byte, never a second later read. */
+    uint8_t portb = PIC8_REG8(PIC_REG_PORTB);
+    HAL_IRQ_ClearFlag(PIC16_IRQ_RB);
+    if (s_rb_change_callback) s_rb_change_callback(portb);
 }

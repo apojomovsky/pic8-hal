@@ -39,6 +39,7 @@ extern void USART_RX_IRQHandler(void);
 extern void COMP_IRQHandler(void);
 extern void EEPROM_IRQHandler(void);
 extern void ADC_IRQHandler(void);
+extern void RB_IRQHandler(void);
 #if PIC18FXX5X_FAMILY_HAS_SPP
 extern void SPP_IRQHandler(void);
 #endif
@@ -57,6 +58,7 @@ void pic8_dispatch_all_irqs(void)
     COMP_IRQHandler();
     EEPROM_IRQHandler();
     ADC_IRQHandler();
+    RB_IRQHandler();
 #if PIC18FXX5X_FAMILY_HAS_SPP
     SPP_IRQHandler();
 #endif

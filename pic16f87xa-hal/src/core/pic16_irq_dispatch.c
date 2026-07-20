@@ -39,6 +39,7 @@ extern void USART_TX_IRQHandler(void);
 extern void ADC_IRQHandler(void);
 extern void EEPROM_IRQHandler(void);
 extern void COMP_IRQHandler(void);
+extern void RB_IRQHandler(void);
 #if PIC16F87XA_FAMILY_HAS_PSP
 extern void PSP_IRQHandler(void);
 #endif
@@ -56,6 +57,7 @@ void pic8_dispatch_all_irqs(void)
     ADC_IRQHandler();
     EEPROM_IRQHandler();
     COMP_IRQHandler();
+    RB_IRQHandler();
 #if PIC16F87XA_FAMILY_HAS_PSP
     PSP_IRQHandler();
 #endif

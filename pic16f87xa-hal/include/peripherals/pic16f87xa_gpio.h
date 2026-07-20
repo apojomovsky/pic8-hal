@@ -147,4 +147,47 @@ uint8_t HAL_GPIO_ReadPort(GPIO_TypeDef port);
  */
 void HAL_GPIO_SetPullups(GPIO_PullTypeDef pull);
 
+/* ───────────────────────── PORTB change interrupt ─────────────────── */
+
+/**
+ * @brief  Register a single whole-port callback fired from the RB<7:4>
+ *         change interrupt (DS39582B §14.11.3, INTCON<RBIF>/<RBIE>).
+ *
+ * @param  callback  function called once per RB-change interrupt with the
+ *                   freshly-read PORTB byte, or NULL to unregister.
+ *
+ * @details
+ *   There is only ever one PORTB on this family, so (unlike Timer2's
+ *   per-handle callback) there is no handle struct: exactly one callback
+ *   slot, matching the one-`OverflowCallback`-per-handle shape but simpler.
+ *   NULL is safe (the handler no-ops). Fanning one received byte out to N
+ *   consumers (e.g. several `encoder_t` on different RB<7:4> pin pairs) is
+ *   application-level composition, not a HAL registry, exactly like
+ *   Timer2's one-callback-per-handle contract.
+ *
+ *   The handler reads PORTB *before* clearing RBIF (DS39582B §14.11.3: the
+ *   mismatch comparator latches the value at the last read, so reading
+ *   PORTB is what re-arms detection; clearing the flag first risks a
+ *   spurious re-interrupt or a silently-missed change). See @ref
+ *   RB_IRQHandler.
+ */
+void HAL_GPIO_RegisterChangeCallback(void (*callback)(uint8_t portb_value));
+
+/**
+ * @brief  Weak RB<7:4> change-interrupt ISR (DS39582B §14.11.3).
+ *
+ * @details
+ *   Mirrors every other `*_IRQHandler` in this HAL: weak so user code may
+ *   override it to add application logic, with a default body that clears
+ *   RBIF and forwards the already-read PORTB byte to the callback
+ *   registered via @ref HAL_GPIO_RegisterChangeCallback.
+ *
+ *   The read/clear order is mandatory, not stylistic: PORTB is read into a
+ *   local *before* RBIF is cleared, then the callback receives that
+ *   already-read value (never a second, later read, which by then may not
+ *   reflect the byte the mismatch logic cleared against). This is the
+ *   datasheet "read PORTB to end the mismatch condition" sequence.
+ */
+void RB_IRQHandler(void) PIC8_WEAK;
+
 #endif /* PIC16F87XA_GPIO_H */
